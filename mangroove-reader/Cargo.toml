@@ -11,3 +11,9 @@ vortex-datafusion = "0.54.0"
 datafusion = "50.3.0"
 arrow-array = "56.2.0"
 async-trait = "0.1.89"
+prost = "0.14.1"
+tonic = "0.14.2"
+tonic-prost = "0.14.2"
+
+[build-dependencies]
+tonic-prost-build = "*"

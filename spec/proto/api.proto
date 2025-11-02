@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package mangroove.api;
+
+service SnapshotService {
+  rpc GetSnapshot(GetSnapshotRequest) returns (GetSnapshotResponse) {};
+}
+
+message GetSnapshotRequest {
+
+}
+
+message GetSnapshotResponse {
+  Snapshot snapshot = 1;
+}
+
+message Snapshot {
+  repeated File files = 1;
+}
+
+message File {
+  string name = 1;
+  int64 size = 2;
+}

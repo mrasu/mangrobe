@@ -1,4 +1,4 @@
-use crate::files_info::get_files_info;
+use crate::grpc::api_client::ApiClient;
 use async_trait::async_trait;
 use datafusion::arrow::datatypes::{DataType, Field, Schema, SchemaRef};
 use datafusion::catalog::Session;
@@ -8,16 +8,18 @@ use datafusion::datasource::listing::PartitionedFile;
 use datafusion::datasource::object_store::ObjectStoreUrl;
 use datafusion::datasource::physical_plan::{FileGroup, FileScanConfigBuilder};
 use datafusion::datasource::{TableProvider, TableType};
+use datafusion::error::DataFusionError;
 use datafusion::logical_expr::Expr;
 use datafusion::physical_plan::ExecutionPlan;
 use std::any::Any;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 use vortex::session::VortexSession;
 use vortex_datafusion::VortexFormat;
 
 #[derive(Debug)]
 pub struct VortexProvider {
+    api_client: ApiClient,
     object_store_url: ObjectStoreUrl,
     format: VortexFormat,
     base_path: PathBuf,
@@ -48,17 +50,25 @@ impl TableProvider for VortexProvider {
         filters: &[Expr],
         limit: Option<usize>,
     ) -> Result<Arc<dyn ExecutionPlan>> {
-        let files = get_files_info()
+        let response = self
+            .api_client
+            .fetch_snapshot()
             .await
-            .files
+            .map_err(|e| DataFusionError::External(e.into()))?;
+        let files: Vec<_> = response
+            .get_ref()
+            .snapshot
+            .as_ref()
             .iter()
+            .flat_map(|s| s.files.iter())
             .map(|f| {
                 PartitionedFile::new(
                     self.base_path.join(f.name.clone()).to_string_lossy(),
-                    f.size,
+                    f.size as u64,
                 )
             })
             .collect();
+
         let scan_config = FileScanConfigBuilder::new(
             self.object_store_url.clone(),
             self.schema(),
@@ -71,9 +81,14 @@ impl TableProvider for VortexProvider {
 }
 
 impl VortexProvider {
-    pub(crate) fn new(object_store_url: &ObjectStoreUrl, base_path: &PathBuf) -> Result<Self> {
+    pub(crate) fn new(
+        api_client: ApiClient,
+        object_store_url: &ObjectStoreUrl,
+        base_path: &PathBuf,
+    ) -> Result<Self> {
         let format = VortexFormat::new(Arc::new(VortexSession::default()));
         Ok(Self {
+            api_client,
             object_store_url: object_store_url.clone(),
             format,
             base_path: base_path.clone(),
