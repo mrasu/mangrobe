@@ -3,5 +3,5 @@
 members = [
   "mangroove-api-server",
   "mangroove-api-server/migration",
-  "mangroove-reader",
+  "mangroove-db",
 ]

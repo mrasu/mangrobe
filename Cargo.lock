@@ -3167,14 +3167,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "mangroove-reader"
+name = "mangroove-db"
 version = "0.1.0"
 dependencies = [
  "arrow-array",
  "async-trait",
+ "clap",
  "datafusion",
  "object_store",
  "prost",
+ "tempfile",
  "tokio",
  "tonic",
  "tonic-prost",

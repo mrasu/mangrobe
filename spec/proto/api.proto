@@ -6,9 +6,11 @@ service SnapshotService {
   rpc GetSnapshot(GetSnapshotRequest) returns (GetSnapshotResponse) {};
 }
 
-message GetSnapshotRequest {
-
+service ActionService {
+  rpc ChangeFiles(ChangeFilesRequest) returns (ChangeFilesResponse);
 }
+
+message GetSnapshotRequest {}
 
 message GetSnapshotResponse {
   Snapshot snapshot = 1;
@@ -21,4 +23,20 @@ message Snapshot {
 message File {
   string path = 1;
   int64 size = 2;
+}
+
+message ChangeFilesRequest {
+  // Must be shorter than 32 characters
+  string idempotency_key = 1;
+
+  repeated AddedFile added_files = 2;
+}
+
+message AddedFile {
+  string path = 1;
+  int64 size = 2;
+}
+
+message ChangeFilesResponse {
+  int64 ChangeLogId = 1;
 }

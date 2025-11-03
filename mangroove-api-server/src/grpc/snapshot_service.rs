@@ -1,4 +1,4 @@
-use crate::application::snapshot::SnapshotUseCase;
+use crate::application::snapshot_use_case::SnapshotUseCase;
 use crate::grpc::proto::{
     File, GetSnapshotRequest, GetSnapshotResponse, Snapshot, snapshot_service_server,
 };

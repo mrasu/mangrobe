@@ -7,26 +7,58 @@ use crate::grpc::api_client::ApiClient;
 use crate::infrastructure::s3::store::create_rustfs;
 use crate::prepare::prepare;
 use crate::vortex_provider::VortexProvider;
+use clap::{Parser, Subcommand};
 use datafusion::datasource::object_store::ObjectStoreUrl;
 use datafusion::prelude::SessionContext;
+use object_store::ObjectStore;
+use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::{env, fs};
+use vortex::dtype::arrow::FromArrowType;
+use vortex_array::arrow::FromArrowArray;
 use vortex_array::{ArrayVisitor, IntoArray, ToCanonical};
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[command(subcommand)]
+    subcommand: SubCommands,
+}
+
+#[derive(Debug, Subcommand)]
+enum SubCommands {
+    Serve {
+        #[command(subcommand)]
+        command: ServeCommands,
+    },
+    Prepare,
+}
+
+#[derive(Debug, Subcommand)]
+enum ServeCommands {
+    Reader,
+    Writer,
+}
 
 #[tokio::main]
 async fn main() {
-    let dir = &data_dir().unwrap();
-    if !dir.exists() {
-        fs::create_dir(dir).unwrap();
-        prepare(dir).await.unwrap();
-    }
-    run_query().await.unwrap();
-}
+    let args = Args::parse();
 
-fn data_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
-    let d = env::current_dir()?.join("mangroove-reader").join("data");
-    Ok(d)
+    match args.subcommand {
+        SubCommands::Serve { command } => match command {
+            ServeCommands::Reader => {
+                // TODO: serve
+                run_query().await.unwrap();
+            }
+            ServeCommands::Writer => {
+                // TODO: write more or serve
+                prepare().await.unwrap();
+            }
+        },
+        SubCommands::Prepare => {
+            prepare().await.unwrap();
+        }
+    }
 }
 
 async fn run_query() -> Result<(), Box<dyn std::error::Error>> {

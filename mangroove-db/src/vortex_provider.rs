@@ -12,7 +12,6 @@ use datafusion::error::DataFusionError;
 use datafusion::logical_expr::Expr;
 use datafusion::physical_plan::ExecutionPlan;
 use std::any::Any;
-use std::path::PathBuf;
 use std::sync::Arc;
 use vortex::session::VortexSession;
 use vortex_datafusion::VortexFormat;

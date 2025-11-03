@@ -3,32 +3,29 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "delta_files")]
+#[sea_orm(table_name = "change_commits")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
-    pub delta_log_id: i64,
-    pub path: String,
-    pub size: i64,
-    pub created_at: DateTimeWithTimeZone,
-    pub updated_at: DateTimeWithTimeZone,
+    pub change_request_id: i64,
+    pub committed_at: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
-        belongs_to = "super::delta_logs::Entity",
-        from = "Column::DeltaLogId",
-        to = "super::delta_logs::Column::Id",
+        belongs_to = "super::change_requests::Entity",
+        from = "Column::ChangeRequestId",
+        to = "super::change_requests::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    DeltaLogs,
+    ChangeRequests,
 }
 
-impl Related<super::delta_logs::Entity> for Entity {
+impl Related<super::change_requests::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::DeltaLogs.def()
+        Relation::ChangeRequests.def()
     }
 }
 

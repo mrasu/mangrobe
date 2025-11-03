@@ -8,51 +8,6 @@ pub struct Migration;
 impl MigrationTrait for Migration {
     async fn up(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .create_table(
-                Table::create()
-                    .table(DeltaLog::Table)
-                    .if_not_exists()
-                    .col(
-                        big_integer(DeltaLog::Id)
-                            .auto_increment()
-                            .primary_key()
-                            .take(),
-                    )
-                    .col(
-                        timestamp_with_time_zone(DeltaLog::CreatedAt)
-                            .default(Expr::current_timestamp()),
-                    )
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_table(
-                Table::create()
-                    .table(DeltaFile::Table)
-                    .if_not_exists()
-                    .col(
-                        big_integer(DeltaFile::Id)
-                            .auto_increment()
-                            .primary_key()
-                            .take(),
-                    )
-                    .col(big_integer(DeltaFile::DeltaLogId))
-                    .col(string(DeltaFile::Path))
-                    .col(big_integer(DeltaFile::Size))
-                    .col(
-                        timestamp_with_time_zone(DeltaFile::CreatedAt)
-                            .default(Expr::current_timestamp()),
-                    )
-                    .col(
-                        timestamp_with_time_zone(DeltaFile::UpdatedAt)
-                            .default(Expr::current_timestamp()),
-                    )
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
             .get_connection()
             .execute(Statement::from_string(
                 manager.get_database_backend(),
@@ -70,6 +25,30 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
+            .create_table(
+                Table::create()
+                    .table(ChangeRequest::Table)
+                    .if_not_exists()
+                    .col(
+                        big_integer(ChangeRequest::Id)
+                            .auto_increment()
+                            .primary_key()
+                            .take(),
+                    )
+                    .col(string(ChangeRequest::IdempotencyKey).string_len(32))
+                    .col(
+                        timestamp_with_time_zone(ChangeRequest::CreatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(
+                        timestamp_with_time_zone(ChangeRequest::UpdatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
             .get_connection()
             .execute(Statement::from_string(
                 manager.get_database_backend(),
@@ -80,7 +59,80 @@ impl MigrationTrait for Migration {
                 FOR EACH ROW
                 EXECUTE FUNCTION update_timestamp();
                 "#,
-                    DeltaFile::Table.to_string()
+                    ChangeRequest::Table.to_string()
+                )
+                .to_owned(),
+            ))
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(ChangeCommit::Table)
+                    .if_not_exists()
+                    .col(
+                        big_integer(ChangeCommit::Id)
+                            .auto_increment()
+                            .primary_key()
+                            .take(),
+                    )
+                    .col(big_integer(ChangeCommit::ChangeRequestId))
+                    .col(
+                        timestamp_with_time_zone(ChangeCommit::CommittedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_foreign_key(
+                ForeignKey::create()
+                    .name("fk_change_requests_change_commits")
+                    .from(ChangeCommit::Table, ChangeCommit::ChangeRequestId)
+                    .to(ChangeRequest::Table, ChangeRequest::Id)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(ChangeRequestAddFile::Table)
+                    .if_not_exists()
+                    .col(
+                        big_integer(ChangeRequestAddFile::Id)
+                            .auto_increment()
+                            .primary_key()
+                            .take(),
+                    )
+                    .col(big_integer(ChangeRequestAddFile::ChangeRequestId))
+                    .col(string(ChangeRequestAddFile::Path))
+                    .col(big_integer(ChangeRequestAddFile::Size))
+                    .col(
+                        timestamp_with_time_zone(ChangeRequestAddFile::CreatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(
+                        timestamp_with_time_zone(ChangeRequestAddFile::UpdatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .get_connection()
+            .execute(Statement::from_string(
+                manager.get_database_backend(),
+                format!(
+                    r#"
+                CREATE TRIGGER trigger_update_updated_at
+                BEFORE UPDATE ON {}
+                FOR EACH ROW
+                EXECUTE FUNCTION update_timestamp();
+                "#,
+                    ChangeRequestAddFile::Table.to_string()
                 )
                 .to_owned(),
             ))
@@ -89,9 +141,12 @@ impl MigrationTrait for Migration {
         manager
             .create_foreign_key(
                 ForeignKey::create()
-                    .name("fk_delta_log_delta_file")
-                    .from(DeltaFile::Table, DeltaFile::DeltaLogId)
-                    .to(DeltaLog::Table, DeltaLog::Id)
+                    .name("fk_change_request_change_request_add_files")
+                    .from(
+                        ChangeRequestAddFile::Table,
+                        ChangeRequestAddFile::ChangeRequestId,
+                    )
+                    .to(ChangeRequest::Table, ChangeRequest::Id)
                     .to_owned(),
             )
             .await
@@ -99,28 +154,41 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(DeltaFile::Table).to_owned())
+            .drop_table(Table::drop().table(ChangeRequestAddFile::Table).to_owned())
             .await?;
         manager
-            .drop_table(Table::drop().table(DeltaLog::Table).to_owned())
+            .drop_table(Table::drop().table(ChangeCommit::Table).to_owned())
             .await
     }
 }
 
+// TODO: add tenant
+
 #[derive(DeriveIden)]
-enum DeltaLog {
-    #[sea_orm(iden = "delta_logs")]
+enum ChangeRequest {
+    #[sea_orm(iden = "change_requests")]
     Table,
     Id,
+    IdempotencyKey,
     CreatedAt,
+    UpdatedAt,
 }
 
 #[derive(DeriveIden)]
-enum DeltaFile {
-    #[sea_orm(iden = "delta_files")]
+enum ChangeCommit {
+    #[sea_orm(iden = "change_commits")]
     Table,
     Id,
-    DeltaLogId,
+    ChangeRequestId,
+    CommittedAt,
+}
+
+#[derive(DeriveIden)]
+enum ChangeRequestAddFile {
+    #[sea_orm(iden = "change_request_add_files")]
+    Table,
+    Id,
+    ChangeRequestId,
     Path,
     Size,
     CreatedAt,

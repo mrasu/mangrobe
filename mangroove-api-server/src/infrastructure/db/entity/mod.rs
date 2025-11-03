@@ -2,5 +2,6 @@
 
 pub mod prelude;
 
-pub mod delta_files;
-pub mod delta_logs;
+pub mod change_commits;
+pub mod change_request_add_files;
+pub mod change_requests;
