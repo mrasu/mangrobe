@@ -14,6 +14,7 @@ async-trait = "0.1.89"
 prost = "0.14.1"
 tonic = "0.14.2"
 tonic-prost = "0.14.2"
+object_store = { version = "0.12.4", features = ["aws"] }
 
 [build-dependencies]
 tonic-prost-build = "*"

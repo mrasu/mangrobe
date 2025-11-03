@@ -22,7 +22,6 @@ pub struct VortexProvider {
     api_client: ApiClient,
     object_store_url: ObjectStoreUrl,
     format: VortexFormat,
-    base_path: PathBuf,
 }
 
 #[async_trait]
@@ -61,12 +60,7 @@ impl TableProvider for VortexProvider {
             .as_ref()
             .iter()
             .flat_map(|s| s.files.iter())
-            .map(|f| {
-                PartitionedFile::new(
-                    self.base_path.join(f.name.clone()).to_string_lossy(),
-                    f.size as u64,
-                )
-            })
+            .map(|f| PartitionedFile::new(f.path.clone(), f.size as u64))
             .collect();
 
         let scan_config = FileScanConfigBuilder::new(
@@ -81,17 +75,12 @@ impl TableProvider for VortexProvider {
 }
 
 impl VortexProvider {
-    pub(crate) fn new(
-        api_client: ApiClient,
-        object_store_url: &ObjectStoreUrl,
-        base_path: &PathBuf,
-    ) -> Result<Self> {
+    pub(crate) fn new(api_client: ApiClient, object_store_url: &ObjectStoreUrl) -> Result<Self> {
         let format = VortexFormat::new(Arc::new(VortexSession::default()));
         Ok(Self {
             api_client,
             object_store_url: object_store_url.clone(),
             format,
-            base_path: base_path.clone(),
         })
     }
 }
