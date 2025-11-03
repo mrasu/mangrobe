@@ -19,6 +19,6 @@ message Snapshot {
 }
 
 message File {
-  string name = 1;
+  string path = 1;
   int64 size = 2;
 }
