@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 package mangroove.api;
+import "google/protobuf/timestamp.proto";
 
 service SnapshotService {
   rpc GetSnapshot(GetSnapshotRequest) returns (GetSnapshotResponse) {};
@@ -26,10 +27,12 @@ message File {
 }
 
 message ChangeFilesRequest {
-  // Must be shorter than 32 characters
-  string idempotency_key = 1;
+  // Must be shorter than 16 byte
+  bytes idempotency_key = 1;
+  int64 tenant_id = 2;
+  google.protobuf.Timestamp partition_time = 3;
 
-  repeated AddedFile added_files = 2;
+  repeated AddedFile added_files = 4;
 }
 
 message AddedFile {

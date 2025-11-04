@@ -6,6 +6,7 @@ use crate::grpc::proto::{
 };
 use tonic::Response;
 use tonic::transport::Channel;
+use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct ApiClient {
@@ -38,7 +39,9 @@ impl ApiClient {
         added_files: Vec<AddedFile>,
     ) -> Result<Response<ChangeFilesResponse>, tonic::Status> {
         let request = tonic::Request::new(ChangeFilesRequest {
-            idempotency_key: "1111".to_string(),
+            idempotency_key: Uuid::now_v7().into(),
+            tenant_id: 0,
+            partition_time: prost_types::Timestamp::default().into(),
             added_files,
         });
 

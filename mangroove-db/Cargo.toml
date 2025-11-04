@@ -17,6 +17,8 @@ tonic-prost = "0.14.2"
 object_store = { version = "0.12.4", features = ["aws"] }
 clap = { version = "4.5.51", features = ["derive"] }
 tempfile = "3.23.0"
+uuid = { version = "1.18.1", features = ["v7"] }
+prost-types = "0.14.1"
 
 [build-dependencies]
 tonic-prost-build = "*"

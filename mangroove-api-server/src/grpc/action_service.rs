@@ -3,7 +3,8 @@ use crate::domain::change_log::{AddedFile, ChangedFiles};
 use crate::grpc::proto::{ChangeFilesRequest, ChangeFilesResponse, action_service_server};
 use crate::grpc::util::to_internal_error;
 use sea_orm::DatabaseConnection;
-use tonic::{Request, Response, Status};
+use sea_orm::sqlx::types::chrono::DateTime;
+use tonic::{Code, Request, Response, Status};
 
 pub struct ActionService {
     action_use_case: ActionUseCase,
@@ -29,9 +30,28 @@ impl action_service_server::ActionService for ActionService {
             .map(|f| AddedFile::new(f.path.clone(), f.size))
             .collect();
         let changed_files = &ChangedFiles::new(added_files);
+
+        let req_partition_time = req
+            .partition_time
+            .unwrap_or(prost_types::Timestamp::default());
+        let partition_time =
+            DateTime::from_timestamp(req_partition_time.seconds, req_partition_time.nanos as u32);
+
+        let Some(partition_time) = partition_time else {
+            return Err(Status::new(
+                Code::InvalidArgument,
+                "partition_time is invalid. out-of-range number of seconds or nanos",
+            ));
+        };
+
         let change_log_id = self
             .action_use_case
-            .change_files(req.idempotency_key.clone(), changed_files)
+            .change_files(
+                req.idempotency_key.clone(),
+                req.tenant_id,
+                partition_time,
+                changed_files,
+            )
             .await
             .map_err(to_internal_error)?;
 

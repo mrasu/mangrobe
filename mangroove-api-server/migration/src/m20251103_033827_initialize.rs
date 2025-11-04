@@ -35,7 +35,8 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .take(),
                     )
-                    .col(string(ChangeRequest::IdempotencyKey).string_len(32))
+                    .col(big_integer(ChangeRequest::TenantId))
+                    .col(timestamp_with_time_zone(ChangeRequest::PartitionTime))
                     .col(
                         timestamp_with_time_zone(ChangeRequest::CreatedAt)
                             .default(Expr::current_timestamp()),
@@ -68,6 +69,69 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
+                    .table(ChangeRequestIdempotencyKey::Table)
+                    .if_not_exists()
+                    .col(binary_len(ChangeRequestIdempotencyKey::Key, 16).primary_key())
+                    .col(big_integer(ChangeRequestIdempotencyKey::ChangeRequestId).unique_key())
+                    .col(
+                        timestamp_with_time_zone(ChangeRequestIdempotencyKey::CreatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(
+                        timestamp_with_time_zone(ChangeRequestIdempotencyKey::UpdatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(
+                        timestamp_with_time_zone(ChangeRequestIdempotencyKey::ExpiresAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_change_request_idempotency_key_change_request_id")
+                    .table(ChangeRequestIdempotencyKey::Table)
+                    .col(ChangeRequestIdempotencyKey::ChangeRequestId)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_foreign_key(
+                ForeignKey::create()
+                    .name("fk_change_requests_change_requests_idempotency_keys")
+                    .from(
+                        ChangeRequestIdempotencyKey::Table,
+                        ChangeRequestIdempotencyKey::ChangeRequestId,
+                    )
+                    .to(ChangeRequest::Table, ChangeRequest::Id)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .get_connection()
+            .execute(Statement::from_string(
+                manager.get_database_backend(),
+                format!(
+                    r#"
+                CREATE TRIGGER trigger_update_updated_at
+                BEFORE UPDATE ON {}
+                FOR EACH ROW
+                EXECUTE FUNCTION update_timestamp();
+                "#,
+                    ChangeRequestIdempotencyKey::Table.to_string()
+                )
+                .to_owned(),
+            ))
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
                     .table(ChangeCommit::Table)
                     .if_not_exists()
                     .col(
@@ -81,6 +145,16 @@ impl MigrationTrait for Migration {
                         timestamp_with_time_zone(ChangeCommit::CommittedAt)
                             .default(Expr::current_timestamp()),
                     )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_change_change_commits_change_request_id")
+                    .table(ChangeCommit::Table)
+                    .col(ChangeCommit::ChangeRequestId)
                     .to_owned(),
             )
             .await?;
@@ -139,6 +213,16 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
+            .create_index(
+                Index::create()
+                    .name("idx_change_request_add_file_change_request_id")
+                    .table(ChangeRequestAddFile::Table)
+                    .col(ChangeRequestAddFile::ChangeRequestId)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
             .create_foreign_key(
                 ForeignKey::create()
                     .name("fk_change_request_change_request_add_files")
@@ -162,16 +246,26 @@ impl MigrationTrait for Migration {
     }
 }
 
-// TODO: add tenant
-
 #[derive(DeriveIden)]
 enum ChangeRequest {
     #[sea_orm(iden = "change_requests")]
     Table,
     Id,
-    IdempotencyKey,
+    TenantId,
+    PartitionTime,
     CreatedAt,
     UpdatedAt,
+}
+
+#[derive(DeriveIden)]
+enum ChangeRequestIdempotencyKey {
+    #[sea_orm(iden = "change_request_idempotency_keys")]
+    Table,
+    Key,
+    ChangeRequestId,
+    CreatedAt,
+    UpdatedAt,
+    ExpiresAt,
 }
 
 #[derive(DeriveIden)]

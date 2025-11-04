@@ -2,4 +2,5 @@
 
 pub use super::change_commits::Entity as ChangeCommits;
 pub use super::change_request_add_files::Entity as ChangeRequestAddFiles;
+pub use super::change_request_idempotency_keys::Entity as ChangeRequestIdempotencyKeys;
 pub use super::change_requests::Entity as ChangeRequests;

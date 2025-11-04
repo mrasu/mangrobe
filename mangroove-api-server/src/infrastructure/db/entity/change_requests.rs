@@ -7,7 +7,8 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
-    pub idempotency_key: String,
+    pub tenant_id: i64,
+    pub partition_time: DateTimeWithTimeZone,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }
@@ -18,6 +19,8 @@ pub enum Relation {
     ChangeCommits,
     #[sea_orm(has_many = "super::change_request_add_files::Entity")]
     ChangeRequestAddFiles,
+    #[sea_orm(has_one = "super::change_request_idempotency_keys::Entity")]
+    ChangeRequestIdempotencyKeys,
 }
 
 impl Related<super::change_commits::Entity> for Entity {
@@ -29,6 +32,12 @@ impl Related<super::change_commits::Entity> for Entity {
 impl Related<super::change_request_add_files::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::ChangeRequestAddFiles.def()
+    }
+}
+
+impl Related<super::change_request_idempotency_keys::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::ChangeRequestIdempotencyKeys.def()
     }
 }
 
