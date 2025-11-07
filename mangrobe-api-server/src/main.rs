@@ -18,7 +18,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .init();
 
     // TODO: omit
-    let db = connect("postgres://postgres:@127.0.0.1:5432/mangroove-development".into()).await?;
+    let db = connect("postgres://postgres:@127.0.0.1:5432/mangrobe-development".into()).await?;
 
     run_api_server(&db).await?;
 

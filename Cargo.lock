@@ -3152,7 +3152,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "58093314a45e00c77d5c508f76e77c3396afbbc0d01506e7fae47b018bac2b1d"
 
 [[package]]
-name = "mangroove-api-server"
+name = "mangrobe-api-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -3173,7 +3173,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "mangroove-db"
+name = "mangrobe-db"
 version = "0.1.0"
 dependencies = [
  "anyhow",

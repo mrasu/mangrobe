@@ -63,7 +63,7 @@ async fn run_query() -> Result<(), anyhow::Error> {
         .await?;
     let api_client = ApiClient::new(conn);
 
-    let object_store_url = ObjectStoreUrl::parse("s3://mangroove-development")?;
+    let object_store_url = ObjectStoreUrl::parse("s3://mangrobe-development")?;
     let rustfs = create_rustfs()?;
     ctx.register_object_store(object_store_url.as_ref(), Arc::new(rustfs));
 

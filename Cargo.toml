@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
-  "mangroove-api-server",
-  "mangroove-api-server/migration",
-  "mangroove-db",
+  "mangrobe-api-server",
+  "mangrobe-api-server/migration",
+  "mangrobe-db",
 ]

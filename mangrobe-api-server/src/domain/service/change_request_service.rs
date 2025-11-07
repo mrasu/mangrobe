@@ -49,7 +49,6 @@ impl ChangeRequestService {
             .select_for_update(&txn, change_request)
             .await?;
         if status.is_completed(ChangeRequestStatus::ChangeInserted) {
-            txn.commit().await?;
             return Ok(());
         } else if !status.can_progress_to(ChangeRequestStatus::ChangeInserted) {
             bail!(MangobeError::UnexpectedStateChange(

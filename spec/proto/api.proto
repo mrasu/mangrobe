@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package mangroove.api;
+package mangrobe.api;
 import "google/protobuf/timestamp.proto";
 
 service DataManipulationService {
