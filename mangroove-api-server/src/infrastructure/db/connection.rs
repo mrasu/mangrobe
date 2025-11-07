@@ -1,7 +1,7 @@
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use std::time::Duration;
 
-pub async fn connect(url: String) -> Result<DatabaseConnection, Box<dyn std::error::Error>> {
+pub async fn connect(url: String) -> Result<DatabaseConnection, anyhow::Error> {
     let mut opt = ConnectOptions::new(url);
     opt.max_connections(100)
         .min_connections(5)

@@ -3,7 +3,7 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "change_request_add_files")]
+#[sea_orm(table_name = "change_request_file_add_entries")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,

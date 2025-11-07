@@ -1,4 +1,4 @@
-use crate::sea_orm::Statement;
+use crate::sea_orm::{DeriveActiveEnum, EnumIter, Iterable, Statement};
 use sea_orm_migration::{prelude::*, schema::*};
 
 #[derive(DeriveMigrationName)]
@@ -37,6 +37,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(big_integer(ChangeRequest::TenantId))
                     .col(timestamp_with_time_zone(ChangeRequest::PartitionTime))
+                    .col(integer(ChangeRequest::Status))
                     .col(
                         timestamp_with_time_zone(ChangeRequest::CreatedAt)
                             .default(Expr::current_timestamp()),
@@ -92,7 +93,11 @@ impl MigrationTrait for Migration {
         manager
             .create_index(
                 Index::create()
-                    .name("idx_change_request_idempotency_key_change_request_id")
+                    .name(format!(
+                        "idx_{}_{}",
+                        ChangeRequestIdempotencyKey::Table.to_string(),
+                        ChangeRequestIdempotencyKey::ChangeRequestId.to_string()
+                    ))
                     .table(ChangeRequestIdempotencyKey::Table)
                     .col(ChangeRequestIdempotencyKey::ChangeRequestId)
                     .to_owned(),
@@ -102,7 +107,11 @@ impl MigrationTrait for Migration {
         manager
             .create_foreign_key(
                 ForeignKey::create()
-                    .name("fk_change_requests_change_requests_idempotency_keys")
+                    .name(format!(
+                        "fk_{}_{}",
+                        ChangeRequestIdempotencyKey::Table.to_string(),
+                        ChangeRequest::Table.to_string()
+                    ))
                     .from(
                         ChangeRequestIdempotencyKey::Table,
                         ChangeRequestIdempotencyKey::ChangeRequestId,
@@ -152,7 +161,11 @@ impl MigrationTrait for Migration {
         manager
             .create_index(
                 Index::create()
-                    .name("idx_change_change_commits_change_request_id")
+                    .name(format!(
+                        "idx_{}_{}",
+                        ChangeCommit::Table.to_string(),
+                        ChangeCommit::ChangeRequestId.to_string()
+                    ))
                     .table(ChangeCommit::Table)
                     .col(ChangeCommit::ChangeRequestId)
                     .to_owned(),
@@ -162,7 +175,11 @@ impl MigrationTrait for Migration {
         manager
             .create_foreign_key(
                 ForeignKey::create()
-                    .name("fk_change_requests_change_commits")
+                    .name(format!(
+                        "fk_{}_{}",
+                        ChangeCommit::Table.to_string(),
+                        ChangeRequest::Table.to_string()
+                    ))
                     .from(ChangeCommit::Table, ChangeCommit::ChangeRequestId)
                     .to(ChangeRequest::Table, ChangeRequest::Id)
                     .to_owned(),
@@ -172,23 +189,23 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(ChangeRequestAddFile::Table)
+                    .table(ChangeRequestFileAddEntry::Table)
                     .if_not_exists()
                     .col(
-                        big_integer(ChangeRequestAddFile::Id)
+                        big_integer(ChangeRequestFileAddEntry::Id)
                             .auto_increment()
                             .primary_key()
                             .take(),
                     )
-                    .col(big_integer(ChangeRequestAddFile::ChangeRequestId))
-                    .col(string(ChangeRequestAddFile::Path))
-                    .col(big_integer(ChangeRequestAddFile::Size))
+                    .col(big_integer(ChangeRequestFileAddEntry::ChangeRequestId))
+                    .col(string(ChangeRequestFileAddEntry::Path))
+                    .col(big_integer(ChangeRequestFileAddEntry::Size))
                     .col(
-                        timestamp_with_time_zone(ChangeRequestAddFile::CreatedAt)
+                        timestamp_with_time_zone(ChangeRequestFileAddEntry::CreatedAt)
                             .default(Expr::current_timestamp()),
                     )
                     .col(
-                        timestamp_with_time_zone(ChangeRequestAddFile::UpdatedAt)
+                        timestamp_with_time_zone(ChangeRequestFileAddEntry::UpdatedAt)
                             .default(Expr::current_timestamp()),
                     )
                     .to_owned(),
@@ -206,7 +223,7 @@ impl MigrationTrait for Migration {
                 FOR EACH ROW
                 EXECUTE FUNCTION update_timestamp();
                 "#,
-                    ChangeRequestAddFile::Table.to_string()
+                    ChangeRequestFileAddEntry::Table.to_string()
                 )
                 .to_owned(),
             ))
@@ -215,9 +232,13 @@ impl MigrationTrait for Migration {
         manager
             .create_index(
                 Index::create()
-                    .name("idx_change_request_add_file_change_request_id")
-                    .table(ChangeRequestAddFile::Table)
-                    .col(ChangeRequestAddFile::ChangeRequestId)
+                    .name(format!(
+                        "idx_{}_{}",
+                        ChangeRequestFileAddEntry::Table.to_string(),
+                        ChangeRequestFileAddEntry::ChangeRequestId.to_string()
+                    ))
+                    .table(ChangeRequestFileAddEntry::Table)
+                    .col(ChangeRequestFileAddEntry::ChangeRequestId)
                     .to_owned(),
             )
             .await?;
@@ -225,10 +246,14 @@ impl MigrationTrait for Migration {
         manager
             .create_foreign_key(
                 ForeignKey::create()
-                    .name("fk_change_request_change_request_add_files")
+                    .name(format!(
+                        "fk_{}_{}",
+                        ChangeRequestFileAddEntry::Table.to_string(),
+                        ChangeRequest::Table.to_string()
+                    ))
                     .from(
-                        ChangeRequestAddFile::Table,
-                        ChangeRequestAddFile::ChangeRequestId,
+                        ChangeRequestFileAddEntry::Table,
+                        ChangeRequestFileAddEntry::ChangeRequestId,
                     )
                     .to(ChangeRequest::Table, ChangeRequest::Id)
                     .to_owned(),
@@ -238,10 +263,24 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(ChangeRequestAddFile::Table).to_owned())
+            .drop_table(
+                Table::drop()
+                    .table(ChangeRequestFileAddEntry::Table)
+                    .to_owned(),
+            )
             .await?;
         manager
             .drop_table(Table::drop().table(ChangeCommit::Table).to_owned())
+            .await?;
+        manager
+            .drop_table(
+                Table::drop()
+                    .table(ChangeRequestIdempotencyKey::Table)
+                    .to_owned(),
+            )
+            .await?;
+        manager
+            .drop_table(Table::drop().table(ChangeRequest::Table).to_owned())
             .await
     }
 }
@@ -253,6 +292,7 @@ enum ChangeRequest {
     Id,
     TenantId,
     PartitionTime,
+    Status,
     CreatedAt,
     UpdatedAt,
 }
@@ -278,8 +318,8 @@ enum ChangeCommit {
 }
 
 #[derive(DeriveIden)]
-enum ChangeRequestAddFile {
-    #[sea_orm(iden = "change_request_add_files")]
+enum ChangeRequestFileAddEntry {
+    #[sea_orm(iden = "change_request_file_add_entries")]
     Table,
     Id,
     ChangeRequestId,

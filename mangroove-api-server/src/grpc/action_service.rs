@@ -1,5 +1,5 @@
 use crate::application::action_use_case::ActionUseCase;
-use crate::domain::change_log::{AddedFile, ChangedFiles};
+use crate::domain::model::change_log::{ChangeRequestChangeEntries, ChangeRequestFileAddEntry};
 use crate::grpc::proto::{ChangeFilesRequest, ChangeFilesResponse, action_service_server};
 use crate::grpc::util::to_internal_error;
 use sea_orm::DatabaseConnection;
@@ -12,7 +12,7 @@ pub struct ActionService {
 
 impl ActionService {
     pub fn new(db: &DatabaseConnection) -> Self {
-        let action_use_case = ActionUseCase::new(db.clone());
+        let action_use_case = ActionUseCase::new(db);
         Self { action_use_case }
     }
 }
@@ -25,11 +25,11 @@ impl action_service_server::ActionService for ActionService {
     ) -> Result<Response<ChangeFilesResponse>, Status> {
         let req = request.get_ref();
         let added_files = req
-            .added_files
+            .file_add_entries
             .iter()
-            .map(|f| AddedFile::new(f.path.clone(), f.size))
+            .map(|f| ChangeRequestFileAddEntry::new(f.path.clone(), f.size))
             .collect();
-        let changed_files = &ChangedFiles::new(added_files);
+        let changed_files = &ChangeRequestChangeEntries::new(added_files);
 
         let req_partition_time = req
             .partition_time

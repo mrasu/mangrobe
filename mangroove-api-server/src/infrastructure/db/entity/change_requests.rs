@@ -9,6 +9,7 @@ pub struct Model {
     pub id: i64,
     pub tenant_id: i64,
     pub partition_time: DateTimeWithTimeZone,
+    pub status: i32,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }
@@ -17,8 +18,8 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(has_many = "super::change_commits::Entity")]
     ChangeCommits,
-    #[sea_orm(has_many = "super::change_request_add_files::Entity")]
-    ChangeRequestAddFiles,
+    #[sea_orm(has_many = "super::change_request_file_add_entries::Entity")]
+    ChangeRequestFileAddEntries,
     #[sea_orm(has_one = "super::change_request_idempotency_keys::Entity")]
     ChangeRequestIdempotencyKeys,
 }
@@ -29,9 +30,9 @@ impl Related<super::change_commits::Entity> for Entity {
     }
 }
 
-impl Related<super::change_request_add_files::Entity> for Entity {
+impl Related<super::change_request_file_add_entries::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::ChangeRequestAddFiles.def()
+        Relation::ChangeRequestFileAddEntries.def()
     }
 }
 

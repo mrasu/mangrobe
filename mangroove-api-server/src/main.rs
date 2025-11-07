@@ -10,9 +10,10 @@ mod application;
 mod domain;
 mod grpc;
 mod infrastructure;
+mod util;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), anyhow::Error> {
     tracing_subscriber::fmt()
         .with_max_level(tracing::Level::INFO)
         .with_test_writer()
@@ -28,7 +29,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn run_api_server(db: &DatabaseConnection) -> Result<(), Box<dyn std::error::Error>> {
+async fn run_api_server(db: &DatabaseConnection) -> Result<(), anyhow::Error> {
     let addr = "[::1]:50051".parse()?;
 
     let snapshot_service = SnapshotService::new(db);

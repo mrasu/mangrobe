@@ -19,6 +19,7 @@ clap = { version = "4.5.51", features = ["derive"] }
 tempfile = "3.23.0"
 uuid = { version = "1.18.1", features = ["v7"] }
 prost-types = "0.14.1"
+anyhow = "1.0.100"
 
 [build-dependencies]
 tonic-prost-build = "*"

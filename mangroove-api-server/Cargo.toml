@@ -13,6 +13,11 @@ log = "0.4.28"
 tracing-subscriber = "0.3.20"
 tracing = "0.1.41"
 prost-types = "0.14.1"
+chrono = "0.4.42"
+anyhow = "1.0.100"
+thiserror = "2.0.17"
+strum_macros = "0.27.2"
+strum = "0.26.3"
 
 [build-dependencies]
 tonic-prost-build = "*"

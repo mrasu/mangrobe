@@ -10,13 +10,7 @@ use crate::vortex_provider::VortexProvider;
 use clap::{Parser, Subcommand};
 use datafusion::datasource::object_store::ObjectStoreUrl;
 use datafusion::prelude::SessionContext;
-use object_store::ObjectStore;
-use std::env;
-use std::path::PathBuf;
 use std::sync::Arc;
-use vortex::dtype::arrow::FromArrowType;
-use vortex_array::arrow::FromArrowArray;
-use vortex_array::{ArrayVisitor, IntoArray, ToCanonical};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -61,7 +55,7 @@ async fn main() {
     }
 }
 
-async fn run_query() -> Result<(), Box<dyn std::error::Error>> {
+async fn run_query() -> Result<(), anyhow::Error> {
     let ctx = SessionContext::default().enable_url_table();
 
     let conn = tonic::transport::Endpoint::new("http://[::1]:50051")?
@@ -90,7 +84,7 @@ async fn run_query() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn run_df_query(ctx: &SessionContext, query: &str) -> Result<(), Box<dyn std::error::Error>> {
+async fn run_df_query(ctx: &SessionContext, query: &str) -> Result<(), anyhow::Error> {
     let res = ctx.sql(query).await?;
     res.show().await?;
 

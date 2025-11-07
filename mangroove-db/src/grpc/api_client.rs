@@ -1,8 +1,7 @@
 use crate::grpc::proto::action_service_client::ActionServiceClient;
 use crate::grpc::proto::snapshot_service_client::SnapshotServiceClient;
 use crate::grpc::proto::{
-    AddedFile, ChangeFilesRequest, ChangeFilesResponse, GetSnapshotRequest, GetSnapshotResponse,
-    Snapshot,
+    ChangeFilesRequest, ChangeFilesResponse, FileAddEntry, GetSnapshotRequest, GetSnapshotResponse,
 };
 use tonic::Response;
 use tonic::transport::Channel;
@@ -36,13 +35,13 @@ impl ApiClient {
 
     pub async fn add_files(
         &self,
-        added_files: Vec<AddedFile>,
+        file_add_entries: Vec<FileAddEntry>,
     ) -> Result<Response<ChangeFilesResponse>, tonic::Status> {
         let request = tonic::Request::new(ChangeFilesRequest {
             idempotency_key: Uuid::now_v7().into(),
             tenant_id: 0,
             partition_time: prost_types::Timestamp::default().into(),
-            added_files,
+            file_add_entries,
         });
 
         self.action_service_client

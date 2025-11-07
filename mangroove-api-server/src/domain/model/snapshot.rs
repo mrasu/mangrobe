@@ -1,4 +1,4 @@
-use crate::domain::file::File;
+use crate::domain::model::file::File;
 
 #[derive(Default)]
 pub struct Snapshot {
