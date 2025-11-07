@@ -1,24 +1,53 @@
-use crate::application::action_use_case::ActionUseCase;
+use crate::application::data_manipulation_use_case::DataManipulationUseCase;
 use crate::domain::model::change_log::{ChangeRequestChangeEntries, ChangeRequestFileAddEntry};
-use crate::grpc::proto::{ChangeFilesRequest, ChangeFilesResponse, action_service_server};
+use crate::grpc::proto::{
+    ChangeFilesRequest, ChangeFilesResponse, File, GetLatestSnapshotRequest,
+    GetLatestSnapshotResponse, Snapshot, data_manipulation_service_server,
+};
 use crate::grpc::util::to_internal_error;
+use chrono::DateTime;
 use sea_orm::DatabaseConnection;
-use sea_orm::sqlx::types::chrono::DateTime;
 use tonic::{Code, Request, Response, Status};
 
-pub struct ActionService {
-    action_use_case: ActionUseCase,
+pub struct DataManipulationService {
+    snapshot_use_case: DataManipulationUseCase,
 }
 
-impl ActionService {
+impl DataManipulationService {
     pub fn new(db: &DatabaseConnection) -> Self {
-        let action_use_case = ActionUseCase::new(db);
-        Self { action_use_case }
+        let snapshot_use_case = DataManipulationUseCase::new(db.clone());
+        Self { snapshot_use_case }
     }
 }
 
 #[tonic::async_trait]
-impl action_service_server::ActionService for ActionService {
+impl data_manipulation_service_server::DataManipulationService for DataManipulationService {
+    async fn get_latest_snapshot(
+        &self,
+        _req: Request<GetLatestSnapshotRequest>,
+    ) -> Result<Response<GetLatestSnapshotResponse>, Status> {
+        let snapshot = self
+            .snapshot_use_case
+            .get_snapshot()
+            .await
+            .map_err(to_internal_error)?;
+
+        let response = GetLatestSnapshotResponse {
+            snapshot: Some(Snapshot {
+                files: snapshot
+                    .files
+                    .iter()
+                    .map(|f| File {
+                        path: f.path.clone(),
+                        size: f.size,
+                    })
+                    .collect(),
+            }),
+        };
+
+        Ok(Response::new(response))
+    }
+
     async fn change_files(
         &self,
         request: Request<ChangeFilesRequest>,
@@ -45,7 +74,7 @@ impl action_service_server::ActionService for ActionService {
         };
 
         let change_log_id = self
-            .action_use_case
+            .snapshot_use_case
             .change_files(
                 req.idempotency_key.clone(),
                 req.tenant_id,

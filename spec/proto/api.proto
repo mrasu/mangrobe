@@ -3,17 +3,14 @@ syntax = "proto3";
 package mangroove.api;
 import "google/protobuf/timestamp.proto";
 
-service SnapshotService {
-  rpc GetSnapshot(GetSnapshotRequest) returns (GetSnapshotResponse) {};
-}
-
-service ActionService {
+service DataManipulationService {
+  rpc GetLatestSnapshot(GetLatestSnapshotRequest) returns (GetLatestSnapshotResponse) {};
   rpc ChangeFiles(ChangeFilesRequest) returns (ChangeFilesResponse);
 }
 
-message GetSnapshotRequest {}
+message GetLatestSnapshotRequest {}
 
-message GetSnapshotResponse {
+message GetLatestSnapshotResponse {
   Snapshot snapshot = 1;
 }
 

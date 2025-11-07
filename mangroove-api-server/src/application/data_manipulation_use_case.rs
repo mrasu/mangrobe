@@ -1,18 +1,26 @@
 use crate::domain::model::change_log::ChangeRequestChangeEntries;
 use crate::domain::model::change_log_id::ChangeLogId;
+use crate::domain::model::snapshot::Snapshot;
 use crate::domain::service::change_request_service::ChangeRequestService;
+use crate::domain::service::snapshot_service::SnapshotService;
+use chrono::{DateTime, Utc};
 use sea_orm::DatabaseConnection;
-use sea_orm::sqlx::types::chrono::{DateTime, Utc};
 
-pub struct ActionUseCase {
+pub struct DataManipulationUseCase {
+    snapshot_service: SnapshotService,
     change_request_service: ChangeRequestService,
 }
 
-impl ActionUseCase {
-    pub fn new(connection: &DatabaseConnection) -> Self {
+impl DataManipulationUseCase {
+    pub fn new(connection: DatabaseConnection) -> Self {
         Self {
-            change_request_service: ChangeRequestService::new(connection),
+            snapshot_service: SnapshotService::new(&connection),
+            change_request_service: ChangeRequestService::new(&connection),
         }
+    }
+
+    pub async fn get_snapshot(&self) -> Result<Snapshot, anyhow::Error> {
+        self.snapshot_service.get_latest().await
     }
 
     pub async fn change_files(

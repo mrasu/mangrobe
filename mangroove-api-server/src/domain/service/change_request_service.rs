@@ -100,7 +100,7 @@ impl ChangeRequestService {
         if status.is_completed(ChangeRequestStatus::Committed) {
             return self
                 .commit_repository
-                .get_by_change_request_id(&txn, change_request.id)
+                .get_by_change_request_id(&txn, change_request.id.clone())
                 .await;
         } else if !status.can_progress_to(ChangeRequestStatus::Committed) {
             bail!(MangobeError::UnexpectedStateChange(
@@ -111,7 +111,7 @@ impl ChangeRequestService {
 
         let change_log_id = self
             .commit_repository
-            .insert(&txn, change_request.id)
+            .insert(&txn, change_request.id.clone())
             .await?;
 
         self.change_request_repository

@@ -8,8 +8,8 @@ use chrono::{DateTime, Utc};
 use sea_orm::prelude::Expr;
 use sea_orm::sea_query::LockType;
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseTransaction,
-    EntityTrait, QueryFilter, QuerySelect, Set, TryInsertResult,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseTransaction, EntityTrait, QueryFilter,
+    QuerySelect, Set, TryInsertResult,
 };
 use std::time::Duration;
 
@@ -103,7 +103,7 @@ impl ChangeRequestRepository {
         idempotency_key: &change_request_idempotency_keys::Model,
     ) -> Result<ChangeRequest, anyhow::Error> {
         let res = ChangeRequest {
-            id: change_request.id,
+            id: change_request.id.into(),
             idempotency_key: idempotency_key.key.clone(),
             tenant_id: change_request.tenant_id,
             partition_time: change_request.partition_time.to_utc(),
@@ -119,7 +119,7 @@ impl ChangeRequestRepository {
         change_request: &ChangeRequest,
     ) -> Result<ChangeRequestStatus, anyhow::Error> {
         let result = ChangeRequests::find()
-            .filter(change_requests::Column::Id.eq(change_request.id))
+            .filter(change_requests::Column::Id.eq(change_request.id.i64()))
             .lock(LockType::Update)
             .one(txn)
             .await?;
@@ -140,7 +140,7 @@ impl ChangeRequestRepository {
         status: ChangeRequestStatus,
     ) -> Result<(), anyhow::Error> {
         ChangeRequests::update_many()
-            .filter(change_requests::Column::Id.eq(change_request.id))
+            .filter(change_requests::Column::Id.eq(change_request.id.i64()))
             .col_expr(
                 change_requests::Column::Status,
                 Expr::value(ChangeRequestExt::build_model_status(status)),
