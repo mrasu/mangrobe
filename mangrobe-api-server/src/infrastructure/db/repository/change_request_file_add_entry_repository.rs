@@ -1,4 +1,4 @@
-use crate::domain::model::change_log::ChangeRequestFileAddEntry;
+use crate::domain::model::change_request_change_file_entries::ChangeRequestFileAddEntry;
 use crate::domain::model::change_request::ChangeRequest;
 use crate::domain::model::change_request_id::ChangeRequestId;
 use crate::domain::model::file::File;

@@ -38,5 +38,5 @@ message FileAddEntry {
 }
 
 message ChangeFilesResponse {
-  int64 ChangeLogId = 1;
+  int64 CommitId = 1;
 }

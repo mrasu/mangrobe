@@ -1,16 +1,16 @@
-use crate::domain::model::change_log_id::ChangeLogId;
+use crate::domain::model::commit_id::CommitId;
 use crate::domain::model::change_request_id::ChangeRequestId;
-use crate::infrastructure::db::entity::change_commits;
-use crate::infrastructure::db::entity::prelude::ChangeCommits;
 use crate::util::error::MangobeError;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseTransaction, EntityTrait, QueryFilter,
     QueryOrder, Set,
 };
+use crate::infrastructure::db::entity::commits;
+use crate::infrastructure::db::entity::prelude::Commits;
 
-pub struct ChangeCommitRepository {}
+pub struct CommitRepository {}
 
-impl ChangeCommitRepository {
+impl CommitRepository {
     pub fn new() -> Self {
         Self {}
     }
@@ -22,8 +22,8 @@ impl ChangeCommitRepository {
     where
         C: ConnectionTrait,
     {
-        let commits = ChangeCommits::find()
-            .order_by_desc(change_commits::Column::Id)
+        let commits = Commits::find()
+            .order_by_desc(commits::Column::Id)
             .all(conn)
             .await?;
 
@@ -39,11 +39,11 @@ impl ChangeCommitRepository {
         &self,
         con: &C,
         change_request_id: ChangeRequestId,
-    ) -> Result<ChangeLogId, anyhow::Error>
+    ) -> Result<CommitId, anyhow::Error>
     where
         C: ConnectionTrait,
     {
-        let commit = change_commits::ActiveModel {
+        let commit = commits::ActiveModel {
             change_request_id: Set(change_request_id.into()),
             ..Default::default()
         }
@@ -57,9 +57,9 @@ impl ChangeCommitRepository {
         &self,
         txn: &DatabaseTransaction,
         change_request_id: ChangeRequestId,
-    ) -> Result<ChangeLogId, anyhow::Error> {
-        let commit = ChangeCommits::find()
-            .filter(change_commits::Column::ChangeRequestId.eq(change_request_id.i64()))
+    ) -> Result<CommitId, anyhow::Error> {
+        let commit = Commits::find()
+            .filter(commits::Column::ChangeRequestId.eq(change_request_id.i64()))
             .one(txn)
             .await?
             .ok_or(MangobeError::UnexpectedState(

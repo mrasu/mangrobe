@@ -16,18 +16,12 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::change_commits::Entity")]
-    ChangeCommits,
     #[sea_orm(has_many = "super::change_request_file_add_entries::Entity")]
     ChangeRequestFileAddEntries,
     #[sea_orm(has_one = "super::change_request_idempotency_keys::Entity")]
     ChangeRequestIdempotencyKeys,
-}
-
-impl Related<super::change_commits::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::ChangeCommits.def()
-    }
+    #[sea_orm(has_many = "super::commits::Entity")]
+    Commits,
 }
 
 impl Related<super::change_request_file_add_entries::Entity> for Entity {
@@ -39,6 +33,12 @@ impl Related<super::change_request_file_add_entries::Entity> for Entity {
 impl Related<super::change_request_idempotency_keys::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::ChangeRequestIdempotencyKeys.def()
+    }
+}
+
+impl Related<super::commits::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Commits.def()
     }
 }
 

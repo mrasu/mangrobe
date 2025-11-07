@@ -1,5 +1,5 @@
 use crate::application::data_manipulation_use_case::DataManipulationUseCase;
-use crate::domain::model::change_log::{ChangeRequestChangeEntries, ChangeRequestFileAddEntry};
+use crate::domain::model::change_request_change_file_entries::{ChangeRequestChangeFileEntries, ChangeRequestFileAddEntry};
 use crate::grpc::proto::{
     ChangeFilesRequest, ChangeFilesResponse, File, GetLatestSnapshotRequest,
     GetLatestSnapshotResponse, Snapshot, data_manipulation_service_server,
@@ -58,7 +58,7 @@ impl data_manipulation_service_server::DataManipulationService for DataManipulat
             .iter()
             .map(|f| ChangeRequestFileAddEntry::new(f.path.clone(), f.size))
             .collect();
-        let changed_files = &ChangeRequestChangeEntries::new(added_files);
+        let entries = &ChangeRequestChangeFileEntries::new(added_files);
 
         let req_partition_time = req
             .partition_time
@@ -73,19 +73,19 @@ impl data_manipulation_service_server::DataManipulationService for DataManipulat
             ));
         };
 
-        let change_log_id = self
+        let commit_id = self
             .snapshot_use_case
             .change_files(
                 req.idempotency_key.clone(),
                 req.tenant_id,
                 partition_time,
-                changed_files,
+                entries,
             )
             .await
             .map_err(to_internal_error)?;
 
         let response = ChangeFilesResponse {
-            change_log_id: change_log_id.into(),
+            commit_id: commit_id.into(),
         };
         Ok(Response::new(response))
     }

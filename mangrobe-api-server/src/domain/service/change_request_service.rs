@@ -1,7 +1,7 @@
-use crate::domain::model::change_log::ChangeRequestChangeEntries;
-use crate::domain::model::change_log_id::ChangeLogId;
+use crate::domain::model::change_request_change_file_entries::ChangeRequestChangeFileEntries;
+use crate::domain::model::commit_id::CommitId;
 use crate::domain::model::change_request::{ChangeRequest, ChangeRequestStatus};
-use crate::infrastructure::db::repository::change_commit_repository::ChangeCommitRepository;
+use crate::infrastructure::db::repository::commit_repository::CommitRepository;
 use crate::infrastructure::db::repository::change_request_file_add_entry_repository::ChangeRequestFileAddEntryRepository;
 use crate::infrastructure::db::repository::change_request_repository::ChangeRequestRepository;
 use crate::util::error::MangobeError;
@@ -13,7 +13,7 @@ pub struct ChangeRequestService {
     connection: DatabaseConnection,
     change_request_repository: ChangeRequestRepository,
     file_add_entry_repository: ChangeRequestFileAddEntryRepository,
-    commit_repository: ChangeCommitRepository,
+    commit_repository: CommitRepository,
 }
 
 impl ChangeRequestService {
@@ -22,7 +22,7 @@ impl ChangeRequestService {
             connection: connection.clone(),
             change_request_repository: ChangeRequestRepository::new(),
             file_add_entry_repository: ChangeRequestFileAddEntryRepository::new(),
-            commit_repository: ChangeCommitRepository::new(),
+            commit_repository: CommitRepository::new(),
         }
     }
 
@@ -40,7 +40,7 @@ impl ChangeRequestService {
     pub async fn insert_entries(
         &self,
         change_request: &ChangeRequest,
-        changed_entries: &ChangeRequestChangeEntries,
+        entries: &ChangeRequestChangeFileEntries,
     ) -> Result<(), anyhow::Error> {
         let txn = self.connection.begin().await?;
 
@@ -57,7 +57,7 @@ impl ChangeRequestService {
             ));
         }
 
-        self.insert_change_entries(&txn, change_request, changed_entries)
+        self.insert_change_entries(&txn, change_request, entries)
             .await?;
 
         self.change_request_repository
@@ -73,11 +73,11 @@ impl ChangeRequestService {
         &self,
         txn: &DatabaseTransaction,
         change_request: &ChangeRequest,
-        changed_entries: &ChangeRequestChangeEntries,
+        entries: &ChangeRequestChangeFileEntries,
     ) -> Result<(), anyhow::Error> {
-        if !changed_entries.add_entries.is_empty() {
+        if !entries.add_entries.is_empty() {
             self.file_add_entry_repository
-                .insert(txn, change_request, &changed_entries.add_entries)
+                .insert(txn, change_request, &entries.add_entries)
                 .await?;
         }
 
@@ -87,7 +87,7 @@ impl ChangeRequestService {
     pub async fn commit_change_request(
         &self,
         change_request: &ChangeRequest,
-    ) -> Result<ChangeLogId, anyhow::Error> {
+    ) -> Result<CommitId, anyhow::Error> {
         // TODO: lock to not race with other change.
 
         let txn = self.connection.begin().await?;

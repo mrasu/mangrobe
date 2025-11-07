@@ -141,17 +141,17 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(ChangeCommit::Table)
+                    .table(Commit::Table)
                     .if_not_exists()
                     .col(
-                        big_integer(ChangeCommit::Id)
+                        big_integer(Commit::Id)
                             .auto_increment()
                             .primary_key()
                             .take(),
                     )
-                    .col(big_integer(ChangeCommit::ChangeRequestId))
+                    .col(big_integer(Commit::ChangeRequestId))
                     .col(
-                        timestamp_with_time_zone(ChangeCommit::CommittedAt)
+                        timestamp_with_time_zone(Commit::CommittedAt)
                             .default(Expr::current_timestamp()),
                     )
                     .to_owned(),
@@ -163,11 +163,11 @@ impl MigrationTrait for Migration {
                 Index::create()
                     .name(format!(
                         "idx_{}_{}",
-                        ChangeCommit::Table.to_string(),
-                        ChangeCommit::ChangeRequestId.to_string()
+                        Commit::Table.to_string(),
+                        Commit::ChangeRequestId.to_string()
                     ))
-                    .table(ChangeCommit::Table)
-                    .col(ChangeCommit::ChangeRequestId)
+                    .table(Commit::Table)
+                    .col(Commit::ChangeRequestId)
                     .to_owned(),
             )
             .await?;
@@ -177,10 +177,10 @@ impl MigrationTrait for Migration {
                 ForeignKey::create()
                     .name(format!(
                         "fk_{}_{}",
-                        ChangeCommit::Table.to_string(),
+                        Commit::Table.to_string(),
                         ChangeRequest::Table.to_string()
                     ))
-                    .from(ChangeCommit::Table, ChangeCommit::ChangeRequestId)
+                    .from(Commit::Table, Commit::ChangeRequestId)
                     .to(ChangeRequest::Table, ChangeRequest::Id)
                     .to_owned(),
             )
@@ -270,7 +270,7 @@ impl MigrationTrait for Migration {
             )
             .await?;
         manager
-            .drop_table(Table::drop().table(ChangeCommit::Table).to_owned())
+            .drop_table(Table::drop().table(Commit::Table).to_owned())
             .await?;
         manager
             .drop_table(
@@ -309,8 +309,8 @@ enum ChangeRequestIdempotencyKey {
 }
 
 #[derive(DeriveIden)]
-enum ChangeCommit {
-    #[sea_orm(iden = "change_commits")]
+enum Commit {
+    #[sea_orm(iden = "commits")]
     Table,
     Id,
     ChangeRequestId,

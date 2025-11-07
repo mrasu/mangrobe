@@ -1,3 +1,3 @@
-pub mod change_commit_repository;
+pub mod commit_repository;
 pub mod change_request_file_add_entry_repository;
 pub mod change_request_repository;

@@ -2,7 +2,7 @@
 
 pub mod prelude;
 
-pub mod change_commits;
 pub mod change_request_file_add_entries;
 pub mod change_request_idempotency_keys;
 pub mod change_requests;
+pub mod commits;

@@ -1,5 +1,5 @@
-use crate::domain::model::change_log::ChangeRequestChangeEntries;
-use crate::domain::model::change_log_id::ChangeLogId;
+use crate::domain::model::change_request_change_file_entries::ChangeRequestChangeFileEntries;
+use crate::domain::model::commit_id::CommitId;
 use crate::domain::model::snapshot::Snapshot;
 use crate::domain::service::change_request_service::ChangeRequestService;
 use crate::domain::service::snapshot_service::SnapshotService;
@@ -28,15 +28,15 @@ impl DataManipulationUseCase {
         idempotency_key: Vec<u8>,
         tenant_id: i64,
         partition_time: DateTime<Utc>,
-        changed_files: &ChangeRequestChangeEntries,
-    ) -> Result<ChangeLogId, anyhow::Error> {
+        entries: &ChangeRequestChangeFileEntries,
+    ) -> Result<CommitId, anyhow::Error> {
         let change_request = self
             .change_request_service
             .find_or_create(idempotency_key, tenant_id, partition_time)
             .await?;
 
         self.change_request_service
-            .insert_entries(&change_request, &changed_files)
+            .insert_entries(&change_request, &entries)
             .await?;
 
         self.change_request_service

@@ -1,9 +1,9 @@
 #[derive(Debug)]
-pub struct ChangeRequestChangeEntries {
+pub struct ChangeRequestChangeFileEntries {
     pub add_entries: Vec<ChangeRequestFileAddEntry>,
 }
 
-impl ChangeRequestChangeEntries {
+impl ChangeRequestChangeFileEntries {
     pub fn new(add_entries: Vec<ChangeRequestFileAddEntry>) -> Self {
         Self { add_entries }
     }
