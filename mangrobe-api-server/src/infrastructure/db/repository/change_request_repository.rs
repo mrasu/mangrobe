@@ -42,10 +42,10 @@ impl ChangeRequestRepository {
                 .one(con)
                 .await?;
             if let Some(change_request) = change_request {
-                return Ok(Self::build_domain_change_request(
+                return Self::build_domain_change_request(
                     &change_request,
                     &existing_key,
-                )?);
+                );
             }
             bail!("invalid state found. idempotency key doesn't belong any change requests");
         }
@@ -71,10 +71,10 @@ impl ChangeRequestRepository {
             .exec_with_returning(con)
             .await?;
         if let TryInsertResult::Inserted(inserted) = result {
-            return Ok(Self::build_domain_change_request(
+            return Self::build_domain_change_request(
                 &change_request,
                 &inserted,
-            )?);
+            );
         }
 
         let existing_key = ChangeRequestIdempotencyKeys::find()
@@ -90,10 +90,10 @@ impl ChangeRequestRepository {
             .one(con)
             .await?;
         if let Some(change_request) = change_request {
-            return Ok(Self::build_domain_change_request(
+            return Self::build_domain_change_request(
                 &change_request,
                 &existing_key,
-            )?);
+            );
         }
 
         bail!("invalid state found. idempotency key doesn't belong any change requests now")

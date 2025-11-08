@@ -5,11 +5,15 @@ use strum_macros::Display;
 
 pub struct ChangeRequest {
     pub id: ChangeRequestId,
+    #[allow(dead_code)]
     pub idempotency_key: IdempotencyKey,
 
+    #[allow(dead_code)]
     pub tenant_id: i64,
+    #[allow(dead_code)]
     pub partition_time: DateTime<Utc>,
 
+    #[allow(dead_code)]
     pub status: ChangeRequestStatus,
 }
 

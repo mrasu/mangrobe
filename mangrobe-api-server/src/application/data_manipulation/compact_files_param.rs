@@ -2,7 +2,6 @@ use crate::application::data_manipulation::param_util::{to_idempotency_key, to_p
 use crate::domain::model::change_request_compact_file_entry::{
     ChangeRequestCompactFileEntry, ChangeRequestFileCompactDstEntry, FilePath,
 };
-use crate::domain::model::file::File;
 use crate::domain::model::idempotency_key::IdempotencyKey;
 use crate::grpc::proto::CompactFilesRequest;
 use crate::util::error::ParameterError;

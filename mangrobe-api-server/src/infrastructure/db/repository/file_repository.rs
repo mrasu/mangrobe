@@ -45,7 +45,7 @@ impl FileRepository {
         con: &C,
         tenant_id: i64,
         partition_time: DateTime<Utc>,
-        file_paths: &Vec<FilePath>,
+        file_paths: &[FilePath],
     ) -> Result<Vec<FileId>, anyhow::Error>
     where
         C: ConnectionTrait,
@@ -79,12 +79,12 @@ impl FileRepository {
     pub async fn insert_many<C>(
         &self,
         con: &C,
-        target_files: &Vec<File>,
+        target_files: &[File],
     ) -> Result<Vec<FileId>, anyhow::Error>
     where
         C: ConnectionTrait,
     {
-        let files = target_files.iter().map(|file| Self::new_active_model(file));
+        let files = target_files.iter().map(Self::new_active_model);
 
         let inserted = Files::insert_many(files)
             .exec_with_returning_many(con)

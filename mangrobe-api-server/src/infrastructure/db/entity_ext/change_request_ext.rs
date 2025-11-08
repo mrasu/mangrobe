@@ -17,8 +17,7 @@ impl ChangeRequestExt {
                 format!(
                     "invalid status at ChangeRequestStatus: {}",
                     change_request.status
-                )
-                .into(),
+                ),
             )),
         }
     }

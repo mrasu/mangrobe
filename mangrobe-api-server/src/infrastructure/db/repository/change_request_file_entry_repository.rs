@@ -19,7 +19,7 @@ impl ChangeRequestFileEntryRepository {
     pub async fn find_all_by_change_request_ids<C>(
         &self,
         conn: &C,
-        change_request_ids: &Vec<ChangeRequestId>,
+        change_request_ids: &[ChangeRequestId],
     ) -> Result<HashMap<ChangeRequestId, Vec<ChangeFileEntry>>, anyhow::Error>
     where
         C: ConnectionTrait,

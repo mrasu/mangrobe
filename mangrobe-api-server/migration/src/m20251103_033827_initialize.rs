@@ -1,4 +1,4 @@
-use crate::sea_orm::{DeriveActiveEnum, EnumIter, Iterable, Statement};
+use crate::sea_orm::Statement;
 use sea_orm_migration::{prelude::*, schema::*};
 
 #[derive(DeriveMigrationName)]
@@ -271,11 +271,11 @@ impl MigrationTrait for Migration {
                     .col(string_len(File::Path, 100))
                     .col(big_integer(File::Size))
                     .col(
-                        timestamp_with_time_zone(ChangeRequestFileEntry::CreatedAt)
+                        timestamp_with_time_zone(File::CreatedAt)
                             .default(Expr::current_timestamp()),
                     )
                     .col(
-                        timestamp_with_time_zone(ChangeRequestFileEntry::UpdatedAt)
+                        timestamp_with_time_zone(File::UpdatedAt)
                             .default(Expr::current_timestamp()),
                     )
                     .to_owned(),

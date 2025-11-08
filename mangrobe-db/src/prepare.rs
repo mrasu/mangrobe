@@ -11,7 +11,6 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tempfile::TempDir;
-use vortex;
 use vortex::arrays::ChunkedArray;
 use vortex::dtype::DType;
 use vortex::dtype::arrow::FromArrowType;
@@ -47,7 +46,7 @@ pub async fn prepare() -> Result<(), anyhow::Error> {
     let api_client = ApiClient::new(conn);
     let response = api_client.add_files(added_files).await?;
 
-    println!("success! id={:?}", response.get_ref().change_log_id);
+    println!("success! id={:?}", response.get_ref().commit_id);
     Ok(())
 }
 
@@ -68,7 +67,7 @@ async fn create_vortex(filename: PathBuf, start: i32, end: i32) -> Result<(), an
 
     for i in start..end {
         ids.push(i);
-        codes.push(i * -1);
+        codes.push(-i);
         names.push(format!("hello {} world {}", i, i));
     }
 

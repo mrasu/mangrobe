@@ -5,7 +5,6 @@ use crate::domain::model::change_request::{ChangeRequest, ChangeRequestStatus, C
 use crate::domain::model::change_request_change_file_entries::ChangeRequestChangeFileEntries;
 use crate::domain::model::change_request_compact_file_entry::ChangeRequestCompactFileEntry;
 use crate::domain::model::commit_id::CommitId;
-use crate::domain::model::file::File;
 use crate::domain::model::idempotency_key::IdempotencyKey;
 use crate::infrastructure::db::repository::change_request_file_entry_repository::ChangeRequestFileEntryRepository;
 use crate::infrastructure::db::repository::change_request_repository::ChangeRequestRepository;
@@ -173,7 +172,7 @@ impl ChangeRequestService {
             .insert(
                 txn,
                 change_request,
-                ChangeRequestType::Change,
+                ChangeRequestType::Compact,
                 &vec![change_file_entry],
             )
             .await?;

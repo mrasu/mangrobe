@@ -1,6 +1,5 @@
 use crate::domain::model::change_request_id::ChangeRequestId;
 use crate::domain::model::file_id::FileId;
-use sea_orm::Set;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
@@ -42,7 +41,7 @@ impl ChangeFileEntry {
                         compact
                             .src_file_ids
                             .iter()
-                            .for_each(|f| _ = file_ids.remove(&f));
+                            .for_each(|f| _ = file_ids.remove(f));
 
                         file_ids.insert(compact.dst_file_id.clone());
                     }
