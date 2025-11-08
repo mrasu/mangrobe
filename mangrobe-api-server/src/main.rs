@@ -1,8 +1,10 @@
 use crate::grpc::data_manipulation_service::DataManipulationService;
+use crate::grpc::proto::FILE_DESCRIPTOR_SET2;
 use crate::grpc::proto::data_manipulation_service_server::DataManipulationServiceServer;
 use crate::infrastructure::db::connection::connect;
 use sea_orm::DatabaseConnection;
 use tonic::transport::Server;
+use tonic_reflection::server::Builder;
 
 mod application;
 mod domain;
@@ -34,6 +36,16 @@ async fn run_api_server(db: &DatabaseConnection) -> Result<(), anyhow::Error> {
 
     Server::builder()
         .add_service(DataManipulationServiceServer::new(snapshot_service))
+        .add_service(
+            Builder::configure()
+                .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET2)
+                .build_v1alpha()?,
+        )
+        .add_service(
+            Builder::configure()
+                .register_encoded_file_descriptor_set(FILE_DESCRIPTOR_SET2)
+                .build_v1()?,
+        )
         .serve(addr)
         .await?;
 
