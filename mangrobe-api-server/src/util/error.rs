@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum MangobeError {
+pub enum MangrobeError {
     #[error("Unexpected state found. {0}")]
     UnexpectedState(String),
 

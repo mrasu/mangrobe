@@ -1,12 +1,12 @@
-use crate::domain::model::commit_id::CommitId;
 use crate::domain::model::change_request_id::ChangeRequestId;
-use crate::util::error::MangobeError;
+use crate::domain::model::commit_id::CommitId;
+use crate::infrastructure::db::entity::commits;
+use crate::infrastructure::db::entity::prelude::Commits;
+use crate::util::error::MangrobeError;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseTransaction, EntityTrait, QueryFilter,
     QueryOrder, Set,
 };
-use crate::infrastructure::db::entity::commits;
-use crate::infrastructure::db::entity::prelude::Commits;
 
 pub struct CommitRepository {}
 
@@ -62,7 +62,7 @@ impl CommitRepository {
             .filter(commits::Column::ChangeRequestId.eq(change_request_id.i64()))
             .one(txn)
             .await?
-            .ok_or(MangobeError::UnexpectedState(
+            .ok_or(MangrobeError::UnexpectedState(
                 "no commit found but marked as commited.".to_string(),
             ))?;
 

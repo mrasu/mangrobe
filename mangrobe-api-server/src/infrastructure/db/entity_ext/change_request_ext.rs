@@ -1,6 +1,6 @@
 use crate::domain::model::change_request::ChangeRequestStatus;
 use crate::infrastructure::db::entity::change_requests;
-use crate::util::error::MangobeError;
+use crate::util::error::MangrobeError;
 use anyhow::bail;
 
 pub struct ChangeRequestExt {}
@@ -13,7 +13,7 @@ impl ChangeRequestExt {
             0 => Ok(ChangeRequestStatus::New),
             1 => Ok(ChangeRequestStatus::ChangeInserted),
             2 => Ok(ChangeRequestStatus::Committed),
-            _ => bail!(MangobeError::UnexpectedState(
+            _ => bail!(MangrobeError::UnexpectedState(
                 format!(
                     "invalid status at ChangeRequestStatus: {}",
                     change_request.status

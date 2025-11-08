@@ -1,10 +1,11 @@
 use crate::domain::model::change_request_id::ChangeRequestId;
+use crate::domain::model::idempotency_key::IdempotencyKey;
 use chrono::{DateTime, Utc};
 use strum_macros::Display;
 
 pub struct ChangeRequest {
     pub id: ChangeRequestId,
-    pub idempotency_key: Vec<u8>,
+    pub idempotency_key: IdempotencyKey,
 
     pub tenant_id: i64,
     pub partition_time: DateTime<Utc>,

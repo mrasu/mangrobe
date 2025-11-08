@@ -1,10 +1,11 @@
+use crate::domain::model::change_request::{ChangeRequest, ChangeRequestStatus};
 use crate::domain::model::change_request_change_file_entries::ChangeRequestChangeFileEntries;
 use crate::domain::model::commit_id::CommitId;
-use crate::domain::model::change_request::{ChangeRequest, ChangeRequestStatus};
-use crate::infrastructure::db::repository::commit_repository::CommitRepository;
+use crate::domain::model::idempotency_key::IdempotencyKey;
 use crate::infrastructure::db::repository::change_request_file_add_entry_repository::ChangeRequestFileAddEntryRepository;
 use crate::infrastructure::db::repository::change_request_repository::ChangeRequestRepository;
-use crate::util::error::MangobeError;
+use crate::infrastructure::db::repository::commit_repository::CommitRepository;
+use crate::util::error::MangrobeError;
 use anyhow::bail;
 use sea_orm::sqlx::types::chrono::{DateTime, Utc};
 use sea_orm::{DatabaseConnection, DatabaseTransaction, TransactionTrait};
@@ -28,7 +29,7 @@ impl ChangeRequestService {
 
     pub async fn find_or_create(
         &self,
-        idempotency_key: Vec<u8>,
+        idempotency_key: IdempotencyKey,
         tenant_id: i64,
         partition_time: DateTime<Utc>,
     ) -> Result<ChangeRequest, anyhow::Error> {
@@ -51,7 +52,7 @@ impl ChangeRequestService {
         if status.is_completed(ChangeRequestStatus::ChangeInserted) {
             return Ok(());
         } else if !status.can_progress_to(ChangeRequestStatus::ChangeInserted) {
-            bail!(MangobeError::UnexpectedStateChange(
+            bail!(MangrobeError::UnexpectedStateChange(
                 status.to_string(),
                 ChangeRequestStatus::ChangeInserted.to_string(),
             ));
@@ -102,7 +103,7 @@ impl ChangeRequestService {
                 .get_by_change_request_id(&txn, change_request.id.clone())
                 .await;
         } else if !status.can_progress_to(ChangeRequestStatus::Committed) {
-            bail!(MangobeError::UnexpectedStateChange(
+            bail!(MangrobeError::UnexpectedStateChange(
                 status.to_string(),
                 ChangeRequestStatus::Committed.to_string(),
             ));
