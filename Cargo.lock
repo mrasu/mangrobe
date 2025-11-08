@@ -3161,6 +3161,8 @@ dependencies = [
  "prost",
  "prost-types",
  "sea-orm",
+ "serde",
+ "serde_json",
  "strum",
  "strum_macros 0.27.2",
  "thiserror",

@@ -23,7 +23,7 @@ impl CommitRepository {
         C: ConnectionTrait,
     {
         let commits = Commits::find()
-            .order_by_desc(commits::Column::Id)
+            .order_by_asc(commits::Column::Id)
             .all(conn)
             .await?;
 

@@ -189,23 +189,23 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(ChangeRequestFileAddEntry::Table)
+                    .table(ChangeRequestFileEntry::Table)
                     .if_not_exists()
                     .col(
-                        big_integer(ChangeRequestFileAddEntry::Id)
+                        big_integer(ChangeRequestFileEntry::Id)
                             .auto_increment()
                             .primary_key()
                             .take(),
                     )
-                    .col(big_integer(ChangeRequestFileAddEntry::ChangeRequestId))
-                    .col(string(ChangeRequestFileAddEntry::Path))
-                    .col(big_integer(ChangeRequestFileAddEntry::Size))
+                    .col(big_integer(ChangeRequestFileEntry::ChangeRequestId))
+                    .col(integer(ChangeRequestFileEntry::ChangeType))
+                    .col(json_binary(ChangeRequestFileEntry::ChangeEntries))
                     .col(
-                        timestamp_with_time_zone(ChangeRequestFileAddEntry::CreatedAt)
+                        timestamp_with_time_zone(ChangeRequestFileEntry::CreatedAt)
                             .default(Expr::current_timestamp()),
                     )
                     .col(
-                        timestamp_with_time_zone(ChangeRequestFileAddEntry::UpdatedAt)
+                        timestamp_with_time_zone(ChangeRequestFileEntry::UpdatedAt)
                             .default(Expr::current_timestamp()),
                     )
                     .to_owned(),
@@ -223,7 +223,7 @@ impl MigrationTrait for Migration {
                 FOR EACH ROW
                 EXECUTE FUNCTION update_timestamp();
                 "#,
-                    ChangeRequestFileAddEntry::Table.to_string()
+                    ChangeRequestFileEntry::Table.to_string()
                 )
                 .to_owned(),
             ))
@@ -234,11 +234,11 @@ impl MigrationTrait for Migration {
                 Index::create()
                     .name(format!(
                         "idx_{}_{}",
-                        ChangeRequestFileAddEntry::Table.to_string(),
-                        ChangeRequestFileAddEntry::ChangeRequestId.to_string()
+                        ChangeRequestFileEntry::Table.to_string(),
+                        ChangeRequestFileEntry::ChangeRequestId.to_string()
                     ))
-                    .table(ChangeRequestFileAddEntry::Table)
-                    .col(ChangeRequestFileAddEntry::ChangeRequestId)
+                    .table(ChangeRequestFileEntry::Table)
+                    .col(ChangeRequestFileEntry::ChangeRequestId)
                     .to_owned(),
             )
             .await?;
@@ -248,30 +248,93 @@ impl MigrationTrait for Migration {
                 ForeignKey::create()
                     .name(format!(
                         "fk_{}_{}",
-                        ChangeRequestFileAddEntry::Table.to_string(),
+                        ChangeRequestFileEntry::Table.to_string(),
                         ChangeRequest::Table.to_string()
                     ))
                     .from(
-                        ChangeRequestFileAddEntry::Table,
-                        ChangeRequestFileAddEntry::ChangeRequestId,
+                        ChangeRequestFileEntry::Table,
+                        ChangeRequestFileEntry::ChangeRequestId,
                     )
                     .to(ChangeRequest::Table, ChangeRequest::Id)
                     .to_owned(),
             )
-            .await
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(File::Table)
+                    .if_not_exists()
+                    .col(big_integer(File::Id).auto_increment().primary_key().take())
+                    .col(big_integer(File::TenantId))
+                    .col(timestamp_with_time_zone(File::PartitionTime))
+                    .col(string_len(File::Path, 100))
+                    .col(big_integer(File::Size))
+                    .col(
+                        timestamp_with_time_zone(ChangeRequestFileEntry::CreatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(
+                        timestamp_with_time_zone(ChangeRequestFileEntry::UpdatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .get_connection()
+            .execute(Statement::from_string(
+                manager.get_database_backend(),
+                format!(
+                    r#"
+                CREATE TRIGGER trigger_update_updated_at
+                BEFORE UPDATE ON {}
+                FOR EACH ROW
+                EXECUTE FUNCTION update_timestamp();
+                "#,
+                    File::Table.to_string()
+                )
+                .to_owned(),
+            ))
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name(format!(
+                        "idx_{}_{}_{}",
+                        File::Table.to_string(),
+                        File::TenantId.to_string(),
+                        File::PartitionTime.to_string()
+                    ))
+                    .table(File::Table)
+                    .col(File::TenantId)
+                    .col(File::PartitionTime)
+                    .to_owned(),
+            )
+            .await?;
+
+        Ok(())
     }
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
+            .drop_table(Table::drop().table(File::Table).to_owned())
+            .await?;
+
+        manager
             .drop_table(
                 Table::drop()
-                    .table(ChangeRequestFileAddEntry::Table)
+                    .table(ChangeRequestFileEntry::Table)
                     .to_owned(),
             )
             .await?;
+
         manager
             .drop_table(Table::drop().table(Commit::Table).to_owned())
             .await?;
+
         manager
             .drop_table(
                 Table::drop()
@@ -279,6 +342,7 @@ impl MigrationTrait for Migration {
                     .to_owned(),
             )
             .await?;
+
         manager
             .drop_table(Table::drop().table(ChangeRequest::Table).to_owned())
             .await
@@ -318,11 +382,24 @@ enum Commit {
 }
 
 #[derive(DeriveIden)]
-enum ChangeRequestFileAddEntry {
-    #[sea_orm(iden = "change_request_file_add_entries")]
+enum ChangeRequestFileEntry {
+    #[sea_orm(iden = "change_request_file_entries")]
     Table,
     Id,
     ChangeRequestId,
+    ChangeType,
+    ChangeEntries,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(DeriveIden)]
+enum File {
+    #[sea_orm(iden = "files")]
+    Table,
+    Id,
+    TenantId,
+    PartitionTime,
     Path,
     Size,
     CreatedAt,

@@ -1,1 +1,1 @@
-pub mod data_manipulation_use_case;
+pub mod data_manipulation;

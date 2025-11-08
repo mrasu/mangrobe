@@ -1,22 +1,12 @@
+use crate::domain::model::file::File;
+
 #[derive(Debug)]
 pub struct ChangeRequestChangeFileEntries {
-    pub add_entries: Vec<ChangeRequestFileAddEntry>,
+    pub add_entries: Vec<File>,
 }
 
 impl ChangeRequestChangeFileEntries {
-    pub fn new(add_entries: Vec<ChangeRequestFileAddEntry>) -> Self {
+    pub fn new(add_entries: Vec<File>) -> Self {
         Self { add_entries }
-    }
-}
-
-#[derive(Debug)]
-pub struct ChangeRequestFileAddEntry {
-    pub path: String,
-    pub size: i64,
-}
-
-impl ChangeRequestFileAddEntry {
-    pub fn new(path: String, size: i64) -> Self {
-        Self { path, size }
     }
 }

@@ -3,13 +3,14 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "change_request_file_add_entries")]
+#[sea_orm(table_name = "change_request_file_entries")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
     pub change_request_id: i64,
-    pub path: String,
-    pub size: i64,
+    pub change_type: i32,
+    #[sea_orm(column_type = "JsonBinary")]
+    pub change_entries: Json,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }

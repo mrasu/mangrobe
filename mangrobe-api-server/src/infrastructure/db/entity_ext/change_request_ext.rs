@@ -1,4 +1,4 @@
-use crate::domain::model::change_request::ChangeRequestStatus;
+use crate::domain::model::change_request::{ChangeRequestStatus, ChangeRequestType};
 use crate::infrastructure::db::entity::change_requests;
 use crate::util::error::MangrobeError;
 use anyhow::bail;
@@ -28,6 +28,13 @@ impl ChangeRequestExt {
             ChangeRequestStatus::New => 0,
             ChangeRequestStatus::ChangeInserted => 1,
             ChangeRequestStatus::Committed => 2,
+        }
+    }
+
+    pub fn build_model_type(t: ChangeRequestType) -> i32 {
+        match t {
+            ChangeRequestType::Change => 0,
+            ChangeRequestType::Compact => 1,
         }
     }
 }

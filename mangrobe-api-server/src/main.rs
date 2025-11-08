@@ -1,4 +1,4 @@
-use crate::grpc::data_manipulation::data_manipulation_service::DataManipulationService;
+use crate::grpc::data_manipulation_service::DataManipulationService;
 use crate::grpc::proto::data_manipulation_service_server::DataManipulationServiceServer;
 use crate::infrastructure::db::connection::connect;
 use sea_orm::DatabaseConnection;

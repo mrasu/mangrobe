@@ -6,6 +6,7 @@ import "google/protobuf/timestamp.proto";
 service DataManipulationService {
   rpc GetLatestSnapshot(GetLatestSnapshotRequest) returns (GetLatestSnapshotResponse) {};
   rpc ChangeFiles(ChangeFilesRequest) returns (ChangeFilesResponse);
+  rpc CompactFiles(CompactFilesRequest) returns (CompactFilesResponse);
 }
 
 message GetLatestSnapshotRequest {}
@@ -38,5 +39,28 @@ message FileAddEntry {
 }
 
 message ChangeFilesResponse {
+  int64 CommitId = 1;
+}
+
+message CompactFilesRequest {
+  // Must be shorter than 16 byte
+  bytes idempotency_key = 1;
+  int64 tenant_id = 2;
+  google.protobuf.Timestamp partition_time = 3;
+
+  repeated FileCompactSrcEntry src_file_entries = 4;
+  FileCompactDstEntry dst_file_entry = 5;
+}
+
+message FileCompactSrcEntry {
+  string path = 1;
+}
+
+message FileCompactDstEntry {
+  string path = 1;
+  int64 size = 2;
+}
+
+message CompactFilesResponse {
   int64 CommitId = 1;
 }

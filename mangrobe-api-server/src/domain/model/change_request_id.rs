@@ -1,5 +1,4 @@
-
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct ChangeRequestId {
     val: i64,
 }

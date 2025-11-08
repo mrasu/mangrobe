@@ -29,3 +29,8 @@ impl ChangeRequestStatus {
         (*self as i32) + 1 == target as i32
     }
 }
+
+pub enum ChangeRequestType {
+    Change,
+    Compact,
+}

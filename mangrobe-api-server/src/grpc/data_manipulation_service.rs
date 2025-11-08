@@ -1,10 +1,12 @@
-use crate::application::data_manipulation_use_case::DataManipulationUseCase;
-use crate::grpc::data_manipulation::change_file_param::ChangeFileParam;
+use crate::application::data_manipulation::change_files_param::ChangeFilesParam;
+use crate::application::data_manipulation::compact_files_param::CompactFilesParam;
+use crate::application::data_manipulation::data_manipulation_use_case::DataManipulationUseCase;
 use crate::grpc::proto::{
-    ChangeFilesRequest, ChangeFilesResponse, File, GetLatestSnapshotRequest,
-    GetLatestSnapshotResponse, Snapshot, data_manipulation_service_server,
+    ChangeFilesRequest, ChangeFilesResponse, CompactFilesRequest, CompactFilesResponse, File,
+    GetLatestSnapshotRequest, GetLatestSnapshotResponse, Snapshot,
+    data_manipulation_service_server,
 };
-use crate::grpc::util::error::to_internal_error;
+use crate::grpc::util::error::{build_invalid_argument, to_internal_error};
 use sea_orm::DatabaseConnection;
 use tonic::{Request, Response, Status};
 
@@ -52,7 +54,7 @@ impl data_manipulation_service_server::DataManipulationService for DataManipulat
         request: Request<ChangeFilesRequest>,
     ) -> Result<Response<ChangeFilesResponse>, Status> {
         let req = request.get_ref();
-        let param = ChangeFileParam::try_from(req)?;
+        let param = ChangeFilesParam::try_from(req).map_err(build_invalid_argument)?;
 
         let commit_id = self
             .snapshot_use_case
@@ -61,6 +63,25 @@ impl data_manipulation_service_server::DataManipulationService for DataManipulat
             .map_err(to_internal_error)?;
 
         let response = ChangeFilesResponse {
+            commit_id: commit_id.into(),
+        };
+        Ok(Response::new(response))
+    }
+
+    async fn compact_files(
+        &self,
+        request: Request<CompactFilesRequest>,
+    ) -> Result<Response<CompactFilesResponse>, Status> {
+        let req = request.get_ref();
+        let param = CompactFilesParam::try_from(req).map_err(build_invalid_argument)?;
+
+        let commit_id = self
+            .snapshot_use_case
+            .compact_files(param)
+            .await
+            .map_err(to_internal_error)?;
+
+        let response = CompactFilesResponse {
             commit_id: commit_id.into(),
         };
         Ok(Response::new(response))
