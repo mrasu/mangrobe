@@ -24,3 +24,7 @@ target/
 
 # Ignore data files for test
 **/data/
+
+# Ignore output of tonic
+**/src/generated/
+!**/src/generated/.gitkeep
