@@ -27,6 +27,46 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
+                    .table(UserTable::Table)
+                    .if_not_exists()
+                    .col(
+                        big_integer(UserTable::Id)
+                            .auto_increment()
+                            .primary_key()
+                            .take(),
+                    )
+                    .col(
+                        timestamp_with_time_zone(UserTable::CreatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(
+                        timestamp_with_time_zone(UserTable::UpdatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .get_connection()
+            .execute(Statement::from_string(
+                manager.get_database_backend(),
+                format!(
+                    r#"
+                CREATE TRIGGER trigger_update_updated_at
+                BEFORE UPDATE ON {}
+                FOR EACH ROW
+                EXECUTE FUNCTION update_timestamp();
+                "#,
+                    UserTable::Table.to_string()
+                )
+                .to_owned(),
+            ))
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
                     .table(ChangeRequest::Table)
                     .if_not_exists()
                     .col(
@@ -35,9 +75,12 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .take(),
                     )
-                    .col(big_integer(ChangeRequest::TenantId))
+                    .col(big_integer(ChangeRequest::UserTableId))
+                    .col(big_integer(ChangeRequest::StreamId))
                     .col(timestamp_with_time_zone(ChangeRequest::PartitionTime))
                     .col(integer(ChangeRequest::Status))
+                    .col(integer(ChangeRequest::ChangeType))
+                    .col(json_binary_null(ChangeRequest::FileEntry))
                     .col(
                         timestamp_with_time_zone(ChangeRequest::CreatedAt)
                             .default(Expr::current_timestamp()),
@@ -66,6 +109,22 @@ impl MigrationTrait for Migration {
                 .to_owned(),
             ))
             .await?;
+
+        // TODO: add FK after adding rpc for table creation
+        //
+        // manager
+        //     .create_foreign_key(
+        //         ForeignKey::create()
+        //             .name(format!(
+        //                 "fk_{}_{}",
+        //                 ChangeRequest::Table.to_string(),
+        //                 UserTable::Table.to_string()
+        //             ))
+        //             .from(ChangeRequest::Table, ChangeRequest::UserTableId)
+        //             .to(UserTable::Table, UserTable::Id)
+        //             .to_owned(),
+        //     )
+        //     .await?;
 
         manager
             .create_table(
@@ -150,6 +209,8 @@ impl MigrationTrait for Migration {
                             .take(),
                     )
                     .col(big_integer(Commit::ChangeRequestId))
+                    .col(big_integer(Commit::UserTableId))
+                    .col(big_integer(Commit::StreamId))
                     .col(
                         timestamp_with_time_zone(Commit::CommittedAt)
                             .default(Expr::current_timestamp()),
@@ -173,6 +234,22 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
+            .create_index(
+                Index::create()
+                    .name(format!(
+                        "idx_{}_{}_{}",
+                        Commit::Table.to_string(),
+                        Commit::UserTableId.to_string(),
+                        Commit::StreamId.to_string()
+                    ))
+                    .table(Commit::Table)
+                    .col(Commit::UserTableId)
+                    .col(Commit::StreamId)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
             .create_foreign_key(
                 ForeignKey::create()
                     .name(format!(
@@ -189,84 +266,11 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(ChangeRequestFileEntry::Table)
-                    .if_not_exists()
-                    .col(
-                        big_integer(ChangeRequestFileEntry::Id)
-                            .auto_increment()
-                            .primary_key()
-                            .take(),
-                    )
-                    .col(big_integer(ChangeRequestFileEntry::ChangeRequestId))
-                    .col(integer(ChangeRequestFileEntry::ChangeType))
-                    .col(json_binary(ChangeRequestFileEntry::ChangeEntries))
-                    .col(
-                        timestamp_with_time_zone(ChangeRequestFileEntry::CreatedAt)
-                            .default(Expr::current_timestamp()),
-                    )
-                    .col(
-                        timestamp_with_time_zone(ChangeRequestFileEntry::UpdatedAt)
-                            .default(Expr::current_timestamp()),
-                    )
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .get_connection()
-            .execute(Statement::from_string(
-                manager.get_database_backend(),
-                format!(
-                    r#"
-                CREATE TRIGGER trigger_update_updated_at
-                BEFORE UPDATE ON {}
-                FOR EACH ROW
-                EXECUTE FUNCTION update_timestamp();
-                "#,
-                    ChangeRequestFileEntry::Table.to_string()
-                )
-                .to_owned(),
-            ))
-            .await?;
-
-        manager
-            .create_index(
-                Index::create()
-                    .name(format!(
-                        "idx_{}_{}",
-                        ChangeRequestFileEntry::Table.to_string(),
-                        ChangeRequestFileEntry::ChangeRequestId.to_string()
-                    ))
-                    .table(ChangeRequestFileEntry::Table)
-                    .col(ChangeRequestFileEntry::ChangeRequestId)
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_foreign_key(
-                ForeignKey::create()
-                    .name(format!(
-                        "fk_{}_{}",
-                        ChangeRequestFileEntry::Table.to_string(),
-                        ChangeRequest::Table.to_string()
-                    ))
-                    .from(
-                        ChangeRequestFileEntry::Table,
-                        ChangeRequestFileEntry::ChangeRequestId,
-                    )
-                    .to(ChangeRequest::Table, ChangeRequest::Id)
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_table(
-                Table::create()
                     .table(File::Table)
                     .if_not_exists()
                     .col(big_integer(File::Id).auto_increment().primary_key().take())
-                    .col(big_integer(File::TenantId))
+                    .col(big_integer(File::UserTableId))
+                    .col(big_integer(File::StreamId))
                     .col(timestamp_with_time_zone(File::PartitionTime))
                     .col(string_len(File::Path, 100))
                     .col(big_integer(File::Size))
@@ -305,12 +309,88 @@ impl MigrationTrait for Migration {
                     .name(format!(
                         "idx_{}_{}_{}",
                         File::Table.to_string(),
-                        File::TenantId.to_string(),
+                        File::StreamId.to_string(),
                         File::PartitionTime.to_string()
                     ))
                     .table(File::Table)
-                    .col(File::TenantId)
+                    .col(File::StreamId)
                     .col(File::PartitionTime)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
+                    .table(CurrentFile::Table)
+                    .if_not_exists()
+                    .col(
+                        big_integer(CurrentFile::Id)
+                            .auto_increment()
+                            .primary_key()
+                            .take(),
+                    )
+                    .col(big_integer(CurrentFile::UserTableId))
+                    .col(big_integer(CurrentFile::StreamId))
+                    .col(timestamp_with_time_zone(CurrentFile::PartitionTime))
+                    .col(big_integer(CurrentFile::FileId))
+                    .col(
+                        timestamp_with_time_zone(CurrentFile::CreatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(
+                        timestamp_with_time_zone(CurrentFile::UpdatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .get_connection()
+            .execute(Statement::from_string(
+                manager.get_database_backend(),
+                format!(
+                    r#"
+                CREATE TRIGGER trigger_update_updated_at
+                BEFORE UPDATE ON {}
+                FOR EACH ROW
+                EXECUTE FUNCTION update_timestamp();
+                "#,
+                    CurrentFile::Table.to_string()
+                )
+                .to_owned(),
+            ))
+            .await?;
+
+        manager
+            .create_foreign_key(
+                ForeignKey::create()
+                    .name(format!(
+                        "fk_{}_{}",
+                        CurrentFile::Table.to_string(),
+                        File::Table.to_string()
+                    ))
+                    .from(CurrentFile::Table, CurrentFile::FileId)
+                    .to(File::Table, File::Id)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name(format!(
+                        "idx_{}_{}_{}_{}",
+                        CurrentFile::Table.to_string(),
+                        CurrentFile::UserTableId.to_string(),
+                        CurrentFile::StreamId.to_string(),
+                        CurrentFile::PartitionTime.to_string()
+                    ))
+                    .table(CurrentFile::Table)
+                    .col(CurrentFile::UserTableId)
+                    .col(CurrentFile::StreamId)
+                    .col(CurrentFile::PartitionTime)
                     .to_owned(),
             )
             .await?;
@@ -320,15 +400,11 @@ impl MigrationTrait for Migration {
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
-            .drop_table(Table::drop().table(File::Table).to_owned())
+            .drop_table(Table::drop().table(CurrentFile::Table).to_owned())
             .await?;
 
         manager
-            .drop_table(
-                Table::drop()
-                    .table(ChangeRequestFileEntry::Table)
-                    .to_owned(),
-            )
+            .drop_table(Table::drop().table(File::Table).to_owned())
             .await?;
 
         manager
@@ -345,8 +421,22 @@ impl MigrationTrait for Migration {
 
         manager
             .drop_table(Table::drop().table(ChangeRequest::Table).to_owned())
+            .await?;
+
+        manager
+            .drop_table(Table::drop().table(UserTable::Table).to_owned())
             .await
     }
+}
+
+#[derive(DeriveIden)]
+enum UserTable {
+    #[sea_orm(iden = "user_tables")]
+    Table,
+    Id,
+    // TODO: add definition's info
+    CreatedAt,
+    UpdatedAt,
 }
 
 #[derive(DeriveIden)]
@@ -354,9 +444,12 @@ enum ChangeRequest {
     #[sea_orm(iden = "change_requests")]
     Table,
     Id,
-    TenantId,
+    UserTableId,
+    StreamId,
     PartitionTime,
     Status,
+    ChangeType,
+    FileEntry,
     CreatedAt,
     UpdatedAt,
 }
@@ -378,19 +471,9 @@ enum Commit {
     Table,
     Id,
     ChangeRequestId,
+    UserTableId,
+    StreamId,
     CommittedAt,
-}
-
-#[derive(DeriveIden)]
-enum ChangeRequestFileEntry {
-    #[sea_orm(iden = "change_request_file_entries")]
-    Table,
-    Id,
-    ChangeRequestId,
-    ChangeType,
-    ChangeEntries,
-    CreatedAt,
-    UpdatedAt,
 }
 
 #[derive(DeriveIden)]
@@ -398,10 +481,24 @@ enum File {
     #[sea_orm(iden = "files")]
     Table,
     Id,
-    TenantId,
+    UserTableId,
+    StreamId,
     PartitionTime,
     Path,
     Size,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(DeriveIden)]
+enum CurrentFile {
+    #[sea_orm(iden = "current_files")]
+    Table,
+    Id,
+    UserTableId,
+    StreamId,
+    PartitionTime,
+    FileId,
     CreatedAt,
     UpdatedAt,
 }

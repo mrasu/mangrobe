@@ -8,6 +8,8 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
     pub change_request_id: i64,
+    pub user_table_id: i64,
+    pub stream_id: i64,
     pub committed_at: DateTimeWithTimeZone,
 }
 

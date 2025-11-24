@@ -1,3 +1,4 @@
+
 pub struct CommitId {
     val: i64,
 }
@@ -13,5 +14,17 @@ impl From<CommitId> for i64 {
 impl From<i64> for CommitId {
     fn from(id: i64) -> Self {
         Self { val: id }
+    }
+}
+
+impl From<&i64> for CommitId {
+    fn from(id: &i64) -> Self {
+        Self { val: *id }
+    }
+}
+
+impl CommitId {
+    pub fn val(&self) -> i64 {
+        self.val
     }
 }

@@ -7,27 +7,23 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
-    pub tenant_id: i64,
+    pub user_table_id: i64,
+    pub stream_id: i64,
     pub partition_time: DateTimeWithTimeZone,
     pub status: i32,
+    pub change_type: i32,
+    #[sea_orm(column_type = "JsonBinary", nullable)]
+    pub file_entry: Option<Json>,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::change_request_file_entries::Entity")]
-    ChangeRequestFileEntries,
     #[sea_orm(has_one = "super::change_request_idempotency_keys::Entity")]
     ChangeRequestIdempotencyKeys,
     #[sea_orm(has_many = "super::commits::Entity")]
     Commits,
-}
-
-impl Related<super::change_request_file_entries::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::ChangeRequestFileEntries.def()
-    }
 }
 
 impl Related<super::change_request_idempotency_keys::Entity> for Entity {

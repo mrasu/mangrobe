@@ -1,7 +1,7 @@
 use crate::grpc::proto::data_manipulation_service_client::DataManipulationServiceClient;
 use crate::grpc::proto::{
-    ChangeFilesRequest, ChangeFilesResponse, FileAddEntry, GetLatestSnapshotRequest,
-    GetLatestSnapshotResponse,
+    ChangeFilesRequest, ChangeFilesResponse, FileAddEntry, GetCurrentSnapshotRequest,
+    GetCurrentSnapshotResponse,
 };
 use tonic::Response;
 use tonic::transport::Channel;
@@ -23,12 +23,15 @@ impl ApiClient {
 
     pub async fn fetch_snapshot(
         &self,
-    ) -> Result<Response<GetLatestSnapshotResponse>, tonic::Status> {
-        let request = tonic::Request::new(GetLatestSnapshotRequest {});
+    ) -> Result<Response<GetCurrentSnapshotResponse>, tonic::Status> {
+        let request = tonic::Request::new(GetCurrentSnapshotRequest {
+            table_id: 0,
+            stream_id: 0,
+        });
 
         self.snapshot_service_client
             .clone()
-            .get_latest_snapshot(request)
+            .get_current_snapshot(request)
             .await
     }
 
@@ -38,7 +41,8 @@ impl ApiClient {
     ) -> Result<Response<ChangeFilesResponse>, tonic::Status> {
         let request = tonic::Request::new(ChangeFilesRequest {
             idempotency_key: Uuid::now_v7().into(),
-            tenant_id: 0,
+            table_id: 0,
+            stream_id: 0,
             partition_time: prost_types::Timestamp::default().into(),
             file_add_entries,
         });

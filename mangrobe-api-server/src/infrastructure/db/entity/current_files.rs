@@ -3,14 +3,14 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "change_request_file_entries")]
+#[sea_orm(table_name = "current_files")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
-    pub change_request_id: i64,
-    pub change_type: i32,
-    #[sea_orm(column_type = "JsonBinary")]
-    pub change_entries: Json,
+    pub user_table_id: i64,
+    pub stream_id: i64,
+    pub partition_time: DateTimeWithTimeZone,
+    pub file_id: i64,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }
@@ -18,18 +18,18 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
-        belongs_to = "super::change_requests::Entity",
-        from = "Column::ChangeRequestId",
-        to = "super::change_requests::Column::Id",
+        belongs_to = "super::files::Entity",
+        from = "Column::FileId",
+        to = "super::files::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
-    ChangeRequests,
+    Files,
 }
 
-impl Related<super::change_requests::Entity> for Entity {
+impl Related<super::files::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::ChangeRequests.def()
+        Relation::Files.def()
     }
 }
 

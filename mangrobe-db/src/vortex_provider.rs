@@ -55,10 +55,8 @@ impl TableProvider for VortexProvider {
             .map_err(|e| DataFusionError::External(e.into()))?;
         let files: Vec<_> = response
             .get_ref()
-            .snapshot
-            .as_ref()
+            .files
             .iter()
-            .flat_map(|s| s.files.iter())
             .map(|f| PartitionedFile::new(f.path.clone(), f.size as u64))
             .collect();
 

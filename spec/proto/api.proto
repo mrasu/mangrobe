@@ -4,19 +4,23 @@ package mangrobe.api;
 import "google/protobuf/timestamp.proto";
 
 service DataManipulationService {
-  rpc GetLatestSnapshot(GetLatestSnapshotRequest) returns (GetLatestSnapshotResponse) {};
+  rpc GetCurrentSnapshot(GetCurrentSnapshotRequest) returns (GetCurrentSnapshotResponse);
+
+  rpc AddFiles(AddFilesRequest) returns (AddFilesResponse);
   rpc ChangeFiles(ChangeFilesRequest) returns (ChangeFilesResponse);
   rpc CompactFiles(CompactFilesRequest) returns (CompactFilesResponse);
 }
 
-message GetLatestSnapshotRequest {}
-
-message GetLatestSnapshotResponse {
-  Snapshot snapshot = 1;
+message GetCurrentSnapshotRequest {
+  int64 table_id = 1;
+  int64 stream_id = 2;
 }
 
-message Snapshot {
-  repeated File files = 1;
+message GetCurrentSnapshotResponse {
+  int64 stream_id = 1;
+  optional int64 commit_id = 2;
+
+  repeated File files = 3;
 }
 
 message File {
@@ -24,13 +28,26 @@ message File {
   int64 size = 2;
 }
 
+message AddFilesRequest {
+  bytes idempotency_key = 1;
+  int64 table_id = 2;
+  int64 stream_id = 3;
+  google.protobuf.Timestamp partition_time = 4;
+  repeated FileAddEntry file_add_entries = 5;
+}
+
+message AddFilesResponse {
+  int64 commit_id = 1;
+}
+
 message ChangeFilesRequest {
   // Must be shorter than 16 byte
   bytes idempotency_key = 1;
-  int64 tenant_id = 2;
-  google.protobuf.Timestamp partition_time = 3;
+  int64 table_id = 2;
+  int64 stream_id = 3;
+  google.protobuf.Timestamp partition_time = 4;
 
-  repeated FileAddEntry file_add_entries = 4;
+  repeated FileAddEntry file_add_entries = 5;
 }
 
 message FileAddEntry {
@@ -45,11 +62,12 @@ message ChangeFilesResponse {
 message CompactFilesRequest {
   // Must be shorter than 16 byte
   bytes idempotency_key = 1;
-  int64 tenant_id = 2;
-  google.protobuf.Timestamp partition_time = 3;
+  int64 table_id = 2;
+  int64 stream_id = 3;
+  google.protobuf.Timestamp partition_time = 4;
 
-  repeated FileCompactSrcEntry src_file_entries = 4;
-  FileCompactDstEntry dst_file_entry = 5;
+  repeated FileCompactSrcEntry src_file_entries = 5;
+  FileCompactDstEntry dst_file_entry = 6;
 }
 
 message FileCompactSrcEntry {

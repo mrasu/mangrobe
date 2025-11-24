@@ -3,29 +3,15 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "files")]
+#[sea_orm(table_name = "user_tables")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
-    pub user_table_id: i64,
-    pub stream_id: i64,
-    pub partition_time: DateTimeWithTimeZone,
-    pub path: String,
-    pub size: i64,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
-    #[sea_orm(has_many = "super::current_files::Entity")]
-    CurrentFiles,
-}
-
-impl Related<super::current_files::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::CurrentFiles.def()
-    }
-}
+pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}

@@ -1,6 +1,9 @@
 use crate::domain::model::change_request_id::ChangeRequestId;
+use crate::domain::model::commit::Commit;
 use crate::domain::model::commit_id::CommitId;
-use crate::infrastructure::db::entity::commits;
+use crate::domain::model::stream_id::StreamId;
+use crate::domain::model::user_table_id::UserTableId;
+use crate::infrastructure::db::entity::commits::{ActiveModel, Column, Entity, Model};
 use crate::infrastructure::db::entity::prelude::Commits;
 use crate::util::error::MangrobeError;
 use sea_orm::{
@@ -15,51 +18,68 @@ impl CommitRepository {
         Self {}
     }
 
-    pub async fn fetch_change_request_ids_for_latest<C>(
+    pub async fn find_latest<C>(
         &self,
         conn: &C,
-    ) -> Result<Vec<ChangeRequestId>, anyhow::Error>
+        user_table_id: &UserTableId,
+        stream_id: &StreamId,
+    ) -> Result<Option<Commit>, anyhow::Error>
     where
         C: ConnectionTrait,
     {
-        let commits = Commits::find()
-            .order_by_asc(commits::Column::Id)
-            .all(conn)
+        let commit = Entity::find()
+            .filter(Column::UserTableId.eq(user_table_id.val()))
+            .filter(Column::StreamId.eq(stream_id.val()))
+            .order_by_desc(Column::Id)
+            .one(conn)
             .await?;
 
-        let ids = commits
-            .iter()
-            .map(|c| ChangeRequestId::from(c.change_request_id))
-            .collect();
+        let Some(commit) = commit else {
+            return Ok(None);
+        };
 
-        Ok(ids)
+        Ok(Some(self.build_domain_commit(&commit)))
+    }
+
+    fn build_domain_commit(&self, commit: &Model) -> Commit {
+        Commit {
+            id: commit.id.into(),
+            change_request_id: commit.change_request_id.into(),
+            user_table_id: commit.user_table_id.into(),
+            stream_id: commit.stream_id.into(),
+            committed_at: commit.committed_at.into(),
+        }
     }
 
     pub async fn insert<C>(
         &self,
-        con: &C,
-        change_request_id: ChangeRequestId,
+        conn: &C,
+        user_table_id: &UserTableId,
+        stream_id: &StreamId,
+        change_request_id: &ChangeRequestId,
     ) -> Result<CommitId, anyhow::Error>
     where
         C: ConnectionTrait,
     {
-        let commit = commits::ActiveModel {
+        let commit = ActiveModel {
             change_request_id: Set(change_request_id.into()),
+            user_table_id: Set(user_table_id.val()),
+            stream_id: Set(stream_id.val()),
             ..Default::default()
         }
-        .insert(con)
+        .insert(conn)
         .await?;
 
         Ok(commit.id.into())
     }
 
-    pub async fn get_by_change_request_id(
+    pub async fn find_by_change_request_id(
         &self,
         txn: &DatabaseTransaction,
         change_request_id: ChangeRequestId,
     ) -> Result<CommitId, anyhow::Error> {
         let commit = Commits::find()
-            .filter(commits::Column::ChangeRequestId.eq(change_request_id.i64()))
+            .filter(Column::ChangeRequestId.eq(change_request_id.val()))
             .one(txn)
             .await?
             .ok_or(MangrobeError::UnexpectedState(

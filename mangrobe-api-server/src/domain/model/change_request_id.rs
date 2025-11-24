@@ -4,7 +4,7 @@ pub struct ChangeRequestId {
 }
 
 impl ChangeRequestId {
-    pub fn i64(&self) -> i64 {
+    pub fn val(&self) -> i64 {
         self.val
     }
 }

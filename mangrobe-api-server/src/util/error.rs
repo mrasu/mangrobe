@@ -18,3 +18,9 @@ pub enum ParameterError {
     #[error("Invalid parameter. key='{0}', value='{1}'")]
     Invalid(String, String),
 }
+
+#[derive(Error, Debug)]
+pub enum UserError {
+    #[error("Invalid parameter. key='{0}', value='{1}'")]
+    InvalidParameterError(String, String),
+}

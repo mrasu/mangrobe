@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub struct IdempotencyKey {
     val: Vec<u8>,
 }
