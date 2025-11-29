@@ -5,8 +5,11 @@ use tracing::error;
 pub fn to_grpc_error(error: anyhow::Error) -> Status {
     if let Some(e) = error.downcast_ref::<UserError>() {
         return match e {
-            UserError::InvalidParameterError(key, msg) => {
-                build_invalid_argument_with_message(key.clone(), msg.clone())
+            UserError::InvalidParameterMessage(_) => {
+                build_invalid_argument_with_error_message(e.to_string())
+            }
+            UserError::InvalidLockMessage(_) => {
+                build_invalid_argument_with_error_message(e.to_string())
             }
         };
     }
@@ -24,6 +27,10 @@ pub fn build_invalid_argument(err: ParameterError) -> Status {
         ParameterError::Required(key) => build_argument_required(key),
         ParameterError::Invalid(key, msg) => build_invalid_argument_with_message(key, msg),
     }
+}
+
+fn build_invalid_argument_with_error_message(message: String) -> Status {
+    Status::new(Code::InvalidArgument, message)
 }
 
 fn build_invalid_argument_with_message(key: String, message: String) -> Status {

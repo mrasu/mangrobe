@@ -62,10 +62,11 @@ impl CommitRepository {
         C: ConnectionTrait,
     {
         let commit = ActiveModel {
+            id: Default::default(),
             change_request_id: Set(change_request_id.into()),
             user_table_id: Set(user_table_id.val()),
             stream_id: Set(stream_id.val()),
-            ..Default::default()
+            committed_at: Default::default(),
         }
         .insert(conn)
         .await?;

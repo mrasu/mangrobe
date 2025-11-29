@@ -5,7 +5,7 @@ mod vortex_provider;
 
 use crate::grpc::api_client::ApiClient;
 use crate::infrastructure::s3::store::create_rustfs;
-use crate::prepare::prepare;
+use crate::prepare::{prepare, smoke_run};
 use crate::vortex_provider::VortexProvider;
 use clap::{Parser, Subcommand};
 use datafusion::datasource::object_store::ObjectStoreUrl;
@@ -26,6 +26,7 @@ enum SubCommands {
         command: ServeCommands,
     },
     Prepare,
+    SmokeRun,
 }
 
 #[derive(Debug, Subcommand)]
@@ -51,6 +52,9 @@ async fn main() {
         },
         SubCommands::Prepare => {
             prepare().await.unwrap();
+        }
+        SubCommands::SmokeRun => {
+            smoke_run().await.unwrap();
         }
     }
 }

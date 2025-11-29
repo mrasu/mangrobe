@@ -7,7 +7,12 @@ pub struct ChangeRequestAddFilesEntry {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct ChangeRequestCompactFileEntry {
+pub struct ChangeRequestChangeFilesEntry {
+    pub delete_file_ids: Vec<FileId>,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct ChangeRequestCompactFilesEntry {
     pub src_file_ids: Vec<FileId>,
     pub dst_file_id: FileId,
 }
@@ -19,9 +24,9 @@ pub enum ChangeRequestFileEntry {
         add_files: ChangeRequestAddFilesEntry,
     },
     ChangeFiles {
-        add_files: ChangeRequestAddFilesEntry,
+        change_files: ChangeRequestChangeFilesEntry,
     },
     Compact {
-        compact: ChangeRequestCompactFileEntry,
+        compact: ChangeRequestCompactFilesEntry,
     },
 }

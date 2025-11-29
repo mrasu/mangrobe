@@ -322,6 +322,45 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
+                    .table(FileLock::Table)
+                    .if_not_exists()
+                    .col(binary_len(FileLock::Key, 16).primary_key())
+                    .col(big_integer(FileLock::UserTableId))
+                    .col(big_integer(FileLock::StreamId))
+                    .col(timestamp_with_time_zone(FileLock::PartitionTime))
+                    .col(timestamp_with_time_zone(FileLock::ExpireAt))
+                    .col(
+                        timestamp_with_time_zone(FileLock::CreatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(
+                        timestamp_with_time_zone(FileLock::UpdatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .get_connection()
+            .execute(Statement::from_string(
+                manager.get_database_backend(),
+                format!(
+                    r#"
+                CREATE TRIGGER trigger_update_updated_at
+                BEFORE UPDATE ON {}
+                FOR EACH ROW
+                EXECUTE FUNCTION update_timestamp();
+                "#,
+                    FileLock::Table.to_string()
+                )
+                .to_owned(),
+            ))
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
                     .table(CurrentFile::Table)
                     .if_not_exists()
                     .col(
@@ -334,6 +373,8 @@ impl MigrationTrait for Migration {
                     .col(big_integer(CurrentFile::StreamId))
                     .col(timestamp_with_time_zone(CurrentFile::PartitionTime))
                     .col(big_integer(CurrentFile::FileId))
+                    .col(binary_len(CurrentFile::FilePathXxh3, 16))
+                    .col(binary_len_null(CurrentFile::FileLockKey, 16))
                     .col(
                         timestamp_with_time_zone(CurrentFile::CreatedAt)
                             .default(Expr::current_timestamp()),
@@ -378,19 +419,50 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
+            .create_foreign_key(
+                ForeignKey::create()
+                    .name(format!(
+                        "fk_{}_{}",
+                        CurrentFile::Table.to_string(),
+                        FileLock::Table.to_string()
+                    ))
+                    .from(CurrentFile::Table, CurrentFile::FileLockKey)
+                    .to(FileLock::Table, FileLock::Key)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
             .create_index(
                 Index::create()
                     .name(format!(
-                        "idx_{}_{}_{}_{}",
+                        "idx_{}_{}_{}_{}_{}",
                         CurrentFile::Table.to_string(),
                         CurrentFile::UserTableId.to_string(),
                         CurrentFile::StreamId.to_string(),
-                        CurrentFile::PartitionTime.to_string()
+                        CurrentFile::PartitionTime.to_string(),
+                        CurrentFile::FilePathXxh3.to_string()
                     ))
+                    .unique()
                     .table(CurrentFile::Table)
                     .col(CurrentFile::UserTableId)
                     .col(CurrentFile::StreamId)
                     .col(CurrentFile::PartitionTime)
+                    .col(CurrentFile::FilePathXxh3)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name(format!(
+                        "idx_{}_{}",
+                        CurrentFile::Table.to_string(),
+                        CurrentFile::FileLockKey.to_string(),
+                    ))
+                    .table(CurrentFile::Table)
+                    .col(CurrentFile::FileLockKey)
                     .to_owned(),
             )
             .await?;
@@ -401,6 +473,10 @@ impl MigrationTrait for Migration {
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .drop_table(Table::drop().table(CurrentFile::Table).to_owned())
+            .await?;
+
+        manager
+            .drop_table(Table::drop().table(FileLock::Table).to_owned())
             .await?;
 
         manager
@@ -499,6 +575,21 @@ enum CurrentFile {
     StreamId,
     PartitionTime,
     FileId,
+    FilePathXxh3,
+    FileLockKey,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(DeriveIden)]
+enum FileLock {
+    #[sea_orm(iden = "file_locks")]
+    Table,
+    Key,
+    UserTableId,
+    StreamId,
+    PartitionTime,
+    ExpireAt,
     CreatedAt,
     UpdatedAt,
 }

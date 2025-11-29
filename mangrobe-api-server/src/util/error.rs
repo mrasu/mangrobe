@@ -21,6 +21,9 @@ pub enum ParameterError {
 
 #[derive(Error, Debug)]
 pub enum UserError {
-    #[error("Invalid parameter. key='{0}', value='{1}'")]
-    InvalidParameterError(String, String),
+    #[error("Invalid parameter. {0}")]
+    InvalidParameterMessage(String),
+
+    #[error("Invalid lock. {0}")]
+    InvalidLockMessage(String),
 }

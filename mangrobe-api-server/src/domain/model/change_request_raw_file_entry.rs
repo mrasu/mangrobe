@@ -13,12 +13,12 @@ impl ChangeRequestRawAddFilesEntry {
 
 #[derive(Debug)]
 pub struct ChangeRequestRawChangeFilesEntry {
-    pub files_to_add: Vec<FileEntry>,
+    pub files_to_delete: Vec<FilePath>,
 }
 
 impl ChangeRequestRawChangeFilesEntry {
-    pub fn new(files_to_add: Vec<FileEntry>) -> Self {
-        Self { files_to_add }
+    pub fn new(files_to_delete: Vec<FilePath>) -> Self {
+        Self { files_to_delete }
     }
 }
 

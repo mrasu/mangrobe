@@ -11,6 +11,15 @@ service DataManipulationService {
   rpc CompactFiles(CompactFilesRequest) returns (CompactFilesResponse);
 }
 
+service LockControlService {
+  rpc AcquireFileLock(AcquireFileLockRequest) returns (AcquireFileLockResponse);
+}
+
+message FileLockKey {
+  // Must be shorter than 16 byte
+  bytes key = 1;
+}
+
 message GetCurrentSnapshotRequest {
   int64 table_id = 1;
   int64 stream_id = 2;
@@ -36,23 +45,26 @@ message AddFilesRequest {
   repeated FileAddEntry file_add_entries = 5;
 }
 
+message FileAddEntry {
+  string path = 1;
+  int64 size = 2;
+}
+
 message AddFilesResponse {
   int64 commit_id = 1;
 }
 
 message ChangeFilesRequest {
-  // Must be shorter than 16 byte
-  bytes idempotency_key = 1;
+  FileLockKey file_lock_key = 1;
   int64 table_id = 2;
   int64 stream_id = 3;
   google.protobuf.Timestamp partition_time = 4;
 
-  repeated FileAddEntry file_add_entries = 5;
+  repeated FileDeleteEntry file_delete_entries = 5;
 }
 
-message FileAddEntry {
+message FileDeleteEntry {
   string path = 1;
-  int64 size = 2;
 }
 
 message ChangeFilesResponse {
@@ -60,8 +72,7 @@ message ChangeFilesResponse {
 }
 
 message CompactFilesRequest {
-  // Must be shorter than 16 byte
-  bytes idempotency_key = 1;
+  FileLockKey file_lock_key = 1;
   int64 table_id = 2;
   int64 stream_id = 3;
   google.protobuf.Timestamp partition_time = 4;
@@ -81,4 +92,24 @@ message FileCompactDstEntry {
 
 message CompactFilesResponse {
   int64 CommitId = 1;
+}
+
+message AcquireFileLockRequest {
+  int64 table_id = 1;
+  int64 stream_id = 2;
+  google.protobuf.Timestamp partition_time = 3;
+
+  FileLockKey file_lock_key = 4;
+
+  int64 ttl_sec = 5;
+
+  repeated LockFile target_files =6;
+}
+
+message LockFile {
+  string path = 1;
+}
+
+message AcquireFileLockResponse {
+  repeated File files = 3;
 }

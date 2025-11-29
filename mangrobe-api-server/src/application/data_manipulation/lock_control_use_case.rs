@@ -1,0 +1,35 @@
+use crate::application::data_manipulation::acquire_file_lock_param::AcquireFileLockParam;
+use crate::domain::model::file::File;
+use crate::domain::service::file_lock_key_service::FileLockService;
+use sea_orm::DatabaseConnection;
+
+pub struct LockControlUseCase {
+    file_lock_service: FileLockService,
+}
+
+impl LockControlUseCase {
+    pub fn new(connection: DatabaseConnection) -> Self {
+        Self {
+            file_lock_service: FileLockService::new(&connection),
+        }
+    }
+
+    pub async fn acquire_lock(
+        &self,
+        param: AcquireFileLockParam,
+    ) -> Result<Vec<File>, anyhow::Error> {
+        let locked_files = self
+            .file_lock_service
+            .acquire(
+                &param.file_lock_key,
+                &param.user_table_id,
+                &param.stream_id,
+                param.partition_time,
+                param.ttl,
+                &param.paths,
+            )
+            .await?;
+
+        Ok(locked_files)
+    }
+}

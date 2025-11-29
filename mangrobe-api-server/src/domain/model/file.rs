@@ -1,6 +1,8 @@
 use crate::domain::model::stream_id::StreamId;
 use crate::domain::model::user_table_id::UserTableId;
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
+use xxhash_rust::xxh3::xxh3_128;
 
 #[derive(Clone, Debug)]
 pub struct File {
@@ -29,7 +31,8 @@ impl File {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(transparent)]
 pub struct FilePath {
     path: String,
 }
@@ -41,6 +44,10 @@ impl FilePath {
 
     pub fn path(&self) -> String {
         self.path.clone()
+    }
+
+    pub fn to_xxh3_128(&self) -> Vec<u8> {
+        xxh3_128(self.path.as_bytes()).to_be_bytes().to_vec()
     }
 }
 

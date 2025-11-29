@@ -6,12 +6,16 @@ use crate::domain::model::change_request::ChangeRequestType;
 use crate::domain::model::commit_id::CommitId;
 use crate::domain::model::snapshot::Snapshot;
 use crate::domain::service::change_request_service::ChangeRequestService;
+use crate::domain::service::file_lock_key_service::FileLockService;
 use crate::domain::service::snapshot_service::SnapshotService;
+use crate::util::error::UserError;
+use anyhow::bail;
 use sea_orm::DatabaseConnection;
 
 pub struct DataManipulationUseCase {
     snapshot_service: SnapshotService,
     change_request_service: ChangeRequestService,
+    file_lock_service: FileLockService,
 }
 
 impl DataManipulationUseCase {
@@ -19,6 +23,7 @@ impl DataManipulationUseCase {
         Self {
             snapshot_service: SnapshotService::new(&connection),
             change_request_service: ChangeRequestService::new(&connection),
+            file_lock_service: FileLockService::new(&connection),
         }
     }
 
@@ -49,19 +54,26 @@ impl DataManipulationUseCase {
             .await?;
 
         self.change_request_service
-            .commit_change_request(&change_request_with_entry)
+            .commit_add_only_change_request(change_request_with_entry)
             .await
     }
 
     pub async fn change_files(&self, param: ChangeFilesParam) -> Result<CommitId, anyhow::Error> {
+        let lock_exists = self
+            .file_lock_service
+            .check_existence(&param.file_lock_key)
+            .await?;
+        if !lock_exists {
+            bail!(UserError::InvalidLockMessage("not acquired".into()))
+        }
+
         let change_request = self
             .change_request_service
-            .find_or_create(
-                &param.idempotency_key,
+            .create(
                 &param.user_table_id,
                 &param.stream_id,
                 &param.partition_time,
-                ChangeRequestType::Change,
+                ChangeRequestType::Compact,
             )
             .await?;
 
@@ -70,16 +82,28 @@ impl DataManipulationUseCase {
             .apply_change_entry(&change_request, &param.entry)
             .await?;
 
+        let changeset = change_request_with_entry.to_changeset();
         self.change_request_service
-            .commit_change_request(&change_request_with_entry)
+            .commit_change_request(
+                &param.file_lock_key,
+                change_request_with_entry.base,
+                &changeset,
+            )
             .await
     }
 
     pub async fn compact_files(&self, param: CompactFilesParam) -> Result<CommitId, anyhow::Error> {
+        let lock_exists = self
+            .file_lock_service
+            .check_existence(&param.file_lock_key)
+            .await?;
+        if !lock_exists {
+            bail!(UserError::InvalidLockMessage("not acquired".into()))
+        }
+
         let change_request = self
             .change_request_service
-            .find_or_create(
-                &param.idempotency_key,
+            .create(
                 &param.user_table_id,
                 &param.stream_id,
                 &param.partition_time,
@@ -92,8 +116,13 @@ impl DataManipulationUseCase {
             .apply_compaction_entry(&change_request, &param.entry)
             .await?;
 
+        let changeset = change_request_with_entry.to_changeset();
         self.change_request_service
-            .commit_change_request(&change_request_with_entry)
+            .commit_change_request(
+                &param.file_lock_key,
+                change_request_with_entry.base,
+                &changeset,
+            )
             .await
     }
 }

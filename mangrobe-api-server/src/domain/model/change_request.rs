@@ -1,17 +1,23 @@
-use crate::domain::model::change_request_file_entry::ChangeRequestFileEntry;
+use crate::domain::model::change_request_file_entry::{
+    ChangeRequestAddFilesEntry, ChangeRequestChangeFilesEntry, ChangeRequestCompactFilesEntry,
+    ChangeRequestFileEntry,
+};
 use crate::domain::model::change_request_id::ChangeRequestId;
 use crate::domain::model::changeset::Changeset;
-use crate::domain::model::idempotency_key::IdempotencyKey;
 use crate::domain::model::stream_id::StreamId;
 use crate::domain::model::user_table_id::UserTableId;
 use chrono::{DateTime, Utc};
 use std::cmp::PartialEq;
 use strum_macros::Display;
 
+pub trait ChangeRequestTrait {
+    fn id(&self) -> &ChangeRequestId;
+    fn set_status(&self, status: ChangeRequestStatus) -> Self;
+}
+
 #[derive(Clone)]
-pub struct ChangeRequest {
+pub struct BaseChangeRequest {
     pub id: ChangeRequestId,
-    pub idempotency_key: IdempotencyKey,
 
     pub user_table_id: UserTableId,
     pub stream_id: StreamId,
@@ -20,22 +26,11 @@ pub struct ChangeRequest {
     pub status: ChangeRequestStatus,
 
     pub change_type: ChangeRequestType,
-    pub file_entry: Option<ChangeRequestFileEntry>,
 }
 
-pub trait ChangeRequestAbs {
-    fn id(&self) -> &ChangeRequestId;
-    fn idempotency_key(&self) -> &IdempotencyKey;
-    fn set_status(&self, status: ChangeRequestStatus) -> Self;
-}
-
-impl ChangeRequestAbs for ChangeRequest {
+impl ChangeRequestTrait for BaseChangeRequest {
     fn id(&self) -> &ChangeRequestId {
         &self.id
-    }
-
-    fn idempotency_key(&self) -> &IdempotencyKey {
-        &self.idempotency_key
     }
 
     fn set_status(&self, status: ChangeRequestStatus) -> Self {
@@ -46,64 +41,118 @@ impl ChangeRequestAbs for ChangeRequest {
     }
 }
 
-impl ChangeRequest {
-    pub fn unwrap_to_with_file_entry(&self) -> ChangeRequestWithFileEntry {
-        let file_entry = self.file_entry.clone().unwrap();
-        self.with_file_entry(file_entry)
+#[derive(Clone)]
+pub struct ChangeRequest {
+    pub base: BaseChangeRequest,
+
+    pub file_entry: Option<ChangeRequestFileEntry>,
+}
+
+impl ChangeRequestTrait for ChangeRequest {
+    fn id(&self) -> &ChangeRequestId {
+        &self.base.id
     }
 
-    pub fn with_file_entry(
-        &self,
-        file_entry: ChangeRequestFileEntry,
-    ) -> ChangeRequestWithFileEntry {
-        ChangeRequestWithFileEntry {
-            id: self.id.clone(),
-            idempotency_key: self.idempotency_key.clone(),
-            user_table_id: self.user_table_id.clone(),
-            stream_id: self.stream_id.clone(),
-            partition_time: self.partition_time,
-            status: self.status,
-            change_type: self.change_type.clone(),
-            file_entry,
+    fn set_status(&self, status: ChangeRequestStatus) -> Self {
+        let mut cloned = self.clone();
+
+        cloned.base.status = status;
+        cloned
+    }
+}
+
+#[derive(Clone)]
+pub struct ChangeRequestForAdd {
+    pub base: BaseChangeRequest,
+    pub change_files_entry: ChangeRequestAddFilesEntry,
+}
+
+impl ChangeRequestTrait for ChangeRequestForAdd {
+    fn id(&self) -> &ChangeRequestId {
+        &self.base.id
+    }
+
+    fn set_status(&self, status: ChangeRequestStatus) -> Self {
+        let mut cloned = self.clone();
+
+        cloned.base.status = status;
+        cloned
+    }
+}
+
+impl ChangeRequestForAdd {
+    pub fn new(base: BaseChangeRequest, add_files_entry: ChangeRequestAddFilesEntry) -> Self {
+        Self {
+            base,
+            change_files_entry: add_files_entry,
         }
     }
 }
 
 #[derive(Clone)]
-pub struct ChangeRequestWithFileEntry {
-    pub id: ChangeRequestId,
-    pub idempotency_key: IdempotencyKey,
-
-    pub user_table_id: UserTableId,
-    pub stream_id: StreamId,
-    pub partition_time: DateTime<Utc>,
-
-    pub status: ChangeRequestStatus,
-
-    pub change_type: ChangeRequestType,
-    pub file_entry: ChangeRequestFileEntry,
+pub struct ChangeRequestForChange {
+    pub base: BaseChangeRequest,
+    pub change_files_entry: ChangeRequestChangeFilesEntry,
 }
 
-impl ChangeRequestAbs for ChangeRequestWithFileEntry {
+impl ChangeRequestTrait for ChangeRequestForChange {
     fn id(&self) -> &ChangeRequestId {
-        &self.id
-    }
-
-    fn idempotency_key(&self) -> &IdempotencyKey {
-        &self.idempotency_key
+        &self.base.id
     }
 
     fn set_status(&self, status: ChangeRequestStatus) -> Self {
         let mut cloned = self.clone();
 
-        cloned.status = status;
+        cloned.base.status = status;
         cloned
     }
 }
 
-impl ChangeRequestWithFileEntry {
+impl ChangeRequestForChange {
+    pub fn new(base: BaseChangeRequest, change_files_entry: ChangeRequestChangeFilesEntry) -> Self {
+        Self {
+            base,
+            change_files_entry,
+        }
+    }
+
     pub fn to_changeset(&self) -> Changeset {
-        Changeset::new_from_change_file_entries(&self.file_entry)
+        Changeset::new_from_change_file_entries(self.change_files_entry.clone())
+    }
+}
+
+#[derive(Clone)]
+pub struct ChangeRequestForCompact {
+    pub base: BaseChangeRequest,
+    pub compact_files_entry: ChangeRequestCompactFilesEntry,
+}
+
+impl ChangeRequestForCompact {
+    pub fn new(
+        base: BaseChangeRequest,
+        compact_files_entry: ChangeRequestCompactFilesEntry,
+    ) -> Self {
+        Self {
+            base,
+            compact_files_entry,
+        }
+    }
+
+    pub fn to_changeset(&self) -> Changeset {
+        Changeset::new_from_compact_file_entries(self.compact_files_entry.clone())
+    }
+}
+
+impl ChangeRequestTrait for ChangeRequestForCompact {
+    fn id(&self) -> &ChangeRequestId {
+        &self.base.id
+    }
+
+    fn set_status(&self, status: ChangeRequestStatus) -> Self {
+        let mut cloned = self.clone();
+
+        cloned.base.status = status;
+        cloned
     }
 }
 

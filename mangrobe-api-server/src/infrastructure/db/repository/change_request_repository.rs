@@ -1,23 +1,23 @@
 use crate::domain::model::change_request::{
-    ChangeRequest, ChangeRequestAbs, ChangeRequestStatus, ChangeRequestType,
+    BaseChangeRequest, ChangeRequest, ChangeRequestStatus, ChangeRequestTrait, ChangeRequestType,
 };
 use crate::domain::model::change_request_file_entry::ChangeRequestFileEntry::{
     AddFiles, ChangeFiles,
 };
 use crate::domain::model::change_request_file_entry::{
-    ChangeRequestAddFilesEntry, ChangeRequestCompactFileEntry, ChangeRequestFileEntry,
+    ChangeRequestAddFilesEntry, ChangeRequestChangeFilesEntry, ChangeRequestCompactFilesEntry,
+    ChangeRequestFileEntry,
 };
 use crate::domain::model::file_id::FileId;
 use crate::domain::model::idempotency_key::IdempotencyKey;
 use crate::domain::model::stream_id::StreamId;
 use crate::domain::model::user_table_id::UserTableId;
-use crate::infrastructure::db::entity::change_request_idempotency_keys;
 use crate::infrastructure::db::entity::change_requests::{ActiveModel, Column, Model};
 use crate::infrastructure::db::entity::prelude::ChangeRequests;
 use crate::infrastructure::db::entity_ext::change_request_ext::ChangeRequestExt;
 use crate::infrastructure::db::repository::change_request_idempotency_key_repository::ChangeRequestIdempotencyKeyRepository;
 use crate::util::error::MangrobeError;
-use anyhow::{anyhow, bail};
+use anyhow::bail;
 use chrono::{DateTime, Utc};
 use sea_orm::prelude::Expr;
 use sea_orm::sea_query::LockType;
@@ -38,7 +38,24 @@ impl ChangeRequestRepository {
         }
     }
 
-    pub async fn find_or_create<C>(
+    pub async fn create<C>(
+        &self,
+        conn: &C,
+        user_table_id: &UserTableId,
+        stream_id: &StreamId,
+        partition_time: &DateTime<Utc>,
+        change_type: ChangeRequestType,
+    ) -> Result<ChangeRequest, anyhow::Error>
+    where
+        C: ConnectionTrait,
+    {
+        let change_request = self
+            .insert(conn, user_table_id, stream_id, partition_time, change_type)
+            .await?;
+        self.build_domain_change_request(&change_request)
+    }
+
+    pub async fn find_by_idempotency_key_or_create<C>(
         &self,
         conn: &C,
         idempotency_key: &IdempotencyKey,
@@ -59,7 +76,7 @@ impl ChangeRequestRepository {
                 .find_by_id(conn, existing_key.change_request_id)
                 .await?;
             if let Some(change_request) = change_request {
-                return self.build_domain_change_request(&change_request, &existing_key);
+                return self.build_domain_change_request(&change_request);
             }
             bail!("invalid state found. idempotency key doesn't belong any change requests");
         }
@@ -77,8 +94,8 @@ impl ChangeRequestRepository {
                 Utc::now() + Duration::from_secs(24 * 3600 * 7),
             )
             .await?;
-        if let Some(inserted_key) = inserted_key {
-            return self.build_domain_change_request(&change_request, &inserted_key);
+        if inserted_key.is_some() {
+            return self.build_domain_change_request(&change_request);
         }
 
         let existing_key = self
@@ -93,7 +110,7 @@ impl ChangeRequestRepository {
             .find_by_id(conn, existing_key.change_request_id)
             .await?;
         if let Some(change_request) = change_request {
-            return self.build_domain_change_request(&change_request, &existing_key);
+            return self.build_domain_change_request(&change_request);
         }
 
         bail!("invalid state found. idempotency key doesn't belong any change requests now")
@@ -137,6 +154,7 @@ impl ChangeRequestRepository {
         change_type: ChangeRequestType,
     ) -> ActiveModel {
         ActiveModel {
+            id: Default::default(),
             stream_id: Set(stream_id.val()),
             user_table_id: Set(user_table_id.val()),
             partition_time: Set((*partition_time).into()),
@@ -144,38 +162,27 @@ impl ChangeRequestRepository {
                 ChangeRequestStatus::New,
             )),
             change_type: Set(ChangeRequestExt::build_model_change_type(change_type)),
-            ..Default::default()
+            file_entry: Set(None),
+            created_at: Default::default(),
+            updated_at: Default::default(),
         }
     }
 
     fn build_domain_change_request(
         &self,
         change_request: &Model,
-        idempotency_key: &change_request_idempotency_keys::Model,
     ) -> Result<ChangeRequest, anyhow::Error> {
-        let idempotency_key = IdempotencyKey::try_from(idempotency_key.key.clone())
-            .map_err(|_| anyhow!("invalid"))?;
-
-        self.build_domain_change_request_with_idempotency_key(change_request, &idempotency_key)
-    }
-
-    fn build_domain_change_request_with_idempotency_key(
-        &self,
-        change_request: &Model,
-        idempotency_key: &IdempotencyKey,
-    ) -> Result<ChangeRequest, anyhow::Error> {
-        let res = ChangeRequest {
-            id: change_request.id.into(),
-            idempotency_key: idempotency_key.clone(),
-            user_table_id: change_request.user_table_id.into(),
-            stream_id: change_request.stream_id.into(),
-            partition_time: change_request.partition_time.to_utc(),
-            status: ChangeRequestExt::build_domain_status(change_request)?,
-            change_type: ChangeRequestExt::build_domain_change_type(change_request)?,
+        Ok(ChangeRequest {
+            base: BaseChangeRequest {
+                id: change_request.id.into(),
+                user_table_id: change_request.user_table_id.into(),
+                stream_id: change_request.stream_id.into(),
+                partition_time: change_request.partition_time.to_utc(),
+                status: ChangeRequestExt::build_domain_status(change_request)?,
+                change_type: ChangeRequestExt::build_domain_change_type(change_request)?,
+            },
             file_entry: ChangeRequestExt::build_domain_file_entry(change_request)?,
-        };
-
-        Ok(res)
+        })
     }
 
     pub async fn select_for_update<CR>(
@@ -184,7 +191,7 @@ impl ChangeRequestRepository {
         change_request: &CR,
     ) -> Result<ChangeRequest, anyhow::Error>
     where
-        CR: ChangeRequestAbs,
+        CR: ChangeRequestTrait,
     {
         let result = ChangeRequests::find()
             .filter(Column::Id.eq(change_request.id().val()))
@@ -198,20 +205,17 @@ impl ChangeRequestRepository {
             ));
         };
 
-        self.build_domain_change_request_with_idempotency_key(
-            &selected,
-            change_request.idempotency_key(),
-        )
+        self.build_domain_change_request(&selected)
     }
 
     pub async fn update_status<CR>(
         &self,
         txn: &DatabaseTransaction,
-        change_request: &CR,
+        change_request: CR,
         status: ChangeRequestStatus,
     ) -> Result<CR, anyhow::Error>
     where
-        CR: ChangeRequestAbs,
+        CR: ChangeRequestTrait,
     {
         ChangeRequests::update_many()
             .filter(Column::Id.eq(change_request.id().val()))
@@ -228,77 +232,82 @@ impl ChangeRequestRepository {
     pub async fn update_add_file_entry<C, CR>(
         &self,
         conn: &C,
-        change_request: &CR,
+        change_request: CR,
         file_ids: &[FileId],
-    ) -> Result<ChangeRequestFileEntry, anyhow::Error>
+    ) -> Result<ChangeRequestAddFilesEntry, anyhow::Error>
     where
         C: ConnectionTrait,
-        CR: ChangeRequestAbs,
+        CR: ChangeRequestTrait,
     {
+        let add_files_entry = ChangeRequestAddFilesEntry {
+            file_ids: Vec::from(file_ids),
+        };
+
         let entry = AddFiles {
-            add_files: ChangeRequestAddFilesEntry {
-                file_ids: Vec::from(file_ids),
-            },
+            add_files: add_files_entry.clone(),
         };
 
         self.update_file_entry(conn, change_request, &entry).await?;
 
-        Ok(entry)
+        Ok(add_files_entry)
     }
 
     pub async fn update_change_file_entry<C, CR>(
         &self,
         conn: &C,
-        change_request: &CR,
-        add_file_ids: &[FileId],
-    ) -> Result<ChangeRequestFileEntry, anyhow::Error>
+        change_request: CR,
+        delete_file_ids: &[FileId],
+    ) -> Result<ChangeRequestChangeFilesEntry, anyhow::Error>
     where
         C: ConnectionTrait,
-        CR: ChangeRequestAbs,
+        CR: ChangeRequestTrait,
     {
+        let change_files_entry = ChangeRequestChangeFilesEntry {
+            delete_file_ids: Vec::from(delete_file_ids),
+        };
+
         let entry = ChangeFiles {
-            add_files: ChangeRequestAddFilesEntry {
-                file_ids: Vec::from(add_file_ids),
-            },
+            change_files: change_files_entry.clone(),
         };
 
         self.update_file_entry(conn, change_request, &entry).await?;
 
-        Ok(entry)
+        Ok(change_files_entry)
     }
 
     pub async fn update_compact_file_entry<C, CR>(
         &self,
         conn: &C,
-        change_request: &CR,
+        change_request: CR,
         src_file_ids: &[FileId],
         dst_file_id: &FileId,
-    ) -> Result<ChangeRequestFileEntry, anyhow::Error>
+    ) -> Result<ChangeRequestCompactFilesEntry, anyhow::Error>
     where
         C: ConnectionTrait,
-        CR: ChangeRequestAbs,
+        CR: ChangeRequestTrait,
     {
+        let compact_files_entry = ChangeRequestCompactFilesEntry {
+            src_file_ids: Vec::from(src_file_ids),
+            dst_file_id: dst_file_id.clone(),
+        };
         let entry = ChangeRequestFileEntry::Compact {
-            compact: ChangeRequestCompactFileEntry {
-                src_file_ids: Vec::from(src_file_ids),
-                dst_file_id: dst_file_id.clone(),
-            },
+            compact: compact_files_entry.clone(),
         };
 
         self.update_file_entry(conn, change_request, &entry).await?;
 
-        Ok(entry)
+        Ok(compact_files_entry)
     }
 
     async fn update_file_entry<C, CR>(
         &self,
         conn: &C,
-        change_request: &CR,
+        change_request: CR,
         file_entry: &ChangeRequestFileEntry,
     ) -> Result<(), anyhow::Error>
     where
         C: ConnectionTrait,
-        CR: ChangeRequestAbs,
+        CR: ChangeRequestTrait,
     {
         let entry_json = ChangeRequestExt::build_model_file_entry(file_entry)?;
         ChangeRequests::update_many()

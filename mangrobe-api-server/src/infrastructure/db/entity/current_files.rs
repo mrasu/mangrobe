@@ -11,12 +11,24 @@ pub struct Model {
     pub stream_id: i64,
     pub partition_time: DateTimeWithTimeZone,
     pub file_id: i64,
+    #[sea_orm(column_type = "VarBinary(StringLen::None)")]
+    pub file_path_xxh3: Vec<u8>,
+    #[sea_orm(column_type = "VarBinary(StringLen::None)", nullable)]
+    pub file_lock_key: Option<Vec<u8>>,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::file_locks::Entity",
+        from = "Column::FileLockKey",
+        to = "super::file_locks::Column::Key",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    FileLocks,
     #[sea_orm(
         belongs_to = "super::files::Entity",
         from = "Column::FileId",
@@ -25,6 +37,12 @@ pub enum Relation {
         on_delete = "NoAction"
     )]
     Files,
+}
+
+impl Related<super::file_locks::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::FileLocks.def()
+    }
 }
 
 impl Related<super::files::Entity> for Entity {

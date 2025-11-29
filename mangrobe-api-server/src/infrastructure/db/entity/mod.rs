@@ -6,5 +6,6 @@ pub mod change_request_idempotency_keys;
 pub mod change_requests;
 pub mod commits;
 pub mod current_files;
+pub mod file_locks;
 pub mod files;
 pub mod user_tables;

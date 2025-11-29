@@ -1,8 +1,8 @@
 use crate::domain::model::stream_id::StreamId;
 use crate::domain::model::user_table_id::UserTableId;
 use ahash::RandomState;
-use sea_orm::ConnectionTrait;
 use sea_orm::DatabaseTransaction;
+use sea_orm::ConnectionTrait;
 use sea_orm::{DatabaseBackend, Statement};
 use std::hash::{BuildHasher, Hasher};
 

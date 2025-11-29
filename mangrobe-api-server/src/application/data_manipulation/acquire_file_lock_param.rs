@@ -1,49 +1,45 @@
 use crate::application::data_manipulation::param_util::{to_file_lock_key, to_partition_time};
-use crate::domain::model::change_request_raw_file_entry::ChangeRequestRawCompactFilesEntry;
-use crate::domain::model::file::FileEntry;
+use crate::domain::model::file::FilePath;
 use crate::domain::model::file_lock_key::FileLockKey;
 use crate::domain::model::stream_id::StreamId;
 use crate::domain::model::user_table_id::UserTableId;
-use crate::grpc::proto::CompactFilesRequest;
+use crate::grpc::proto::AcquireFileLockRequest;
 use crate::util::error::ParameterError;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 
-pub struct CompactFilesParam {
+pub struct AcquireFileLockParam {
     pub file_lock_key: FileLockKey,
     pub user_table_id: UserTableId,
     pub stream_id: StreamId,
     pub partition_time: DateTime<Utc>,
-    pub entry: ChangeRequestRawCompactFilesEntry,
+    pub ttl: Duration,
+    pub paths: Vec<FilePath>,
 }
 
-impl CompactFilesParam {
+impl AcquireFileLockParam {
     pub fn new(
-        request: &CompactFilesRequest,
+        request: &AcquireFileLockRequest,
         request_started_at: DateTime<Utc>,
     ) -> Result<Self, ParameterError> {
         let partition_time = to_partition_time(request.partition_time)?;
         let file_lock_key = to_file_lock_key(request.file_lock_key.clone(), request_started_at)?;
 
-        let src_file_paths: Vec<_> = request
-            .src_file_entries
+        let paths: Vec<_> = request
+            .target_files
             .iter()
             .map(|f| f.path.clone().into())
             .collect();
-        if src_file_paths.is_empty() {
-            return Err(ParameterError::Required("src_file_entries".to_string()));
+        if paths.is_empty() {
+            return Err(ParameterError::Required("target_files".to_string()));
         }
-
-        let Some(ref req_dst_file) = request.dst_file_entry else {
-            return Err(ParameterError::Required("dst_file_entry".to_string()));
-        };
-        let dst_file = FileEntry::new(req_dst_file.path.clone().into(), req_dst_file.size);
 
         let param = Self {
             file_lock_key,
             user_table_id: request.table_id.into(),
             stream_id: request.stream_id.into(),
             partition_time,
-            entry: ChangeRequestRawCompactFilesEntry::new(src_file_paths, dst_file),
+            ttl: Duration::seconds(request.ttl_sec),
+            paths,
         };
         Ok(param)
     }

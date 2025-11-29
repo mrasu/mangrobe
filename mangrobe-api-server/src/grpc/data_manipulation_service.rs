@@ -9,6 +9,7 @@ use crate::grpc::proto::{
     GetCurrentSnapshotResponse, data_manipulation_service_server,
 };
 use crate::grpc::util::error::{build_invalid_argument, to_grpc_error};
+use chrono::Utc;
 use sea_orm::DatabaseConnection;
 use tonic::{Request, Response, Status};
 
@@ -79,8 +80,10 @@ impl data_manipulation_service_server::DataManipulationService for DataManipulat
         &self,
         request: Request<ChangeFilesRequest>,
     ) -> Result<Response<ChangeFilesResponse>, Status> {
+        let request_started_at = Utc::now();
         let req = request.get_ref();
-        let param = ChangeFilesParam::try_from(req).map_err(build_invalid_argument)?;
+        let param =
+            ChangeFilesParam::new(req, request_started_at).map_err(build_invalid_argument)?;
 
         let commit_id = self
             .data_manipulation_use_case
@@ -98,8 +101,11 @@ impl data_manipulation_service_server::DataManipulationService for DataManipulat
         &self,
         request: Request<CompactFilesRequest>,
     ) -> Result<Response<CompactFilesResponse>, Status> {
+        let request_started_at = Utc::now();
+
         let req = request.get_ref();
-        let param = CompactFilesParam::try_from(req).map_err(build_invalid_argument)?;
+        let param =
+            CompactFilesParam::new(req, request_started_at).map_err(build_invalid_argument)?;
 
         let commit_id = self
             .data_manipulation_use_case

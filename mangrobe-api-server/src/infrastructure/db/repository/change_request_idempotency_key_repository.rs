@@ -47,7 +47,8 @@ impl ChangeRequestIdempotencyKeyRepository {
             change_request_id: Set(change_request_id.val()),
             key: Set(key.vec()),
             expires_at: Set(expires_at.into()),
-            ..Default::default()
+            created_at: Default::default(),
+            updated_at: Default::default(),
         };
         let result = Entity::insert(new_idempotency_key)
             .on_conflict_do_nothing()
