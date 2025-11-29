@@ -1,8 +1,8 @@
-use crate::application::data_manipulation::add_files_param::AddFilesParam;
-use crate::application::data_manipulation::change_files_param::ChangeFilesParam;
-use crate::application::data_manipulation::compact_files_param::CompactFilesParam;
 use crate::application::data_manipulation::data_manipulation_use_case::DataManipulationUseCase;
-use crate::application::data_manipulation::get_current_snapshot_param::GetCurrentSnapshotParam;
+use crate::grpc::data_manipulation::add_files_param::build_add_files_param;
+use crate::grpc::data_manipulation::change_files_param::build_change_file_param;
+use crate::grpc::data_manipulation::compact_files_param::build_compact_files_param;
+use crate::grpc::data_manipulation::get_current_snapshot_param::build_get_current_snapshot_param;
 use crate::grpc::proto::{
     AddFilesRequest, AddFilesResponse, ChangeFilesRequest, ChangeFilesResponse,
     CompactFilesRequest, CompactFilesResponse, File, GetCurrentSnapshotRequest,
@@ -32,8 +32,7 @@ impl data_manipulation_service_server::DataManipulationService for DataManipulat
         &self,
         request: Request<GetCurrentSnapshotRequest>,
     ) -> Result<Response<GetCurrentSnapshotResponse>, Status> {
-        let req = request.get_ref();
-        let param = GetCurrentSnapshotParam::try_from(req).map_err(build_invalid_argument)?;
+        let param = build_get_current_snapshot_param(request).map_err(build_invalid_argument)?;
 
         let snapshot = self
             .data_manipulation_use_case
@@ -61,8 +60,7 @@ impl data_manipulation_service_server::DataManipulationService for DataManipulat
         &self,
         request: Request<AddFilesRequest>,
     ) -> Result<Response<AddFilesResponse>, Status> {
-        let req = request.get_ref();
-        let param = AddFilesParam::try_from(req).map_err(build_invalid_argument)?;
+        let param = build_add_files_param(request).map_err(build_invalid_argument)?;
 
         let commit_id = self
             .data_manipulation_use_case
@@ -81,9 +79,8 @@ impl data_manipulation_service_server::DataManipulationService for DataManipulat
         request: Request<ChangeFilesRequest>,
     ) -> Result<Response<ChangeFilesResponse>, Status> {
         let request_started_at = Utc::now();
-        let req = request.get_ref();
         let param =
-            ChangeFilesParam::new(req, request_started_at).map_err(build_invalid_argument)?;
+            build_change_file_param(request, request_started_at).map_err(build_invalid_argument)?;
 
         let commit_id = self
             .data_manipulation_use_case
@@ -102,10 +99,8 @@ impl data_manipulation_service_server::DataManipulationService for DataManipulat
         request: Request<CompactFilesRequest>,
     ) -> Result<Response<CompactFilesResponse>, Status> {
         let request_started_at = Utc::now();
-
-        let req = request.get_ref();
-        let param =
-            CompactFilesParam::new(req, request_started_at).map_err(build_invalid_argument)?;
+        let param = build_compact_files_param(request, request_started_at)
+            .map_err(build_invalid_argument)?;
 
         let commit_id = self
             .data_manipulation_use_case

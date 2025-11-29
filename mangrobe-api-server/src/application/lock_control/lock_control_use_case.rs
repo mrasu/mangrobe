@@ -1,4 +1,4 @@
-use crate::application::data_manipulation::acquire_file_lock_param::AcquireFileLockParam;
+use crate::application::lock_control::acquire_file_lock_param::AcquireFileLockParam;
 use crate::domain::model::file::File;
 use crate::domain::service::file_lock_key_service::FileLockService;
 use sea_orm::DatabaseConnection;

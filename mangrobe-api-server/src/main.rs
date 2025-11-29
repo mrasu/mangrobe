@@ -1,5 +1,5 @@
-use crate::grpc::data_manipulation_service::DataManipulationService;
-use crate::grpc::lock_control_service::LockControlService;
+use crate::grpc::data_manipulation::data_manipulation_service::DataManipulationService;
+use crate::grpc::lock_control::lock_control_service::LockControlService;
 use crate::grpc::proto::FILE_DESCRIPTOR_SET2;
 use crate::grpc::proto::data_manipulation_service_server::DataManipulationServiceServer;
 use crate::grpc::proto::lock_control_service_server::LockControlServiceServer;

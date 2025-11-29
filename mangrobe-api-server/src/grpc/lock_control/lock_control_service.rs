@@ -1,5 +1,5 @@
-use crate::application::data_manipulation::acquire_file_lock_param::AcquireFileLockParam;
-use crate::application::data_manipulation::lock_control_use_case::LockControlUseCase;
+use crate::application::lock_control::lock_control_use_case::LockControlUseCase;
+use crate::grpc::lock_control::acquire_file_lock_param::build_acquire_file_lock_param;
 use crate::grpc::proto::{
     AcquireFileLockRequest, AcquireFileLockResponse, File, lock_control_service_server,
 };
@@ -27,7 +27,7 @@ impl lock_control_service_server::LockControlService for LockControlService {
         request: Request<AcquireFileLockRequest>,
     ) -> Result<Response<AcquireFileLockResponse>, Status> {
         let request_started_at = Utc::now();
-        let param = AcquireFileLockParam::new(request.get_ref(), request_started_at)
+        let param = build_acquire_file_lock_param(request, request_started_at)
             .map_err(build_invalid_argument)?;
 
         let locked_files = self
