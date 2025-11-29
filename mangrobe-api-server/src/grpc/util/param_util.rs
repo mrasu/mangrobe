@@ -1,6 +1,7 @@
 use crate::domain::model::file_lock_key::FileLockKey;
 use crate::domain::model::idempotency_key::IdempotencyKey;
 use crate::grpc::proto::FileLockKey as FileLockKeyParam;
+use crate::grpc::proto::IdempotencyKey as IdempotencyKeyParam;
 use crate::util::error::ParameterError;
 use chrono::{DateTime, Utc};
 use prost_types::Timestamp;
@@ -16,8 +17,14 @@ pub fn to_partition_time(param: Option<Timestamp>) -> Result<DateTime<Utc>, Para
     )
 }
 
-pub fn to_idempotency_key(param: Vec<u8>) -> Result<IdempotencyKey, ParameterError> {
-    IdempotencyKey::try_from(param)
+pub fn to_idempotency_key(
+    param: Option<IdempotencyKeyParam>,
+) -> Result<IdempotencyKey, ParameterError> {
+    let Some(param) = param else {
+        return Err(ParameterError::Required("idempotency_key".to_string()));
+    };
+
+    IdempotencyKey::try_from(param.key)
         .map_err(|msg| ParameterError::Invalid("idempotency_key".to_string(), msg))
 }
 

@@ -4,7 +4,7 @@ use crate::grpc::proto::{
     AcquireFileLockRequest, AcquireFileLockResponse, AddFilesRequest, AddFilesResponse,
     ChangeFilesRequest, ChangeFilesResponse, CompactFilesRequest, CompactFilesResponse,
     FileAddEntry, FileCompactDstEntry, FileCompactSrcEntry, FileDeleteEntry, FileLockKey,
-    GetCurrentSnapshotRequest, GetCurrentSnapshotResponse, LockFile,
+    GetCurrentSnapshotRequest, GetCurrentSnapshotResponse, IdempotencyKey, LockFile,
 };
 use prost_types::Timestamp;
 use tonic::Response;
@@ -48,7 +48,9 @@ impl ApiClient {
         file_add_entries: Vec<FileAddEntry>,
     ) -> Result<Response<AddFilesResponse>, tonic::Status> {
         let request = tonic::Request::new(AddFilesRequest {
-            idempotency_key: Uuid::now_v7().into(),
+            idempotency_key: Some(IdempotencyKey {
+                key: Uuid::now_v7().into(),
+            }),
             table_id: 0,
             stream_id,
             partition_time: Some(Timestamp {

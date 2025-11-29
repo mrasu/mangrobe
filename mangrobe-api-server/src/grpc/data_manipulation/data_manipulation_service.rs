@@ -41,8 +41,9 @@ impl data_manipulation_service_server::DataManipulationService for DataManipulat
             .map_err(to_grpc_error)?;
 
         let response = GetCurrentSnapshotResponse {
-            stream_id: snapshot.stream_id.val(),
-            commit_id: snapshot.commit_id.map_or_else(|| None, |v| Some(v.val())),
+            commit_id: snapshot
+                .commit_id
+                .map_or_else(|| None, |v| Some(v.to_string())),
             files: snapshot
                 .files
                 .iter()
@@ -69,7 +70,7 @@ impl data_manipulation_service_server::DataManipulationService for DataManipulat
             .map_err(to_grpc_error)?;
 
         let response = AddFilesResponse {
-            commit_id: commit_id.into(),
+            commit_id: commit_id.to_string(),
         };
         Ok(Response::new(response))
     }
@@ -89,7 +90,7 @@ impl data_manipulation_service_server::DataManipulationService for DataManipulat
             .map_err(to_grpc_error)?;
 
         let response = ChangeFilesResponse {
-            commit_id: commit_id.into(),
+            commit_id: commit_id.to_string(),
         };
         Ok(Response::new(response))
     }
@@ -109,7 +110,7 @@ impl data_manipulation_service_server::DataManipulationService for DataManipulat
             .map_err(to_grpc_error)?;
 
         let response = CompactFilesResponse {
-            commit_id: commit_id.into(),
+            commit_id: commit_id.to_string(),
         };
         Ok(Response::new(response))
     }

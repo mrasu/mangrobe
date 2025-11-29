@@ -15,6 +15,13 @@ service LockControlService {
   rpc AcquireFileLock(AcquireFileLockRequest) returns (AcquireFileLockResponse);
 }
 
+// IdempotencyKey must be unique across all methods
+message IdempotencyKey {
+  // Must be shorter than 16 byte
+  bytes key = 1;
+}
+
+// FileLockKey must be unique across all methods
 message FileLockKey {
   // Must be shorter than 16 byte
   bytes key = 1;
@@ -26,10 +33,9 @@ message GetCurrentSnapshotRequest {
 }
 
 message GetCurrentSnapshotResponse {
-  int64 stream_id = 1;
-  optional int64 commit_id = 2;
+  optional string commit_id = 1;
 
-  repeated File files = 3;
+  repeated File files = 2;
 }
 
 message File {
@@ -38,7 +44,7 @@ message File {
 }
 
 message AddFilesRequest {
-  bytes idempotency_key = 1;
+  IdempotencyKey idempotency_key = 1;
   int64 table_id = 2;
   int64 stream_id = 3;
   google.protobuf.Timestamp partition_time = 4;
@@ -51,7 +57,7 @@ message FileAddEntry {
 }
 
 message AddFilesResponse {
-  int64 commit_id = 1;
+  string commit_id = 1;
 }
 
 message ChangeFilesRequest {
@@ -68,7 +74,7 @@ message FileDeleteEntry {
 }
 
 message ChangeFilesResponse {
-  int64 CommitId = 1;
+  string commit_id = 1;
 }
 
 message CompactFilesRequest {
@@ -91,15 +97,15 @@ message FileCompactDstEntry {
 }
 
 message CompactFilesResponse {
-  int64 CommitId = 1;
+  string commit_id = 1;
 }
 
 message AcquireFileLockRequest {
-  int64 table_id = 1;
-  int64 stream_id = 2;
-  google.protobuf.Timestamp partition_time = 3;
+  FileLockKey file_lock_key = 1;
 
-  FileLockKey file_lock_key = 4;
+  int64 table_id = 2;
+  int64 stream_id = 3;
+  google.protobuf.Timestamp partition_time = 4;
 
   int64 ttl_sec = 5;
 
@@ -111,5 +117,5 @@ message LockFile {
 }
 
 message AcquireFileLockResponse {
-  repeated File files = 3;
+  repeated File files = 1;
 }

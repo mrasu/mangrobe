@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 
 pub struct CommitId {
     val: i64,
@@ -20,6 +21,12 @@ impl From<i64> for CommitId {
 impl From<&i64> for CommitId {
     fn from(id: &i64) -> Self {
         Self { val: *id }
+    }
+}
+
+impl Display for CommitId {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        self.val.fmt(f)
     }
 }
 
