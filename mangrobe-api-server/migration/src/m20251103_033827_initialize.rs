@@ -272,7 +272,8 @@ impl MigrationTrait for Migration {
                     .col(big_integer(File::UserTableId))
                     .col(big_integer(File::StreamId))
                     .col(timestamp_with_time_zone(File::PartitionTime))
-                    .col(string_len(File::Path, 100))
+                    .col(string_len(File::Path, 255))
+                    .col(binary_len(File::PathXxh3, 16))
                     .col(big_integer(File::Size))
                     .col(
                         timestamp_with_time_zone(File::CreatedAt)
@@ -307,14 +308,16 @@ impl MigrationTrait for Migration {
             .create_index(
                 Index::create()
                     .name(format!(
-                        "idx_{}_{}_{}",
+                        "idx_{}_{}_{}_{}",
                         File::Table.to_string(),
                         File::StreamId.to_string(),
-                        File::PartitionTime.to_string()
+                        File::PartitionTime.to_string(),
+                        File::PathXxh3.to_string(),
                     ))
                     .table(File::Table)
                     .col(File::StreamId)
                     .col(File::PartitionTime)
+                    .col(File::PathXxh3)
                     .to_owned(),
             )
             .await?;
@@ -561,6 +564,7 @@ enum File {
     StreamId,
     PartitionTime,
     Path,
+    PathXxh3,
     Size,
     CreatedAt,
     UpdatedAt,

@@ -11,6 +11,8 @@ pub struct Model {
     pub stream_id: i64,
     pub partition_time: DateTimeWithTimeZone,
     pub path: String,
+    #[sea_orm(column_type = "VarBinary(StringLen::None)")]
+    pub path_xxh3: Vec<u8>,
     pub size: i64,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
