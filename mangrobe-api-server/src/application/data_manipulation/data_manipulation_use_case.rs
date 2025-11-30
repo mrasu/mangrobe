@@ -44,13 +44,13 @@ impl DataManipulationUseCase {
             )
             .await?;
 
-        let change_request_with_entry = self
+        let mut change_request_with_entry = self
             .change_request_service
             .apply_add_entries(&change_request, &param.entries)
             .await?;
 
         self.change_request_service
-            .commit_add_only_change_request(change_request_with_entry)
+            .commit_add_only_change_request(&mut change_request_with_entry)
             .await
     }
 
@@ -68,7 +68,7 @@ impl DataManipulationUseCase {
             .create(&param.stream, ChangeRequestType::Compact)
             .await?;
 
-        let change_request_with_entry = self
+        let mut change_request_with_entry = self
             .change_request_service
             .apply_change_entry(&change_request, &param.entries)
             .await?;
@@ -77,7 +77,7 @@ impl DataManipulationUseCase {
         self.change_request_service
             .commit_change_request(
                 &param.file_lock_key,
-                change_request_with_entry.base,
+                &mut change_request_with_entry.base,
                 &changeset,
             )
             .await
@@ -97,7 +97,7 @@ impl DataManipulationUseCase {
             .create(&param.stream, ChangeRequestType::Compact)
             .await?;
 
-        let change_request_with_entry = self
+        let mut change_request_with_entry = self
             .change_request_service
             .apply_compaction_entry(&change_request, &param.entries)
             .await?;
@@ -106,7 +106,7 @@ impl DataManipulationUseCase {
         self.change_request_service
             .commit_change_request(
                 &param.file_lock_key,
-                change_request_with_entry.base,
+                &mut change_request_with_entry.base,
                 &changeset,
             )
             .await

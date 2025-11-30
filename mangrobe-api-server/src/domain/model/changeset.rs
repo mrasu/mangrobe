@@ -14,7 +14,7 @@ impl Changeset {
     pub fn new_from_change_file_entries(entry: ChangeRequestChangeFilesEntry) -> Self {
         Self {
             add_file_ids: vec![],
-            delete_file_ids: entry.delete_file_ids.clone(),
+            delete_file_ids: entry.delete_file_ids,
         }
     }
 

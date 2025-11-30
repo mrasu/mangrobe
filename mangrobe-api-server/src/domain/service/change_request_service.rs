@@ -128,18 +128,17 @@ impl ChangeRequestService {
             );
         }
 
-        let add_request = self
+        let mut add_request = self
             .update_file_entry_as_add(&txn, change_request, &file_ids)
             .await?;
 
-        let modified_request = self
-            .change_request_repository
-            .update_status(&txn, add_request, ChangeRequestStatus::ChangeInserted)
+        self.change_request_repository
+            .update_status(&txn, &mut add_request, ChangeRequestStatus::ChangeInserted)
             .await?;
 
         txn.commit().await?;
 
-        Ok(modified_request)
+        Ok(add_request)
     }
 
     async fn update_file_entry_as_add(
@@ -207,18 +206,21 @@ impl ChangeRequestService {
             );
         }
 
-        let modified_request = self
+        let mut change_request = self
             .update_file_entry_as_change(&txn, change_request, &file_ids_to_delete)
             .await?;
 
-        let modified_request = self
-            .change_request_repository
-            .update_status(&txn, modified_request, ChangeRequestStatus::ChangeInserted)
+        self.change_request_repository
+            .update_status(
+                &txn,
+                &mut change_request,
+                ChangeRequestStatus::ChangeInserted,
+            )
             .await?;
 
         txn.commit().await?;
 
-        Ok(modified_request)
+        Ok(change_request)
     }
 
     async fn insert_files(
@@ -321,18 +323,21 @@ impl ChangeRequestService {
             }
         }
 
-        let modified_request = self
+        let mut compaction_request = self
             .update_file_entry_as_compaction(&txn, change_request, &compact_entries)
             .await?;
 
-        let modified_request = self
-            .change_request_repository
-            .update_status(&txn, modified_request, ChangeRequestStatus::ChangeInserted)
+        self.change_request_repository
+            .update_status(
+                &txn,
+                &mut compaction_request,
+                ChangeRequestStatus::ChangeInserted,
+            )
             .await?;
 
         txn.commit().await?;
 
-        Ok(modified_request)
+        Ok(compaction_request)
     }
 
     async fn insert_file(
@@ -376,13 +381,13 @@ impl ChangeRequestService {
 
     pub async fn commit_add_only_change_request(
         &self,
-        change_request: ChangeRequestForAdd,
+        change_request: &mut ChangeRequestForAdd,
     ) -> Result<CommitId, anyhow::Error> {
         let txn = self.connection.begin().await?;
 
         let current_change_request = self
             .change_request_repository
-            .select_for_update(&txn, &change_request)
+            .select_for_update(&txn, change_request)
             .await?;
         let status = current_change_request.base.status;
 
@@ -438,14 +443,14 @@ impl ChangeRequestService {
     pub async fn commit_change_request(
         &self,
         file_lock_key: &FileLockKey,
-        base_change_request: BaseChangeRequest,
+        base_change_request: &mut BaseChangeRequest,
         changeset: &Changeset,
     ) -> Result<CommitId, anyhow::Error> {
         let txn = self.connection.begin().await?;
 
         let current_change_request = self
             .change_request_repository
-            .select_for_update(&txn, &base_change_request)
+            .select_for_update(&txn, base_change_request)
             .await?;
         let status = current_change_request.base.status;
 

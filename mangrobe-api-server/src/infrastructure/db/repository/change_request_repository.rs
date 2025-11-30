@@ -163,9 +163,9 @@ impl ChangeRequestRepository {
     pub async fn update_status<CR>(
         &self,
         txn: &DatabaseTransaction,
-        change_request: CR,
+        change_request: &mut CR,
         status: ChangeRequestStatus,
-    ) -> Result<CR, anyhow::Error>
+    ) -> Result<(), anyhow::Error>
     where
         CR: ChangeRequestTrait,
     {
@@ -178,7 +178,8 @@ impl ChangeRequestRepository {
             .exec(txn)
             .await?;
 
-        Ok(change_request.set_status(status))
+        change_request.set_status(status);
+        Ok(())
     }
 
     pub async fn update_add_file_entry<C, CR>(

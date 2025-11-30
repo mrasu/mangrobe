@@ -10,7 +10,7 @@ use strum_macros::Display;
 
 pub trait ChangeRequestTrait {
     fn id(&self) -> &ChangeRequestId;
-    fn set_status(&self, status: ChangeRequestStatus) -> Self;
+    fn set_status(&mut self, status: ChangeRequestStatus);
 }
 
 #[derive(Clone)]
@@ -28,11 +28,8 @@ impl ChangeRequestTrait for BaseChangeRequest {
         &self.id
     }
 
-    fn set_status(&self, status: ChangeRequestStatus) -> Self {
-        let mut cloned = self.clone();
-
-        cloned.status = status;
-        cloned
+    fn set_status(&mut self, status: ChangeRequestStatus) {
+        self.status = status;
     }
 }
 
@@ -48,11 +45,8 @@ impl ChangeRequestTrait for ChangeRequest {
         &self.base.id
     }
 
-    fn set_status(&self, status: ChangeRequestStatus) -> Self {
-        let mut cloned = self.clone();
-
-        cloned.base.status = status;
-        cloned
+    fn set_status(&mut self, status: ChangeRequestStatus) {
+        self.base.status = status;
     }
 }
 
@@ -67,11 +61,8 @@ impl ChangeRequestTrait for ChangeRequestForAdd {
         &self.base.id
     }
 
-    fn set_status(&self, status: ChangeRequestStatus) -> Self {
-        let mut cloned = self.clone();
-
-        cloned.base.status = status;
-        cloned
+    fn set_status(&mut self, status: ChangeRequestStatus) {
+        self.base.status = status;
     }
 }
 
@@ -95,11 +86,8 @@ impl ChangeRequestTrait for ChangeRequestForChange {
         &self.base.id
     }
 
-    fn set_status(&self, status: ChangeRequestStatus) -> Self {
-        let mut cloned = self.clone();
-
-        cloned.base.status = status;
-        cloned
+    fn set_status(&mut self, status: ChangeRequestStatus) {
+        self.base.status = status;
     }
 }
 
@@ -143,11 +131,8 @@ impl ChangeRequestTrait for ChangeRequestForCompact {
         &self.base.id
     }
 
-    fn set_status(&self, status: ChangeRequestStatus) -> Self {
-        let mut cloned = self.clone();
-
-        cloned.base.status = status;
-        cloned
+    fn set_status(&mut self, status: ChangeRequestStatus) {
+        self.base.status = status;
     }
 }
 
