@@ -3,7 +3,7 @@ use crate::domain::model::stream_id::StreamId;
 use crate::domain::model::user_table_id::UserTableId;
 use crate::infrastructure::db::entity::file_locks::{ActiveModel, Column, Entity};
 use crate::infrastructure::db::entity::prelude::FileLocks;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{Duration, Utc};
 use sea_orm::{ActiveModelTrait, ColumnTrait, Set, TryInsertResult};
 use sea_orm::{ConnectionTrait, EntityTrait, QueryFilter};
 
@@ -32,7 +32,6 @@ impl FileLockRepository {
         conn: &C,
         user_table_id: &UserTableId,
         stream_id: &StreamId,
-        partition_time: DateTime<Utc>,
         ttl: Duration,
         key: &FileLockKey,
     ) -> Result<bool, anyhow::Error>
@@ -43,7 +42,6 @@ impl FileLockRepository {
             key: Set(key.key.clone()),
             user_table_id: Set(user_table_id.val()),
             stream_id: Set(stream_id.val()),
-            partition_time: Set(partition_time.into()),
             expire_at: Set((Utc::now() + ttl).into()),
             created_at: Default::default(),
             updated_at: Default::default(),

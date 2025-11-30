@@ -13,6 +13,11 @@ pub struct ChangeRequestChangeFilesEntry {
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ChangeRequestCompactFilesEntry {
+    pub entries: Vec<ChangeRequestCompactFileEntry>,
+}
+
+#[derive(Clone, Serialize, Deserialize, Debug)]
+pub struct ChangeRequestCompactFileEntry {
     pub src_file_ids: Vec<FileId>,
     pub dst_file_id: FileId,
 }

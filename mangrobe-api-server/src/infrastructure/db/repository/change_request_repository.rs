@@ -5,8 +5,8 @@ use crate::domain::model::change_request_file_entry::ChangeRequestFileEntry::{
     AddFiles, ChangeFiles,
 };
 use crate::domain::model::change_request_file_entry::{
-    ChangeRequestAddFilesEntry, ChangeRequestChangeFilesEntry, ChangeRequestCompactFilesEntry,
-    ChangeRequestFileEntry,
+    ChangeRequestAddFilesEntry, ChangeRequestChangeFilesEntry, ChangeRequestCompactFileEntry,
+    ChangeRequestCompactFilesEntry, ChangeRequestFileEntry,
 };
 use crate::domain::model::file_id::FileId;
 use crate::domain::model::idempotency_key::IdempotencyKey;
@@ -18,7 +18,7 @@ use crate::infrastructure::db::entity_ext::change_request_ext::ChangeRequestExt;
 use crate::infrastructure::db::repository::change_request_idempotency_key_repository::ChangeRequestIdempotencyKeyRepository;
 use crate::util::error::MangrobeError;
 use anyhow::bail;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use sea_orm::prelude::Expr;
 use sea_orm::sea_query::LockType;
 use sea_orm::{
@@ -43,14 +43,13 @@ impl ChangeRequestRepository {
         conn: &C,
         user_table_id: &UserTableId,
         stream_id: &StreamId,
-        partition_time: &DateTime<Utc>,
         change_type: ChangeRequestType,
     ) -> Result<ChangeRequest, anyhow::Error>
     where
         C: ConnectionTrait,
     {
         let change_request = self
-            .insert(conn, user_table_id, stream_id, partition_time, change_type)
+            .insert(conn, user_table_id, stream_id, change_type)
             .await?;
         self.build_domain_change_request(&change_request)
     }
@@ -61,7 +60,6 @@ impl ChangeRequestRepository {
         idempotency_key: &IdempotencyKey,
         user_table_id: &UserTableId,
         stream_id: &StreamId,
-        partition_time: &DateTime<Utc>,
         change_type: ChangeRequestType,
     ) -> Result<ChangeRequest, anyhow::Error>
     where
@@ -82,7 +80,7 @@ impl ChangeRequestRepository {
         }
 
         let change_request = self
-            .insert(conn, user_table_id, stream_id, partition_time, change_type)
+            .insert(conn, user_table_id, stream_id, change_type)
             .await?;
 
         let inserted_key = self
@@ -133,14 +131,12 @@ impl ChangeRequestRepository {
         conn: &C,
         user_table_id: &UserTableId,
         stream_id: &StreamId,
-        partition_time: &DateTime<Utc>,
         change_type: ChangeRequestType,
     ) -> Result<Model, anyhow::Error>
     where
         C: ConnectionTrait,
     {
-        let change_request =
-            self.build_active_model(user_table_id, stream_id, partition_time, change_type);
+        let change_request = self.build_active_model(user_table_id, stream_id, change_type);
         let res = change_request.insert(conn).await?;
 
         Ok(res)
@@ -150,14 +146,12 @@ impl ChangeRequestRepository {
         &self,
         user_table_id: &UserTableId,
         stream_id: &StreamId,
-        partition_time: &DateTime<Utc>,
         change_type: ChangeRequestType,
     ) -> ActiveModel {
         ActiveModel {
             id: Default::default(),
             stream_id: Set(stream_id.val()),
             user_table_id: Set(user_table_id.val()),
-            partition_time: Set((*partition_time).into()),
             status: Set(ChangeRequestExt::build_model_status(
                 ChangeRequestStatus::New,
             )),
@@ -177,7 +171,6 @@ impl ChangeRequestRepository {
                 id: change_request.id.into(),
                 user_table_id: change_request.user_table_id.into(),
                 stream_id: change_request.stream_id.into(),
-                partition_time: change_request.partition_time.to_utc(),
                 status: ChangeRequestExt::build_domain_status(change_request)?,
                 change_type: ChangeRequestExt::build_domain_change_type(change_request)?,
             },
@@ -279,16 +272,14 @@ impl ChangeRequestRepository {
         &self,
         conn: &C,
         change_request: CR,
-        src_file_ids: &[FileId],
-        dst_file_id: &FileId,
+        compact_entries: &[ChangeRequestCompactFileEntry],
     ) -> Result<ChangeRequestCompactFilesEntry, anyhow::Error>
     where
         C: ConnectionTrait,
         CR: ChangeRequestTrait,
     {
         let compact_files_entry = ChangeRequestCompactFilesEntry {
-            src_file_ids: Vec::from(src_file_ids),
-            dst_file_id: dst_file_id.clone(),
+            entries: Vec::from(compact_entries),
         };
         let entry = ChangeRequestFileEntry::Compact {
             compact: compact_files_entry.clone(),

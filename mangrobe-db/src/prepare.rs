@@ -1,6 +1,8 @@
 use crate::grpc::api_client::ApiClient;
 use crate::grpc::proto::{
-    FileAddEntry, FileCompactDstEntry, FileCompactSrcEntry, FileDeleteEntry, LockFile,
+    AcquireFileLockEntry, AcquireFileLockFileInfoEntry, AddFileEntry, AddFileInfoEntry,
+    ChangeFileDeleteEntry, ChangeFileEntry, CompactFileDstEntry, CompactFileEntry,
+    CompactFileInfoEntry, CompactFileSrcEntry,
 };
 use crate::infrastructure::s3::store::create_rustfs;
 use arrow_array::Int32Array;
@@ -9,6 +11,7 @@ use arrow_array::StringArray;
 use arrow_array::array::ArrayRef as ArrowArrayRef;
 use object_store::path::Path;
 use object_store::{ObjectStore, PutPayload};
+use prost_types::Timestamp;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -22,6 +25,11 @@ use vortex::file::VortexWriteOptions;
 use vortex_array::arrow::FromArrowArray;
 use vortex_array::{ArrayRef, IntoArray};
 
+const DEFAULT_PARTITION_TIME: Timestamp = Timestamp {
+    seconds: 0,
+    nanos: 0,
+};
+
 pub async fn prepare() -> Result<(), anyhow::Error> {
     let temp_dir = tempfile::tempdir()?;
     let dir_path = temp_dir.path().to_path_buf();
@@ -29,7 +37,10 @@ pub async fn prepare() -> Result<(), anyhow::Error> {
     let files = create_vortex_files(&temp_dir).await?;
     let rustfs = create_rustfs()?;
 
-    let mut added_files: Vec<FileAddEntry> = vec![];
+    let mut add_file_entry = AddFileEntry {
+        partition_time: Some(DEFAULT_PARTITION_TIME),
+        file_info_entries: vec![],
+    };
     for filename in files.iter() {
         let location = &Path::parse(filename.clone())?;
 
@@ -38,7 +49,7 @@ pub async fn prepare() -> Result<(), anyhow::Error> {
         let payload = PutPayload::from_bytes(data.into());
         rustfs.put(location, payload).await?;
 
-        added_files.push(FileAddEntry {
+        add_file_entry.file_info_entries.push(AddFileInfoEntry {
             path: filename.into(),
             size: size as i64,
         })
@@ -48,7 +59,7 @@ pub async fn prepare() -> Result<(), anyhow::Error> {
         .connect()
         .await?;
     let api_client = ApiClient::new(conn);
-    let response = api_client.add_files(0, added_files).await?;
+    let response = api_client.add_files(0, vec![add_file_entry]).await?;
 
     println!("success! id={:?}", response.get_ref().commit_id);
     Ok(())
@@ -111,76 +122,104 @@ pub async fn smoke_run() -> Result<(), anyhow::Error> {
     let mut api_client = ApiClient::new(conn);
 
     let file_add_entries = vec![
-        FileAddEntry {
-            path: "a.txt".into(),
-            size: 1,
+        AddFileEntry {
+            partition_time: Some(Timestamp {
+                seconds: 0,
+                nanos: 0,
+            }),
+            file_info_entries: vec![
+                AddFileInfoEntry {
+                    path: "a.txt".into(),
+                    size: 1,
+                },
+                AddFileInfoEntry {
+                    path: "b.txt".into(),
+                    size: 2,
+                },
+                AddFileInfoEntry {
+                    path: "c.txt".into(),
+                    size: 3,
+                },
+            ],
         },
-        FileAddEntry {
-            path: "b.txt".into(),
-            size: 2,
-        },
-        FileAddEntry {
-            path: "c.txt".into(),
-            size: 3,
-        },
-        FileAddEntry {
-            path: "d.txt".into(),
-            size: 4,
+        AddFileEntry {
+            partition_time: Some(Timestamp {
+                seconds: 1000,
+                nanos: 0,
+            }),
+            file_info_entries: vec![AddFileInfoEntry {
+                path: "d.txt".into(),
+                size: 4,
+            }],
         },
     ];
     let response = api_client.add_files(stream_id, file_add_entries).await?;
     println!("add_files! id={:?}", response.get_ref().commit_id);
 
     let lock_key = Uuid::now_v7();
-    let lock_target = vec![
-        LockFile {
-            path: "a.txt".into(),
-        },
-        LockFile {
-            path: "b.txt".into(),
-        },
-    ];
+    let acquire_file_lock_entries = vec![AcquireFileLockEntry {
+        partition_time: Some(DEFAULT_PARTITION_TIME),
+        acquire_file_info_entries: vec![
+            AcquireFileLockFileInfoEntry {
+                path: "a.txt".into(),
+            },
+            AcquireFileLockFileInfoEntry {
+                path: "b.txt".into(),
+            },
+        ],
+    }];
     let response = api_client
-        .acquire_lock(lock_key, stream_id, lock_target)
+        .acquire_lock(lock_key, stream_id, acquire_file_lock_entries)
         .await?;
     println!(
         "locked! locked_file_count={:?}",
         response.get_ref().files.len()
     );
 
-    let src_file_entries = vec![
-        FileCompactSrcEntry {
-            path: "a.txt".into(),
-        },
-        FileCompactSrcEntry {
-            path: "b.txt".into(),
-        },
-    ];
-    let dst_file_entry = FileCompactDstEntry {
-        path: "a_compact.txt".into(),
-        size: 123,
-    };
+    let compact_file_entries = vec![CompactFileEntry {
+        partition_time: Some(DEFAULT_PARTITION_TIME),
+        file_info_entries: vec![CompactFileInfoEntry {
+            src_entries: vec![
+                CompactFileSrcEntry {
+                    path: "a.txt".into(),
+                },
+                CompactFileSrcEntry {
+                    path: "b.txt".into(),
+                },
+            ],
+            dst_entry: Some(CompactFileDstEntry {
+                path: "a_compact.txt".into(),
+                size: 123,
+            }),
+        }],
+    }];
     let response = api_client
-        .compact_files(lock_key, stream_id, src_file_entries, dst_file_entry)
+        .compact_files(lock_key, stream_id, compact_file_entries)
         .await?;
     println!("compacted! id={:?}", response.get_ref().commit_id);
 
     let lock_key = Uuid::now_v7();
-    let lock_target = vec![LockFile {
-        path: "c.txt".into(),
+    let acquire_file_lock_entries = vec![AcquireFileLockEntry {
+        partition_time: Some(DEFAULT_PARTITION_TIME),
+        acquire_file_info_entries: vec![AcquireFileLockFileInfoEntry {
+            path: "c.txt".into(),
+        }],
     }];
     let response = api_client
-        .acquire_lock(lock_key, stream_id, lock_target)
+        .acquire_lock(lock_key, stream_id, acquire_file_lock_entries)
         .await?;
     println!(
         "locked! locked_file_count={:?}",
         response.get_ref().files.len()
     );
-    let file_delete_entries = vec![FileDeleteEntry {
-        path: "c.txt".into(),
+    let change_file_entries = vec![ChangeFileEntry {
+        partition_time: Some(DEFAULT_PARTITION_TIME),
+        delete_entries: vec![ChangeFileDeleteEntry {
+            path: "c.txt".into(),
+        }],
     }];
     let response = api_client
-        .change_files(lock_key, stream_id, file_delete_entries)
+        .change_files(lock_key, stream_id, change_file_entries)
         .await?;
     println!("change_files! id={:?}", response.get_ref().commit_id);
 

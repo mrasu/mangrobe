@@ -12,21 +12,26 @@ pub(super) fn build_change_file_param(
 ) -> Result<ChangeFilesParam, ParameterError> {
     let req = request.get_ref();
 
-    let partition_time = to_partition_time(req.partition_time)?;
     let file_lock_key = to_file_lock_key(req.file_lock_key.clone(), request_started_at)?;
 
-    let files_to_add = req
-        .file_delete_entries
-        .iter()
-        .map(|f| f.path.clone().into())
-        .collect();
+    let mut entries = vec![];
+    for entry in req.change_file_entries.iter() {
+        let partition_time = to_partition_time(entry.partition_time)?;
+        entries.push(ChangeRequestRawChangeFilesEntry::new(
+            partition_time,
+            entry
+                .delete_entries
+                .iter()
+                .map(|f| f.path.clone().into())
+                .collect(),
+        ))
+    }
 
     let param = ChangeFilesParam {
         file_lock_key,
         user_table_id: req.table_id.into(),
         stream_id: req.stream_id.into(),
-        partition_time,
-        entry: ChangeRequestRawChangeFilesEntry::new(files_to_add),
+        entries,
     };
     Ok(param)
 }

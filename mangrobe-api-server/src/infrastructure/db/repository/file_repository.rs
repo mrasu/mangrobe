@@ -20,18 +20,13 @@ impl FileRepository {
         conn: &C,
         user_table_id: &UserTableId,
         stream_id: &StreamId,
-        partition_time: DateTime<Utc>,
         ids: &[FileId],
     ) -> Result<Vec<File>, anyhow::Error>
     where
         C: ConnectionTrait,
     {
-        let files = Files::find()
-            .filter(Column::UserTableId.eq(user_table_id.val()))
-            .filter(Column::StreamId.eq(stream_id.val()))
-            .filter(Column::PartitionTime.eq(partition_time))
-            .filter(Column::Id.is_in(ids.iter().map(|f| f.val())))
-            .all(conn)
+        let files = self
+            .find_files_by_ids(conn, user_table_id, stream_id, ids)
             .await?;
 
         let domain_files = files.iter().map(|f| self.build_domain_file(f)).collect();
@@ -84,7 +79,6 @@ impl FileRepository {
         conn: &C,
         user_table_id: &UserTableId,
         stream_id: &StreamId,
-        partition_time: DateTime<Utc>,
         ids: &[FileId],
     ) -> Result<Vec<files::Model>, anyhow::Error>
     where
@@ -93,7 +87,6 @@ impl FileRepository {
         let files = Files::find()
             .filter(Column::UserTableId.eq(user_table_id.val()))
             .filter(Column::StreamId.eq(stream_id.val()))
-            .filter(Column::PartitionTime.eq(partition_time))
             .filter(Column::Id.is_in(ids.iter().map(|f| f.val())))
             .all(conn)
             .await?;

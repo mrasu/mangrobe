@@ -24,9 +24,8 @@ impl LockControlUseCase {
                 &param.file_lock_key,
                 &param.user_table_id,
                 &param.stream_id,
-                param.partition_time,
                 param.ttl,
-                &param.paths,
+                &param.entries,
             )
             .await?;
 

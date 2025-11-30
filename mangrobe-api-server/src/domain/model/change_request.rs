@@ -6,7 +6,6 @@ use crate::domain::model::change_request_id::ChangeRequestId;
 use crate::domain::model::changeset::Changeset;
 use crate::domain::model::stream_id::StreamId;
 use crate::domain::model::user_table_id::UserTableId;
-use chrono::{DateTime, Utc};
 use std::cmp::PartialEq;
 use strum_macros::Display;
 
@@ -21,7 +20,6 @@ pub struct BaseChangeRequest {
 
     pub user_table_id: UserTableId,
     pub stream_id: StreamId,
-    pub partition_time: DateTime<Utc>,
 
     pub status: ChangeRequestStatus,
 

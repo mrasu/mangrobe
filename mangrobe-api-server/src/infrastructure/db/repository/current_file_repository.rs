@@ -62,7 +62,6 @@ impl CurrentFileRepository {
         file_lock_key: &FileLockKey,
         user_table_id: &UserTableId,
         stream_id: &StreamId,
-        partition_time: DateTime<Utc>,
         file_ids: &[FileId],
     ) -> Result<Vec<FileId>, anyhow::Error>
     where
@@ -73,7 +72,6 @@ impl CurrentFileRepository {
             .filter(Column::FileLockKey.eq(file_lock_key.key.clone()))
             .filter(Column::UserTableId.eq(user_table_id.val()))
             .filter(Column::StreamId.eq(stream_id.val()))
-            .filter(Column::PartitionTime.eq(partition_time))
             .filter(Column::FileId.is_in(file_ids.iter().map(|v| v.val())))
             .all(conn)
             .await?;
@@ -166,7 +164,6 @@ impl CurrentFileRepository {
         conn: &C,
         user_table_id: &UserTableId,
         stream_id: &StreamId,
-        partition_time: DateTime<Utc>,
         file_ids: &[FileId],
     ) -> Result<(), anyhow::Error>
     where
@@ -174,7 +171,7 @@ impl CurrentFileRepository {
     {
         let saved_files = self
             .file_repository
-            .find_files_by_ids(conn, user_table_id, stream_id, partition_time, file_ids)
+            .find_files_by_ids(conn, user_table_id, stream_id, file_ids)
             .await?;
         let saved_files_map: HashMap<_, _> = saved_files.iter().map(|f| (f.id, f)).collect();
 
@@ -188,7 +185,7 @@ impl CurrentFileRepository {
                 Ok(self.new_active_model(
                     user_table_id,
                     stream_id,
-                    partition_time,
+                    model.partition_time.into(),
                     file_id,
                     &model.path.clone().into(),
                 ))
@@ -228,7 +225,6 @@ impl CurrentFileRepository {
         conn: &C,
         user_table_id: &UserTableId,
         stream_id: &StreamId,
-        partition_time: DateTime<Utc>,
         file_ids: &[FileId],
     ) -> Result<(), anyhow::Error>
     where
@@ -237,7 +233,6 @@ impl CurrentFileRepository {
         Entity::delete_many()
             .filter(Column::UserTableId.eq(user_table_id.val()))
             .filter(Column::StreamId.eq(stream_id.val()))
-            .filter(Column::PartitionTime.eq(partition_time))
             .filter(Column::FileId.is_in(file_ids.iter().map(|v| v.val())))
             .exec(conn)
             .await?;

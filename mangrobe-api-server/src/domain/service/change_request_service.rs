@@ -2,11 +2,12 @@ use crate::domain::model::change_request::{
     BaseChangeRequest, ChangeRequest, ChangeRequestForAdd, ChangeRequestForChange,
     ChangeRequestForCompact, ChangeRequestStatus, ChangeRequestType,
 };
+use crate::domain::model::change_request_file_entry::ChangeRequestCompactFileEntry;
 use crate::domain::model::change_request_file_entry::ChangeRequestFileEntry::{
     AddFiles, ChangeFiles, Compact,
 };
 use crate::domain::model::change_request_raw_file_entry::{
-    ChangeRequestRawAddFilesEntry, ChangeRequestRawChangeFilesEntry,
+    ChangeRequestRawAddFileEntry, ChangeRequestRawChangeFilesEntry,
     ChangeRequestRawCompactFilesEntry,
 };
 use crate::domain::model::changeset::Changeset;
@@ -57,7 +58,6 @@ impl ChangeRequestService {
         idempotency_key: &IdempotencyKey,
         user_table_id: &UserTableId,
         stream_id: &StreamId,
-        partition_time: &DateTime<Utc>,
         change_type: ChangeRequestType,
     ) -> Result<ChangeRequest, anyhow::Error> {
         self.change_request_repository
@@ -66,7 +66,6 @@ impl ChangeRequestService {
                 idempotency_key,
                 user_table_id,
                 stream_id,
-                partition_time,
                 change_type,
             )
             .await
@@ -76,24 +75,17 @@ impl ChangeRequestService {
         &self,
         user_table_id: &UserTableId,
         stream_id: &StreamId,
-        partition_time: &DateTime<Utc>,
         change_type: ChangeRequestType,
     ) -> Result<ChangeRequest, anyhow::Error> {
         self.change_request_repository
-            .create(
-                &self.connection,
-                user_table_id,
-                stream_id,
-                partition_time,
-                change_type,
-            )
+            .create(&self.connection, user_table_id, stream_id, change_type)
             .await
     }
 
-    pub async fn apply_add_entry(
+    pub async fn apply_add_entries(
         &self,
         change_request: &ChangeRequest,
-        entry: &ChangeRequestRawAddFilesEntry,
+        entries: &[ChangeRequestRawAddFileEntry],
     ) -> Result<ChangeRequestForAdd, anyhow::Error> {
         let txn = self.connection.begin().await?;
 
@@ -127,9 +119,18 @@ impl ChangeRequestService {
             ));
         }
 
-        let file_ids = self
-            .insert_files(&txn, &change_request, &entry.files)
-            .await?;
+        let mut file_ids = vec![];
+        for entry in entries {
+            file_ids.extend(
+                self.insert_files(
+                    &txn,
+                    &change_request,
+                    entry.partition_time,
+                    &entry.files_to_add,
+                )
+                .await?,
+            );
+        }
 
         let add_request = self
             .update_file_entry_as_add(&txn, change_request, &file_ids)
@@ -163,7 +164,7 @@ impl ChangeRequestService {
     pub async fn apply_change_entry(
         &self,
         change_request: &ChangeRequest,
-        entry: &ChangeRequestRawChangeFilesEntry,
+        entries: &[ChangeRequestRawChangeFilesEntry],
     ) -> Result<ChangeRequestForChange, anyhow::Error> {
         let txn = self.connection.begin().await?;
 
@@ -197,9 +198,18 @@ impl ChangeRequestService {
             ));
         }
 
-        let file_ids_to_delete = self
-            .find_file_ids(&txn, &change_request, &entry.files_to_delete)
-            .await?;
+        let mut file_ids_to_delete = vec![];
+        for entry in entries {
+            file_ids_to_delete.extend(
+                self.find_file_ids(
+                    &txn,
+                    &change_request,
+                    entry.partition_time,
+                    &entry.files_to_delete,
+                )
+                .await?,
+            );
+        }
 
         let modified_request = self
             .update_file_entry_as_change(&txn, change_request, &file_ids_to_delete)
@@ -219,6 +229,7 @@ impl ChangeRequestService {
         &self,
         txn: &DatabaseTransaction,
         change_request: &ChangeRequest,
+        partition_time: DateTime<Utc>,
         files_to_add: &[FileEntry],
     ) -> Result<Vec<FileId>, anyhow::Error> {
         if files_to_add.is_empty() {
@@ -231,7 +242,7 @@ impl ChangeRequestService {
                 f.to_file(
                     &change_request.base.user_table_id,
                     &change_request.base.stream_id,
-                    change_request.base.partition_time,
+                    partition_time,
                 )
             })
             .collect();
@@ -258,7 +269,7 @@ impl ChangeRequestService {
     pub async fn apply_compaction_entry(
         &self,
         change_request: &ChangeRequest,
-        entry: &ChangeRequestRawCompactFilesEntry,
+        entries: &[ChangeRequestRawCompactFilesEntry],
     ) -> Result<ChangeRequestForCompact, anyhow::Error> {
         let txn = self.connection.begin().await?;
 
@@ -292,15 +303,36 @@ impl ChangeRequestService {
             ));
         }
 
-        let src_file_ids = self
-            .find_file_ids(&txn, &change_request, &entry.src_file_paths)
-            .await?;
-        let dst_file_id = self
-            .insert_file(&txn, &change_request, &entry.dst_file)
-            .await?;
+        let mut compact_entries = vec![];
+        for entry in entries {
+            for info_entry in entry.info_entries.iter() {
+                // TODO: accelerate by batch
+                let src_file_ids = self
+                    .find_file_ids(
+                        &txn,
+                        &change_request,
+                        entry.partition_time,
+                        &info_entry.src_file_paths,
+                    )
+                    .await?;
+
+                let dst_file_id = self
+                    .insert_file(
+                        &txn,
+                        &change_request,
+                        entry.partition_time,
+                        &info_entry.dst_file,
+                    )
+                    .await?;
+                compact_entries.push(ChangeRequestCompactFileEntry {
+                    src_file_ids,
+                    dst_file_id,
+                })
+            }
+        }
 
         let modified_request = self
-            .update_file_entry_as_compaction(&txn, change_request, src_file_ids, dst_file_id)
+            .update_file_entry_as_compaction(&txn, change_request, &compact_entries)
             .await?;
 
         let modified_request = self
@@ -317,12 +349,13 @@ impl ChangeRequestService {
         &self,
         txn: &DatabaseTransaction,
         change_request: &ChangeRequest,
+        partition_time: DateTime<Utc>,
         file_entry: &FileEntry,
     ) -> Result<FileId, anyhow::Error> {
         let file = file_entry.to_file(
             &change_request.base.user_table_id,
             &change_request.base.stream_id,
-            change_request.base.partition_time,
+            partition_time,
         );
 
         self.file_repository.insert(txn, &file).await
@@ -332,6 +365,7 @@ impl ChangeRequestService {
         &self,
         txn: &DatabaseTransaction,
         change_request: &ChangeRequest,
+        partition_time: DateTime<Utc>,
         file_paths: &[FilePath],
     ) -> Result<Vec<FileId>, anyhow::Error> {
         self.file_repository
@@ -339,7 +373,7 @@ impl ChangeRequestService {
                 txn,
                 &change_request.base.user_table_id,
                 &change_request.base.stream_id,
-                change_request.base.partition_time,
+                partition_time,
                 file_paths,
             )
             .await
@@ -349,13 +383,12 @@ impl ChangeRequestService {
         &self,
         txn: &DatabaseTransaction,
         change_request: ChangeRequest,
-        src_file_ids: Vec<FileId>,
-        dst_file_id: FileId,
+        compact_entries: &[ChangeRequestCompactFileEntry],
     ) -> Result<ChangeRequestForCompact, anyhow::Error> {
         let base = change_request.base.clone();
         let entry = self
             .change_request_repository
-            .update_compact_file_entry(txn, change_request, &src_file_ids, &dst_file_id)
+            .update_compact_file_entry(txn, change_request, compact_entries)
             .await?;
 
         Ok(ChangeRequestForCompact::new(base, entry))
@@ -415,7 +448,6 @@ impl ChangeRequestService {
                 txn,
                 &change_request.base.user_table_id,
                 &change_request.base.stream_id,
-                change_request.base.partition_time,
                 &change_request.change_files_entry.file_ids,
             )
             .await?;
@@ -502,7 +534,6 @@ impl ChangeRequestService {
                     txn,
                     &base_change_request.user_table_id,
                     &base_change_request.stream_id,
-                    base_change_request.partition_time,
                     &changeset.add_file_ids,
                 )
                 .await?;
@@ -516,7 +547,6 @@ impl ChangeRequestService {
                     file_lock_key,
                     &base_change_request.user_table_id,
                     &base_change_request.stream_id,
-                    base_change_request.partition_time,
                     &changeset.delete_file_ids,
                 )
                 .await?;
@@ -532,7 +562,6 @@ impl ChangeRequestService {
                     txn,
                     &base_change_request.user_table_id,
                     &base_change_request.stream_id,
-                    base_change_request.partition_time,
                     &changeset.delete_file_ids,
                 )
                 .await?;

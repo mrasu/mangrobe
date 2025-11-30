@@ -20,8 +20,16 @@ impl Changeset {
 
     pub fn new_from_compact_file_entries(entry: ChangeRequestCompactFilesEntry) -> Self {
         Self {
-            add_file_ids: vec![entry.dst_file_id.clone()],
-            delete_file_ids: entry.src_file_ids.clone(),
+            add_file_ids: entry
+                .entries
+                .iter()
+                .map(|e| e.dst_file_id.clone())
+                .collect(),
+            delete_file_ids: entry
+                .entries
+                .iter()
+                .flat_map(|e| e.src_file_ids.clone())
+                .collect(),
         }
     }
 }

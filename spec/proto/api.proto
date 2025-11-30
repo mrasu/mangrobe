@@ -47,11 +47,17 @@ message AddFilesRequest {
   IdempotencyKey idempotency_key = 1;
   int64 table_id = 2;
   int64 stream_id = 3;
-  google.protobuf.Timestamp partition_time = 4;
-  repeated FileAddEntry file_add_entries = 5;
+
+  repeated AddFileEntry add_file_entries = 4;
 }
 
-message FileAddEntry {
+message AddFileEntry {
+  google.protobuf.Timestamp partition_time = 1;
+
+  repeated AddFileInfoEntry file_info_entries = 2;
+}
+
+message AddFileInfoEntry {
   string path = 1;
   int64 size = 2;
 }
@@ -64,12 +70,17 @@ message ChangeFilesRequest {
   FileLockKey file_lock_key = 1;
   int64 table_id = 2;
   int64 stream_id = 3;
-  google.protobuf.Timestamp partition_time = 4;
 
-  repeated FileDeleteEntry file_delete_entries = 5;
+  repeated ChangeFileEntry change_file_entries = 4;
 }
 
-message FileDeleteEntry {
+message ChangeFileEntry {
+  google.protobuf.Timestamp partition_time = 1;
+
+  repeated ChangeFileDeleteEntry delete_entries = 2;
+}
+
+message ChangeFileDeleteEntry {
   string path = 1;
 }
 
@@ -81,17 +92,26 @@ message CompactFilesRequest {
   FileLockKey file_lock_key = 1;
   int64 table_id = 2;
   int64 stream_id = 3;
-  google.protobuf.Timestamp partition_time = 4;
 
-  repeated FileCompactSrcEntry src_file_entries = 5;
-  FileCompactDstEntry dst_file_entry = 6;
+  repeated CompactFileEntry compact_file_entries = 4;
 }
 
-message FileCompactSrcEntry {
+message CompactFileEntry {
+  google.protobuf.Timestamp partition_time = 1;
+
+  repeated CompactFileInfoEntry file_info_entries = 2;
+}
+
+message CompactFileInfoEntry {
+  repeated CompactFileSrcEntry src_entries = 1;
+  CompactFileDstEntry dst_entry = 2;
+}
+
+message CompactFileSrcEntry {
   string path = 1;
 }
 
-message FileCompactDstEntry {
+message CompactFileDstEntry {
   string path = 1;
   int64 size = 2;
 }
@@ -105,14 +125,19 @@ message AcquireFileLockRequest {
 
   int64 table_id = 2;
   int64 stream_id = 3;
-  google.protobuf.Timestamp partition_time = 4;
 
-  int64 ttl_sec = 5;
+  int64 ttl_sec = 4;
 
-  repeated LockFile target_files =6;
+  repeated AcquireFileLockEntry acquire_file_lock_entries =5;
 }
 
-message LockFile {
+message AcquireFileLockEntry {
+  google.protobuf.Timestamp partition_time = 1;
+
+  repeated AcquireFileLockFileInfoEntry acquire_file_info_entries =2;
+}
+
+message AcquireFileLockFileInfoEntry {
   string path = 1;
 }
 

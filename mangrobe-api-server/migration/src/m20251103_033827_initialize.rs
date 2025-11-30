@@ -77,7 +77,6 @@ impl MigrationTrait for Migration {
                     )
                     .col(big_integer(ChangeRequest::UserTableId))
                     .col(big_integer(ChangeRequest::StreamId))
-                    .col(timestamp_with_time_zone(ChangeRequest::PartitionTime))
                     .col(integer(ChangeRequest::Status))
                     .col(integer(ChangeRequest::ChangeType))
                     .col(json_binary_null(ChangeRequest::FileEntry))
@@ -330,7 +329,6 @@ impl MigrationTrait for Migration {
                     .col(binary_len(FileLock::Key, 16).primary_key())
                     .col(big_integer(FileLock::UserTableId))
                     .col(big_integer(FileLock::StreamId))
-                    .col(timestamp_with_time_zone(FileLock::PartitionTime))
                     .col(timestamp_with_time_zone(FileLock::ExpireAt))
                     .col(
                         timestamp_with_time_zone(FileLock::CreatedAt)
@@ -439,6 +437,20 @@ impl MigrationTrait for Migration {
             .create_index(
                 Index::create()
                     .name(format!(
+                        "idx_{}_{}",
+                        CurrentFile::Table.to_string(),
+                        CurrentFile::FileId.to_string()
+                    ))
+                    .table(CurrentFile::Table)
+                    .col(CurrentFile::FileId)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name(format!(
                         "idx_{}_{}_{}_{}_{}",
                         CurrentFile::Table.to_string(),
                         CurrentFile::UserTableId.to_string(),
@@ -525,7 +537,6 @@ enum ChangeRequest {
     Id,
     UserTableId,
     StreamId,
-    PartitionTime,
     Status,
     ChangeType,
     FileEntry,
@@ -592,7 +603,6 @@ enum FileLock {
     Key,
     UserTableId,
     StreamId,
-    PartitionTime,
     ExpireAt,
     CreatedAt,
     UpdatedAt,

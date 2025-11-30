@@ -1,5 +1,6 @@
-use crate::domain::model::file::{File, FilePath};
+use crate::domain::model::file::File;
 use crate::domain::model::file_lock_key::FileLockKey;
+use crate::domain::model::lock_raw_file_entry::LockFileRawAcquireEntry;
 use crate::domain::model::stream_id::StreamId;
 use crate::domain::model::user_table_id::UserTableId;
 use crate::infrastructure::db::repository::current_file_repository::CurrentFileRepository;
@@ -7,7 +8,7 @@ use crate::infrastructure::db::repository::file_lock_repository::FileLockReposit
 use crate::infrastructure::db::repository::file_repository::FileRepository;
 use crate::util::error::UserError;
 use anyhow::bail;
-use chrono::{DateTime, Duration, Utc};
+use chrono::Duration;
 use sea_orm::{DatabaseConnection, TransactionTrait};
 
 pub struct FileLockService {
@@ -41,22 +42,14 @@ impl FileLockService {
         file_lock_key: &FileLockKey,
         user_table_id: &UserTableId,
         stream_id: &StreamId,
-        partition_time: DateTime<Utc>,
         ttl: Duration,
-        file_paths: &[FilePath],
+        entries: &[LockFileRawAcquireEntry],
     ) -> Result<Vec<File>, anyhow::Error> {
         let txn = self.connection.begin().await?;
 
         let acquired = self
             .file_lock_repository
-            .acquire(
-                &txn,
-                user_table_id,
-                stream_id,
-                partition_time,
-                ttl,
-                file_lock_key,
-            )
+            .acquire(&txn, user_table_id, stream_id, ttl, file_lock_key)
             .await?;
 
         if !acquired {
@@ -65,28 +58,31 @@ impl FileLockService {
             ));
         }
 
-        let locked_files = self
-            .current_file_repository
-            .select_files_by_paths_for_update(
-                &txn,
-                user_table_id,
-                stream_id,
-                partition_time,
-                file_paths,
-            )
-            .await?;
+        let mut file_ids = vec![];
+        for entry in entries {
+            let locked_files = self
+                .current_file_repository
+                .select_files_by_paths_for_update(
+                    &txn,
+                    user_table_id,
+                    stream_id,
+                    entry.partition_time,
+                    &entry.file_paths,
+                )
+                .await?;
 
-        if locked_files.len() != file_paths.len() {
-            bail!(UserError::InvalidLockMessage("some files not found".into()))
+            if locked_files.len() != entry.file_paths.len() {
+                bail!(UserError::InvalidLockMessage("some files not found".into()))
+            }
+            file_ids.extend(locked_files.iter().map(|f| f.file_id.clone()));
         }
 
-        let file_ids: Vec<_> = locked_files.iter().map(|f| f.file_id.clone()).collect();
         let locked_count = self
             .current_file_repository
             .acquire_lock(&txn, file_lock_key, user_table_id, stream_id, &file_ids)
             .await?;
 
-        if locked_count as usize != file_paths.len() {
+        if locked_count as usize != file_ids.len() {
             bail!(UserError::InvalidLockMessage(
                 "not all files can be locked".into()
             ))
@@ -94,7 +90,7 @@ impl FileLockService {
 
         let files = self
             .file_repository
-            .find_all_by_ids(&txn, user_table_id, stream_id, partition_time, &file_ids)
+            .find_all_by_ids(&txn, user_table_id, stream_id, &file_ids)
             .await?;
 
         txn.commit().await?;

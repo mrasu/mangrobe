@@ -43,14 +43,13 @@ impl DataManipulationUseCase {
                 &param.idempotency_key,
                 &param.user_table_id,
                 &param.stream_id,
-                &param.partition_time,
                 ChangeRequestType::AddFiles,
             )
             .await?;
 
         let change_request_with_entry = self
             .change_request_service
-            .apply_add_entry(&change_request, &param.entry)
+            .apply_add_entries(&change_request, &param.entries)
             .await?;
 
         self.change_request_service
@@ -72,14 +71,13 @@ impl DataManipulationUseCase {
             .create(
                 &param.user_table_id,
                 &param.stream_id,
-                &param.partition_time,
                 ChangeRequestType::Compact,
             )
             .await?;
 
         let change_request_with_entry = self
             .change_request_service
-            .apply_change_entry(&change_request, &param.entry)
+            .apply_change_entry(&change_request, &param.entries)
             .await?;
 
         let changeset = change_request_with_entry.to_changeset();
@@ -106,14 +104,13 @@ impl DataManipulationUseCase {
             .create(
                 &param.user_table_id,
                 &param.stream_id,
-                &param.partition_time,
                 ChangeRequestType::Compact,
             )
             .await?;
 
         let change_request_with_entry = self
             .change_request_service
-            .apply_compaction_entry(&change_request, &param.entry)
+            .apply_compaction_entry(&change_request, &param.entries)
             .await?;
 
         let changeset = change_request_with_entry.to_changeset();
