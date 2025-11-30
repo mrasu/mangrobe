@@ -149,20 +149,6 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
-            .create_index(
-                Index::create()
-                    .name(format!(
-                        "idx_{}_{}",
-                        ChangeRequestIdempotencyKey::Table.to_string(),
-                        ChangeRequestIdempotencyKey::ChangeRequestId.to_string()
-                    ))
-                    .table(ChangeRequestIdempotencyKey::Table)
-                    .col(ChangeRequestIdempotencyKey::ChangeRequestId)
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
             .create_foreign_key(
                 ForeignKey::create()
                     .name(format!(
@@ -175,6 +161,20 @@ impl MigrationTrait for Migration {
                         ChangeRequestIdempotencyKey::ChangeRequestId,
                     )
                     .to(ChangeRequest::Table, ChangeRequest::Id)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name(format!(
+                        "idx_{}_{}",
+                        ChangeRequestIdempotencyKey::Table.to_string(),
+                        ChangeRequestIdempotencyKey::ChangeRequestId.to_string()
+                    ))
+                    .table(ChangeRequestIdempotencyKey::Table)
+                    .col(ChangeRequestIdempotencyKey::ChangeRequestId)
                     .to_owned(),
             )
             .await?;
@@ -219,6 +219,20 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
+            .create_foreign_key(
+                ForeignKey::create()
+                    .name(format!(
+                        "fk_{}_{}",
+                        Commit::Table.to_string(),
+                        ChangeRequest::Table.to_string()
+                    ))
+                    .from(Commit::Table, Commit::ChangeRequestId)
+                    .to(ChangeRequest::Table, ChangeRequest::Id)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
             .create_index(
                 Index::create()
                     .name(format!(
@@ -244,20 +258,6 @@ impl MigrationTrait for Migration {
                     .table(Commit::Table)
                     .col(Commit::UserTableId)
                     .col(Commit::StreamId)
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_foreign_key(
-                ForeignKey::create()
-                    .name(format!(
-                        "fk_{}_{}",
-                        Commit::Table.to_string(),
-                        ChangeRequest::Table.to_string()
-                    ))
-                    .from(Commit::Table, Commit::ChangeRequestId)
-                    .to(ChangeRequest::Table, ChangeRequest::Id)
                     .to_owned(),
             )
             .await?;
@@ -307,13 +307,15 @@ impl MigrationTrait for Migration {
             .create_index(
                 Index::create()
                     .name(format!(
-                        "idx_{}_{}_{}_{}",
+                        "idx_{}_{}_{}_{}_{}",
                         File::Table.to_string(),
+                        File::UserTableId.to_string(),
                         File::StreamId.to_string(),
                         File::PartitionTime.to_string(),
                         File::PathXxh3.to_string(),
                     ))
                     .table(File::Table)
+                    .col(File::UserTableId)
                     .col(File::StreamId)
                     .col(File::PartitionTime)
                     .col(File::PathXxh3)
@@ -420,6 +422,20 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
+            .create_index(
+                Index::create()
+                    .name(format!(
+                        "idx_{}_{}",
+                        CurrentFile::Table.to_string(),
+                        CurrentFile::FileId.to_string()
+                    ))
+                    .table(CurrentFile::Table)
+                    .col(CurrentFile::FileId)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
             .create_foreign_key(
                 ForeignKey::create()
                     .name(format!(
@@ -439,10 +455,10 @@ impl MigrationTrait for Migration {
                     .name(format!(
                         "idx_{}_{}",
                         CurrentFile::Table.to_string(),
-                        CurrentFile::FileId.to_string()
+                        CurrentFile::FileLockKey.to_string()
                     ))
                     .table(CurrentFile::Table)
-                    .col(CurrentFile::FileId)
+                    .col(CurrentFile::FileLockKey)
                     .to_owned(),
             )
             .await?;
@@ -464,20 +480,6 @@ impl MigrationTrait for Migration {
                     .col(CurrentFile::StreamId)
                     .col(CurrentFile::PartitionTime)
                     .col(CurrentFile::FilePathXxh3)
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_index(
-                Index::create()
-                    .name(format!(
-                        "idx_{}_{}",
-                        CurrentFile::Table.to_string(),
-                        CurrentFile::FileLockKey.to_string(),
-                    ))
-                    .table(CurrentFile::Table)
-                    .col(CurrentFile::FileLockKey)
                     .to_owned(),
             )
             .await?;
