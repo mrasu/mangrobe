@@ -16,8 +16,7 @@ use crate::domain::model::file::{FileEntry, FilePath};
 use crate::domain::model::file_id::FileId;
 use crate::domain::model::file_lock_key::FileLockKey;
 use crate::domain::model::idempotency_key::IdempotencyKey;
-use crate::domain::model::stream_id::StreamId;
-use crate::domain::model::user_table_id::UserTableId;
+use crate::domain::model::user_table_stream::UserTablStream;
 use crate::infrastructure::db::repository::change_request_repository::ChangeRequestRepository;
 use crate::infrastructure::db::repository::commit_lock_repository::CommitLockRepository;
 use crate::infrastructure::db::repository::commit_repository::CommitRepository;
@@ -56,16 +55,14 @@ impl ChangeRequestService {
     pub async fn find_or_create(
         &self,
         idempotency_key: &IdempotencyKey,
-        user_table_id: &UserTableId,
-        stream_id: &StreamId,
+        stream: &UserTablStream,
         change_type: ChangeRequestType,
     ) -> Result<ChangeRequest, anyhow::Error> {
         self.change_request_repository
             .find_by_idempotency_key_or_create(
                 &self.connection,
                 idempotency_key,
-                user_table_id,
-                stream_id,
+                stream,
                 change_type,
             )
             .await
@@ -73,12 +70,11 @@ impl ChangeRequestService {
 
     pub async fn create(
         &self,
-        user_table_id: &UserTableId,
-        stream_id: &StreamId,
+        stream: &UserTablStream,
         change_type: ChangeRequestType,
     ) -> Result<ChangeRequest, anyhow::Error> {
         self.change_request_repository
-            .create(&self.connection, user_table_id, stream_id, change_type)
+            .create(&self.connection, stream, change_type)
             .await
     }
 
@@ -238,13 +234,7 @@ impl ChangeRequestService {
 
         let files: Vec<_> = files_to_add
             .iter()
-            .map(|f| {
-                f.to_file(
-                    &change_request.base.user_table_id,
-                    &change_request.base.stream_id,
-                    partition_time,
-                )
-            })
+            .map(|f| f.to_file(change_request.base.stream.clone(), partition_time))
             .collect();
         let file_ids = self.file_repository.insert_many(txn, &files).await?;
 
@@ -352,11 +342,7 @@ impl ChangeRequestService {
         partition_time: DateTime<Utc>,
         file_entry: &FileEntry,
     ) -> Result<FileId, anyhow::Error> {
-        let file = file_entry.to_file(
-            &change_request.base.user_table_id,
-            &change_request.base.stream_id,
-            partition_time,
-        );
+        let file = file_entry.to_file(change_request.base.stream.clone(), partition_time);
 
         self.file_repository.insert(txn, &file).await
     }
@@ -369,13 +355,7 @@ impl ChangeRequestService {
         file_paths: &[FilePath],
     ) -> Result<Vec<FileId>, anyhow::Error> {
         self.file_repository
-            .find_all_ids_by_paths(
-                txn,
-                &change_request.base.user_table_id,
-                &change_request.base.stream_id,
-                partition_time,
-                file_paths,
-            )
+            .find_all_ids_by_paths(txn, &change_request.base.stream, partition_time, file_paths)
             .await
     }
 
@@ -436,30 +416,20 @@ impl ChangeRequestService {
         change_request: &ChangeRequestForAdd,
     ) -> Result<CommitId, anyhow::Error> {
         self.commit_lock_repository
-            .acquire_xact_lock(
-                txn,
-                &change_request.base.user_table_id,
-                &change_request.base.stream_id,
-            )
+            .acquire_xact_lock(txn, &change_request.base.stream)
             .await?;
 
         self.current_file_repository
             .insert_many(
                 txn,
-                &change_request.base.user_table_id,
-                &change_request.base.stream_id,
+                &change_request.base.stream,
                 &change_request.change_files_entry.file_ids,
             )
             .await?;
 
         let commit_id = self
             .commit_repository
-            .insert(
-                txn,
-                &change_request.base.user_table_id,
-                &change_request.base.stream_id,
-                &change_request.base.id,
-            )
+            .insert(txn, &change_request.base.stream, &change_request.base.id)
             .await?;
 
         Ok(commit_id)
@@ -513,11 +483,7 @@ impl ChangeRequestService {
         changeset: &Changeset,
     ) -> Result<CommitId, anyhow::Error> {
         self.commit_lock_repository
-            .acquire_xact_lock(
-                txn,
-                &base_change_request.user_table_id,
-                &base_change_request.stream_id,
-            )
+            .acquire_xact_lock(txn, &base_change_request.stream)
             .await?;
 
         let lock_exists = self
@@ -530,12 +496,7 @@ impl ChangeRequestService {
 
         if !changeset.add_file_ids.is_empty() {
             self.current_file_repository
-                .insert_many(
-                    txn,
-                    &base_change_request.user_table_id,
-                    &base_change_request.stream_id,
-                    &changeset.add_file_ids,
-                )
+                .insert_many(txn, &base_change_request.stream, &changeset.add_file_ids)
                 .await?;
         }
 
@@ -545,8 +506,7 @@ impl ChangeRequestService {
                 .select_locked_file_ids_for_update(
                     txn,
                     file_lock_key,
-                    &base_change_request.user_table_id,
-                    &base_change_request.stream_id,
+                    &base_change_request.stream,
                     &changeset.delete_file_ids,
                 )
                 .await?;
@@ -558,23 +518,13 @@ impl ChangeRequestService {
             }
 
             self.current_file_repository
-                .delete_many(
-                    txn,
-                    &base_change_request.user_table_id,
-                    &base_change_request.stream_id,
-                    &changeset.delete_file_ids,
-                )
+                .delete_many(txn, &base_change_request.stream, &changeset.delete_file_ids)
                 .await?;
         }
 
         let commit_id = self
             .commit_repository
-            .insert(
-                txn,
-                &base_change_request.user_table_id,
-                &base_change_request.stream_id,
-                &base_change_request.id,
-            )
+            .insert(txn, &base_change_request.stream, &base_change_request.id)
             .await?;
 
         self.current_file_repository

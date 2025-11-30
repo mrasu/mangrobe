@@ -1,8 +1,7 @@
 use crate::domain::model::file::File;
 use crate::domain::model::file_lock_key::FileLockKey;
 use crate::domain::model::lock_raw_file_entry::LockFileRawAcquireEntry;
-use crate::domain::model::stream_id::StreamId;
-use crate::domain::model::user_table_id::UserTableId;
+use crate::domain::model::user_table_stream::UserTablStream;
 use crate::infrastructure::db::repository::current_file_repository::CurrentFileRepository;
 use crate::infrastructure::db::repository::file_lock_repository::FileLockRepository;
 use crate::infrastructure::db::repository::file_repository::FileRepository;
@@ -40,8 +39,7 @@ impl FileLockService {
     pub async fn acquire(
         &self,
         file_lock_key: &FileLockKey,
-        user_table_id: &UserTableId,
-        stream_id: &StreamId,
+        stream: &UserTablStream,
         ttl: Duration,
         entries: &[LockFileRawAcquireEntry],
     ) -> Result<Vec<File>, anyhow::Error> {
@@ -49,7 +47,7 @@ impl FileLockService {
 
         let acquired = self
             .file_lock_repository
-            .acquire(&txn, user_table_id, stream_id, ttl, file_lock_key)
+            .acquire(&txn, stream, ttl, file_lock_key)
             .await?;
 
         if !acquired {
@@ -64,8 +62,7 @@ impl FileLockService {
                 .current_file_repository
                 .select_files_by_paths_for_update(
                     &txn,
-                    user_table_id,
-                    stream_id,
+                    stream,
                     entry.partition_time,
                     &entry.file_paths,
                 )
@@ -79,7 +76,7 @@ impl FileLockService {
 
         let locked_count = self
             .current_file_repository
-            .acquire_lock(&txn, file_lock_key, user_table_id, stream_id, &file_ids)
+            .acquire_lock(&txn, file_lock_key, stream, &file_ids)
             .await?;
 
         if locked_count as usize != file_ids.len() {
@@ -90,7 +87,7 @@ impl FileLockService {
 
         let files = self
             .file_repository
-            .find_all_by_ids(&txn, user_table_id, stream_id, &file_ids)
+            .find_all_by_ids(&txn, stream, &file_ids)
             .await?;
 
         txn.commit().await?;

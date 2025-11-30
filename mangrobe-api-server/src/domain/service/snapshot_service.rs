@@ -1,6 +1,5 @@
 use crate::domain::model::snapshot::Snapshot;
-use crate::domain::model::stream_id::StreamId;
-use crate::domain::model::user_table_id::UserTableId;
+use crate::domain::model::user_table_stream::UserTablStream;
 use crate::infrastructure::db::repository::commit_repository::CommitRepository;
 use crate::infrastructure::db::repository::current_file_repository::CurrentFileRepository;
 use sea_orm::{AccessMode, DatabaseConnection, IsolationLevel, TransactionTrait};
@@ -20,11 +19,7 @@ impl SnapshotService {
         }
     }
 
-    pub async fn get_current(
-        &self,
-        user_table_id: &UserTableId,
-        stream_id: &StreamId,
-    ) -> Result<Snapshot, anyhow::Error> {
+    pub async fn get_current(&self, stream: &UserTablStream) -> Result<Snapshot, anyhow::Error> {
         let txn = self
             .connection
             .begin_with_config(
@@ -33,20 +28,17 @@ impl SnapshotService {
             )
             .await?;
 
-        let commit = self
-            .commit_repository
-            .find_latest(&txn, user_table_id, stream_id)
-            .await?;
+        let commit = self.commit_repository.find_latest(&txn, stream).await?;
 
         let Some(commit) = commit else {
-            return Ok(Snapshot::new(stream_id.clone(), None, vec![]));
+            return Ok(Snapshot::new(stream.clone(), None, vec![]));
         };
 
         let files = self
             .current_file_repository
-            .find_files_by_stream(&txn, user_table_id, stream_id)
+            .find_files_by_stream(&txn, stream)
             .await?;
 
-        Ok(Snapshot::new(stream_id.clone(), Some(commit.id), files))
+        Ok(Snapshot::new(stream.clone(), Some(commit.id), files))
     }
 }

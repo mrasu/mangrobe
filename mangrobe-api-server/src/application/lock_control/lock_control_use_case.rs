@@ -22,8 +22,7 @@ impl LockControlUseCase {
             .file_lock_service
             .acquire(
                 &param.file_lock_key,
-                &param.user_table_id,
-                &param.stream_id,
+                &param.stream,
                 param.ttl,
                 &param.entries,
             )

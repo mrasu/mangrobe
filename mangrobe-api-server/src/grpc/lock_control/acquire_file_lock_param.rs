@@ -1,5 +1,6 @@
 use crate::application::lock_control::acquire_file_lock_param::AcquireFileLockParam;
 use crate::domain::model::lock_raw_file_entry::LockFileRawAcquireEntry;
+use crate::domain::model::user_table_stream::UserTablStream;
 use crate::grpc::proto::AcquireFileLockRequest;
 use crate::grpc::util::param_util::{to_file_lock_key, to_partition_time};
 use crate::util::error::ParameterError;
@@ -29,8 +30,7 @@ pub fn build_acquire_file_lock_param(
 
     let param = AcquireFileLockParam {
         file_lock_key,
-        user_table_id: req.table_id.into(),
-        stream_id: req.stream_id.into(),
+        stream: UserTablStream::new(req.table_id.into(), req.stream_id.into()),
         ttl: Duration::seconds(req.ttl_sec),
         entries,
     };

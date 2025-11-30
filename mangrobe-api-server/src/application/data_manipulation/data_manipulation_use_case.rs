@@ -31,9 +31,7 @@ impl DataManipulationUseCase {
         &self,
         param: GetCurrentSnapshotParam,
     ) -> Result<Snapshot, anyhow::Error> {
-        self.snapshot_service
-            .get_current(&param.user_table_id, &param.stream_id)
-            .await
+        self.snapshot_service.get_current(&param.stream).await
     }
 
     pub async fn add_files(&self, param: AddFilesParam) -> Result<CommitId, anyhow::Error> {
@@ -41,8 +39,7 @@ impl DataManipulationUseCase {
             .change_request_service
             .find_or_create(
                 &param.idempotency_key,
-                &param.user_table_id,
-                &param.stream_id,
+                &param.stream,
                 ChangeRequestType::AddFiles,
             )
             .await?;
@@ -68,11 +65,7 @@ impl DataManipulationUseCase {
 
         let change_request = self
             .change_request_service
-            .create(
-                &param.user_table_id,
-                &param.stream_id,
-                ChangeRequestType::Compact,
-            )
+            .create(&param.stream, ChangeRequestType::Compact)
             .await?;
 
         let change_request_with_entry = self
@@ -101,11 +94,7 @@ impl DataManipulationUseCase {
 
         let change_request = self
             .change_request_service
-            .create(
-                &param.user_table_id,
-                &param.stream_id,
-                ChangeRequestType::Compact,
-            )
+            .create(&param.stream, ChangeRequestType::Compact)
             .await?;
 
         let change_request_with_entry = self

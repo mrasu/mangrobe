@@ -1,8 +1,7 @@
-use crate::domain::model::stream_id::StreamId;
-use crate::domain::model::user_table_id::UserTableId;
+use crate::domain::model::user_table_stream::UserTablStream;
 use ahash::RandomState;
-use sea_orm::DatabaseTransaction;
 use sea_orm::ConnectionTrait;
+use sea_orm::DatabaseTransaction;
 use sea_orm::{DatabaseBackend, Statement};
 use std::hash::{BuildHasher, Hasher};
 
@@ -26,23 +25,22 @@ impl CommitLockRepository {
     pub async fn acquire_xact_lock(
         &self,
         txn: &DatabaseTransaction,
-        table_id: &UserTableId,
-        tenant_id: &StreamId,
+        stream: &UserTablStream,
     ) -> Result<(), anyhow::Error> {
         txn.execute(Statement::from_sql_and_values(
             DatabaseBackend::Postgres,
             "SELECT pg_advisory_xact_lock($1)",
-            [self.to_lock_id(table_id, tenant_id).into()],
+            [self.to_lock_id(stream).into()],
         ))
         .await?;
 
         Ok(())
     }
 
-    fn to_lock_id(&self, table_id: &UserTableId, tenant_id: &StreamId) -> i64 {
+    fn to_lock_id(&self, stream: &UserTablStream) -> i64 {
         let mut hasher = self.hash_builder.build_hasher();
-        hasher.write_i64(tenant_id.val());
-        hasher.write_i64(table_id.val());
+        hasher.write_i64(stream.stream_id.val());
+        hasher.write_i64(stream.user_table_id.val());
 
         i64::from_ne_bytes(hasher.finish().to_ne_bytes())
     }

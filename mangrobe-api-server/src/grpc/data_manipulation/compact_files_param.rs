@@ -1,9 +1,9 @@
 use crate::application::data_manipulation::compact_files_param::CompactFilesParam;
 use crate::domain::model::change_request_raw_file_entry::{
-    ChangeRequestRawCompactFileInfoEntry,
-    ChangeRequestRawCompactFilesEntry,
+    ChangeRequestRawCompactFileInfoEntry, ChangeRequestRawCompactFilesEntry,
 };
 use crate::domain::model::file::FileEntry;
+use crate::domain::model::user_table_stream::UserTablStream;
 use crate::grpc::proto::CompactFilesRequest;
 use crate::grpc::util::param_util::{to_file_lock_key, to_partition_time};
 use crate::util::error::ParameterError;
@@ -50,8 +50,7 @@ pub(super) fn build_compact_files_param(
 
     let param = CompactFilesParam {
         file_lock_key,
-        user_table_id: req.table_id.into(),
-        stream_id: req.stream_id.into(),
+        stream: UserTablStream::new(req.table_id.into(), req.stream_id.into()),
         entries,
     };
     Ok(param)

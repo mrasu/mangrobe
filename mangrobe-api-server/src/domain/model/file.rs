@@ -1,13 +1,11 @@
-use crate::domain::model::stream_id::StreamId;
-use crate::domain::model::user_table_id::UserTableId;
+use crate::domain::model::user_table_stream::UserTablStream;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use xxhash_rust::xxh3::xxh3_128;
 
 #[derive(Clone, Debug)]
 pub struct File {
-    pub user_table_id: UserTableId,
-    pub stream_id: StreamId,
+    pub stream: UserTablStream,
     pub partition_time: DateTime<Utc>,
     pub path: FilePath,
     pub size: i64,
@@ -15,15 +13,13 @@ pub struct File {
 
 impl File {
     pub fn new(
-        user_table_id: UserTableId,
-        stream_id: StreamId,
+        stream: UserTablStream,
         partition_time: DateTime<Utc>,
         path: FilePath,
         size: i64,
     ) -> Self {
         Self {
-            user_table_id,
-            stream_id,
+            stream,
             partition_time,
             path,
             size,
@@ -68,18 +64,7 @@ impl FileEntry {
         Self { path, size }
     }
 
-    pub fn to_file(
-        &self,
-        user_table_id: &UserTableId,
-        stream_id: &StreamId,
-        partition_time: DateTime<Utc>,
-    ) -> File {
-        File::new(
-            user_table_id.clone(),
-            stream_id.clone(),
-            partition_time,
-            self.path.clone(),
-            self.size,
-        )
+    pub fn to_file(&self, stream: UserTablStream, partition_time: DateTime<Utc>) -> File {
+        File::new(stream, partition_time, self.path.clone(), self.size)
     }
 }

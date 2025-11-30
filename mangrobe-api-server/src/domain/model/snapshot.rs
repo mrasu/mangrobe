@@ -1,17 +1,17 @@
 use crate::domain::model::commit_id::CommitId;
 use crate::domain::model::file::File;
-use crate::domain::model::stream_id::StreamId;
+use crate::domain::model::user_table_stream::UserTablStream;
 
 pub struct Snapshot {
-    pub stream_id: StreamId,
+    pub stream: UserTablStream,
     pub commit_id: Option<CommitId>,
     pub files: Vec<File>,
 }
 
 impl Snapshot {
-    pub fn new(stream_id: StreamId, commit_id: Option<CommitId>, files: Vec<File>) -> Self {
+    pub fn new(stream: UserTablStream, commit_id: Option<CommitId>, files: Vec<File>) -> Self {
         Self {
-            stream_id,
+            stream,
             commit_id,
             files,
         }

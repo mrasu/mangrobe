@@ -2,8 +2,7 @@ use crate::domain::model::current_file::CurrentFile;
 use crate::domain::model::file::{File, FilePath};
 use crate::domain::model::file_id::FileId;
 use crate::domain::model::file_lock_key::FileLockKey;
-use crate::domain::model::stream_id::StreamId;
-use crate::domain::model::user_table_id::UserTableId;
+use crate::domain::model::user_table_stream::UserTablStream;
 use crate::infrastructure::db::entity::current_files::{ActiveModel, Column, Entity, Model};
 use crate::infrastructure::db::entity::prelude::{CurrentFiles, Files};
 use crate::infrastructure::db::entity::{file_locks, files};
@@ -31,16 +30,15 @@ impl CurrentFileRepository {
     pub async fn find_files_by_stream<C>(
         &self,
         conn: &C,
-        user_table_id: &UserTableId,
-        stream_id: &StreamId,
+        stream: &UserTablStream,
     ) -> Result<Vec<File>, anyhow::Error>
     where
         C: ConnectionTrait,
     {
         let current_files = CurrentFiles::find()
             .find_also_related(Files)
-            .filter(Column::UserTableId.eq(user_table_id.val()))
-            .filter(Column::StreamId.eq(stream_id.val()))
+            .filter(Column::UserTableId.eq(stream.user_table_id.val()))
+            .filter(Column::StreamId.eq(stream.stream_id.val()))
             .all(conn)
             .await?;
 
@@ -60,8 +58,7 @@ impl CurrentFileRepository {
         &self,
         conn: &C,
         file_lock_key: &FileLockKey,
-        user_table_id: &UserTableId,
-        stream_id: &StreamId,
+        stream: &UserTablStream,
         file_ids: &[FileId],
     ) -> Result<Vec<FileId>, anyhow::Error>
     where
@@ -70,8 +67,8 @@ impl CurrentFileRepository {
         let current_files = CurrentFiles::find()
             .lock(LockType::Update)
             .filter(Column::FileLockKey.eq(file_lock_key.key.clone()))
-            .filter(Column::UserTableId.eq(user_table_id.val()))
-            .filter(Column::StreamId.eq(stream_id.val()))
+            .filter(Column::UserTableId.eq(stream.user_table_id.val()))
+            .filter(Column::StreamId.eq(stream.stream_id.val()))
             .filter(Column::FileId.is_in(file_ids.iter().map(|v| v.val())))
             .all(conn)
             .await?;
@@ -84,8 +81,7 @@ impl CurrentFileRepository {
     pub async fn select_files_by_paths_for_update<C>(
         &self,
         conn: &C,
-        user_table_id: &UserTableId,
-        stream_id: &StreamId,
+        stream: &UserTablStream,
         partition_time: DateTime<Utc>,
         file_paths: &[FilePath],
     ) -> Result<Vec<CurrentFile>, anyhow::Error>
@@ -96,8 +92,8 @@ impl CurrentFileRepository {
 
         let current_files = CurrentFiles::find()
             .lock(LockType::Update)
-            .filter(Column::UserTableId.eq(user_table_id.val()))
-            .filter(Column::StreamId.eq(stream_id.val()))
+            .filter(Column::UserTableId.eq(stream.user_table_id.val()))
+            .filter(Column::StreamId.eq(stream.stream_id.val()))
             .filter(Column::PartitionTime.eq(partition_time))
             .filter(Column::FilePathXxh3.is_in(hashed_file_paths))
             .all(conn)
@@ -115,8 +111,7 @@ impl CurrentFileRepository {
         &self,
         conn: &C,
         file_lock_key: &FileLockKey,
-        user_table_id: &UserTableId,
-        stream_id: &StreamId,
+        stream: &UserTablStream,
         file_ids: &[FileId],
     ) -> Result<u64, anyhow::Error>
     where
@@ -124,8 +119,8 @@ impl CurrentFileRepository {
     {
         let locked_files = CurrentFiles::update_many()
             .col_expr(Column::FileLockKey, Expr::value(file_lock_key.key.clone()))
-            .filter(Column::UserTableId.eq(user_table_id.val()))
-            .filter(Column::StreamId.eq(stream_id.val()))
+            .filter(Column::UserTableId.eq(stream.user_table_id.val()))
+            .filter(Column::StreamId.eq(stream.stream_id.val()))
             .filter(Column::FileId.is_in(file_ids.iter().map(|id| id.val())))
             .filter(
                 // ... AND ((key IS NULL) OR (key NOT IN (select key from locks where expired_at > now()))
@@ -147,8 +142,7 @@ impl CurrentFileRepository {
 
     fn new_file(&self, _current_file: &Model, file: &files::Model) -> File {
         File::new(
-            file.user_table_id.into(),
-            file.stream_id.into(),
+            UserTablStream::new(file.user_table_id.into(), file.stream_id.into()),
             file.partition_time.into(),
             file.path.clone().into(),
             file.size,
@@ -162,8 +156,7 @@ impl CurrentFileRepository {
     pub async fn insert_many<C>(
         &self,
         conn: &C,
-        user_table_id: &UserTableId,
-        stream_id: &StreamId,
+        stream: &UserTablStream,
         file_ids: &[FileId],
     ) -> Result<(), anyhow::Error>
     where
@@ -171,7 +164,7 @@ impl CurrentFileRepository {
     {
         let saved_files = self
             .file_repository
-            .find_files_by_ids(conn, user_table_id, stream_id, file_ids)
+            .find_files_by_ids(conn, stream, file_ids)
             .await?;
         let saved_files_map: HashMap<_, _> = saved_files.iter().map(|f| (f.id, f)).collect();
 
@@ -183,8 +176,7 @@ impl CurrentFileRepository {
                 };
 
                 Ok(self.new_active_model(
-                    user_table_id,
-                    stream_id,
+                    stream,
                     model.partition_time.into(),
                     file_id,
                     &model.path.clone().into(),
@@ -201,16 +193,15 @@ impl CurrentFileRepository {
 
     fn new_active_model(
         &self,
-        user_table_id: &UserTableId,
-        stream_id: &StreamId,
+        stream: &UserTablStream,
         partition_time: DateTime<Utc>,
         file_id: &FileId,
         file_path: &FilePath,
     ) -> ActiveModel {
         ActiveModel {
             id: Default::default(),
-            user_table_id: Set(user_table_id.val()),
-            stream_id: Set(stream_id.val()),
+            user_table_id: Set(stream.user_table_id.val()),
+            stream_id: Set(stream.stream_id.val()),
             partition_time: Set(partition_time.into()),
             file_id: Set(file_id.val()),
             file_path_xxh3: Set(file_path.to_xxh3_128()),
@@ -223,16 +214,15 @@ impl CurrentFileRepository {
     pub async fn delete_many<C>(
         &self,
         conn: &C,
-        user_table_id: &UserTableId,
-        stream_id: &StreamId,
+        stream: &UserTablStream,
         file_ids: &[FileId],
     ) -> Result<(), anyhow::Error>
     where
         C: ConnectionTrait,
     {
         Entity::delete_many()
-            .filter(Column::UserTableId.eq(user_table_id.val()))
-            .filter(Column::StreamId.eq(stream_id.val()))
+            .filter(Column::UserTableId.eq(stream.user_table_id.val()))
+            .filter(Column::StreamId.eq(stream.stream_id.val()))
             .filter(Column::FileId.is_in(file_ids.iter().map(|v| v.val())))
             .exec(conn)
             .await?;

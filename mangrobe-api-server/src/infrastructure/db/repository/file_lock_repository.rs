@@ -1,6 +1,5 @@
 use crate::domain::model::file_lock_key::FileLockKey;
-use crate::domain::model::stream_id::StreamId;
-use crate::domain::model::user_table_id::UserTableId;
+use crate::domain::model::user_table_stream::UserTablStream;
 use crate::infrastructure::db::entity::file_locks::{ActiveModel, Column, Entity};
 use crate::infrastructure::db::entity::prelude::FileLocks;
 use chrono::{Duration, Utc};
@@ -30,8 +29,7 @@ impl FileLockRepository {
     pub async fn acquire<C>(
         &self,
         conn: &C,
-        user_table_id: &UserTableId,
-        stream_id: &StreamId,
+        stream: &UserTablStream,
         ttl: Duration,
         key: &FileLockKey,
     ) -> Result<bool, anyhow::Error>
@@ -40,8 +38,8 @@ impl FileLockRepository {
     {
         let lock = ActiveModel {
             key: Set(key.key.clone()),
-            user_table_id: Set(user_table_id.val()),
-            stream_id: Set(stream_id.val()),
+            user_table_id: Set(stream.user_table_id.val()),
+            stream_id: Set(stream.stream_id.val()),
             expire_at: Set((Utc::now() + ttl).into()),
             created_at: Default::default(),
             updated_at: Default::default(),

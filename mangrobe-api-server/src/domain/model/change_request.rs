@@ -4,8 +4,7 @@ use crate::domain::model::change_request_file_entry::{
 };
 use crate::domain::model::change_request_id::ChangeRequestId;
 use crate::domain::model::changeset::Changeset;
-use crate::domain::model::stream_id::StreamId;
-use crate::domain::model::user_table_id::UserTableId;
+use crate::domain::model::user_table_stream::UserTablStream;
 use std::cmp::PartialEq;
 use strum_macros::Display;
 
@@ -17,9 +16,7 @@ pub trait ChangeRequestTrait {
 #[derive(Clone)]
 pub struct BaseChangeRequest {
     pub id: ChangeRequestId,
-
-    pub user_table_id: UserTableId,
-    pub stream_id: StreamId,
+    pub stream: UserTablStream,
 
     pub status: ChangeRequestStatus,
 
