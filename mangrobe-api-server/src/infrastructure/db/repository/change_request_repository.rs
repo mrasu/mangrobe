@@ -1,5 +1,5 @@
 use crate::domain::model::change_request::{
-    BaseChangeRequest, ChangeRequest, ChangeRequestStatus, ChangeRequestTrait, ChangeRequestType,
+    ChangeRequest, ChangeRequestStatus, ChangeRequestTrait, ChangeRequestType,
 };
 use crate::domain::model::change_request_file_entry::ChangeRequestFileEntry::{
     AddFiles, ChangeFiles,
@@ -11,9 +11,12 @@ use crate::domain::model::change_request_file_entry::{
 use crate::domain::model::file_id::FileId;
 use crate::domain::model::idempotency_key::IdempotencyKey;
 use crate::domain::model::user_table_stream::UserTablStream;
-use crate::infrastructure::db::entity::change_requests::{ActiveModel, Column, Model};
+use crate::infrastructure::db::entity::change_requests::{Column, Model};
 use crate::infrastructure::db::entity::prelude::ChangeRequests;
 use crate::infrastructure::db::entity_ext::change_request_ext::ChangeRequestExt;
+use crate::infrastructure::db::repository::change_request_dto::{
+    build_domain_change_request, build_entity_change_request,
+};
 use crate::infrastructure::db::repository::change_request_idempotency_key_repository::ChangeRequestIdempotencyKeyRepository;
 use crate::util::error::MangrobeError;
 use anyhow::bail;
@@ -22,7 +25,7 @@ use sea_orm::prelude::Expr;
 use sea_orm::sea_query::LockType;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, ConnectionTrait, DatabaseTransaction, EntityTrait, QueryFilter,
-    QuerySelect, Set,
+    QuerySelect,
 };
 use std::time::Duration;
 
@@ -47,7 +50,7 @@ impl ChangeRequestRepository {
         C: ConnectionTrait,
     {
         let change_request = self.insert(conn, stream, change_type).await?;
-        self.build_domain_change_request(&change_request)
+        build_domain_change_request(&change_request)
     }
 
     pub async fn find_by_idempotency_key_or_create<C>(
@@ -69,7 +72,7 @@ impl ChangeRequestRepository {
                 .find_by_id(conn, existing_key.change_request_id)
                 .await?;
             if let Some(change_request) = change_request {
-                return self.build_domain_change_request(&change_request);
+                return build_domain_change_request(&change_request);
             }
             bail!("invalid state found. idempotency key doesn't belong any change requests");
         }
@@ -86,7 +89,7 @@ impl ChangeRequestRepository {
             )
             .await?;
         if inserted_key.is_some() {
-            return self.build_domain_change_request(&change_request);
+            return build_domain_change_request(&change_request);
         }
 
         let existing_key = self
@@ -101,7 +104,7 @@ impl ChangeRequestRepository {
             .find_by_id(conn, existing_key.change_request_id)
             .await?;
         if let Some(change_request) = change_request {
-            return self.build_domain_change_request(&change_request);
+            return build_domain_change_request(&change_request);
         }
 
         bail!("invalid state found. idempotency key doesn't belong any change requests now")
@@ -128,47 +131,10 @@ impl ChangeRequestRepository {
     where
         C: ConnectionTrait,
     {
-        let change_request = self.build_active_model(stream, change_type);
+        let change_request = build_entity_change_request(stream, change_type);
         let res = change_request.insert(conn).await?;
 
         Ok(res)
-    }
-
-    fn build_active_model(
-        &self,
-        stream: &UserTablStream,
-        change_type: ChangeRequestType,
-    ) -> ActiveModel {
-        ActiveModel {
-            id: Default::default(),
-            stream_id: Set(stream.stream_id.val()),
-            user_table_id: Set(stream.user_table_id.val()),
-            status: Set(ChangeRequestExt::build_model_status(
-                ChangeRequestStatus::New,
-            )),
-            change_type: Set(ChangeRequestExt::build_model_change_type(change_type)),
-            file_entry: Set(None),
-            created_at: Default::default(),
-            updated_at: Default::default(),
-        }
-    }
-
-    fn build_domain_change_request(
-        &self,
-        change_request: &Model,
-    ) -> Result<ChangeRequest, anyhow::Error> {
-        Ok(ChangeRequest {
-            base: BaseChangeRequest {
-                id: change_request.id.into(),
-                stream: UserTablStream::new(
-                    change_request.user_table_id.into(),
-                    change_request.stream_id.into(),
-                ),
-                status: ChangeRequestExt::build_domain_status(change_request)?,
-                change_type: ChangeRequestExt::build_domain_change_type(change_request)?,
-            },
-            file_entry: ChangeRequestExt::build_domain_file_entry(change_request)?,
-        })
     }
 
     pub async fn select_for_update<CR>(
@@ -191,7 +157,7 @@ impl ChangeRequestRepository {
             ));
         };
 
-        self.build_domain_change_request(&selected)
+        build_domain_change_request(&selected)
     }
 
     pub async fn update_status<CR>(

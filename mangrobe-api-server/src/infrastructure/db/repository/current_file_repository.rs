@@ -3,9 +3,13 @@ use crate::domain::model::file::{File, FilePath};
 use crate::domain::model::file_id::FileId;
 use crate::domain::model::file_lock_key::FileLockKey;
 use crate::domain::model::user_table_stream::UserTablStream;
-use crate::infrastructure::db::entity::current_files::{ActiveModel, Column, Entity, Model};
+use crate::infrastructure::db::entity::current_files::{Column, Entity};
 use crate::infrastructure::db::entity::prelude::{CurrentFiles, Files};
-use crate::infrastructure::db::entity::{file_locks, files};
+use crate::infrastructure::db::entity::file_locks;
+use crate::infrastructure::db::repository::current_file_dto::{
+    build_domain_current_file, build_entity_current_file,
+};
+use crate::infrastructure::db::repository::file_dto::build_domain_file;
 use crate::infrastructure::db::repository::file_repository::FileRepository;
 use anyhow::bail;
 use chrono::{DateTime, Utc};
@@ -13,7 +17,7 @@ use sea_orm::prelude::Expr;
 use sea_orm::sea_query::{LockType, Query};
 use sea_orm::{ColumnTrait, QuerySelect, Value};
 use sea_orm::{Condition, QueryFilter};
-use sea_orm::{ConnectionTrait, EntityTrait, Set};
+use sea_orm::{ConnectionTrait, EntityTrait};
 use std::collections::HashMap;
 
 pub struct CurrentFileRepository {
@@ -47,7 +51,7 @@ impl CurrentFileRepository {
             .filter_map(|(current_file, file)| {
                 let Some(file) = file else { return None };
 
-                Some(self.new_file(current_file, file))
+                Some(build_domain_file(file))
             })
             .collect();
 
@@ -101,7 +105,7 @@ impl CurrentFileRepository {
 
         let files: Vec<_> = current_files
             .iter()
-            .map(|current_file| self.new_current_file(current_file))
+            .map(build_domain_current_file)
             .collect();
 
         Ok(files)
@@ -140,19 +144,6 @@ impl CurrentFileRepository {
         Ok(locked_files.rows_affected)
     }
 
-    fn new_file(&self, _current_file: &Model, file: &files::Model) -> File {
-        File::new(
-            UserTablStream::new(file.user_table_id.into(), file.stream_id.into()),
-            file.partition_time.into(),
-            file.path.clone().into(),
-            file.size,
-        )
-    }
-
-    fn new_current_file(&self, current_file: &Model) -> CurrentFile {
-        CurrentFile::new(current_file.file_id.into())
-    }
-
     pub async fn insert_many<C>(
         &self,
         conn: &C,
@@ -175,7 +166,7 @@ impl CurrentFileRepository {
                     bail!("file not found for save");
                 };
 
-                Ok(self.new_active_model(
+                Ok(build_entity_current_file(
                     stream,
                     model.partition_time.into(),
                     file_id,
@@ -189,26 +180,6 @@ impl CurrentFileRepository {
             .await?;
 
         Ok(())
-    }
-
-    fn new_active_model(
-        &self,
-        stream: &UserTablStream,
-        partition_time: DateTime<Utc>,
-        file_id: &FileId,
-        file_path: &FilePath,
-    ) -> ActiveModel {
-        ActiveModel {
-            id: Default::default(),
-            user_table_id: Set(stream.user_table_id.val()),
-            stream_id: Set(stream.stream_id.val()),
-            partition_time: Set(partition_time.into()),
-            file_id: Set(file_id.val()),
-            file_path_xxh3: Set(file_path.to_xxh3_128()),
-            file_lock_key: Set(None),
-            created_at: Default::default(),
-            updated_at: Default::default(),
-        }
     }
 
     pub async fn delete_many<C>(

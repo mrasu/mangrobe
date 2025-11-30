@@ -1,7 +1,13 @@
+mod change_request_dto;
+mod change_request_idempotency_key_dto;
 mod change_request_idempotency_key_repository;
 pub mod change_request_repository;
+mod commit_dto;
 pub mod commit_lock_repository;
 pub mod commit_repository;
+mod current_file_dto;
 pub mod current_file_repository;
+mod file_dto;
+mod file_lock_dto;
 pub mod file_lock_repository;
 pub mod file_repository;

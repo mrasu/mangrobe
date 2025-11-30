@@ -1,9 +1,10 @@
 use crate::domain::model::file_lock_key::FileLockKey;
 use crate::domain::model::user_table_stream::UserTablStream;
-use crate::infrastructure::db::entity::file_locks::{ActiveModel, Column, Entity};
+use crate::infrastructure::db::entity::file_locks::{Column, Entity};
 use crate::infrastructure::db::entity::prelude::FileLocks;
+use crate::infrastructure::db::repository::file_lock_dto::build_entity_file_lock;
 use chrono::{Duration, Utc};
-use sea_orm::{ActiveModelTrait, ColumnTrait, Set, TryInsertResult};
+use sea_orm::{ActiveModelTrait, ColumnTrait, TryInsertResult};
 use sea_orm::{ConnectionTrait, EntityTrait, QueryFilter};
 
 pub struct FileLockRepository {}
@@ -36,14 +37,7 @@ impl FileLockRepository {
     where
         C: ConnectionTrait,
     {
-        let lock = ActiveModel {
-            key: Set(key.key.clone()),
-            user_table_id: Set(stream.user_table_id.val()),
-            stream_id: Set(stream.stream_id.val()),
-            expire_at: Set((Utc::now() + ttl).into()),
-            created_at: Default::default(),
-            updated_at: Default::default(),
-        };
+        let lock = build_entity_file_lock(key, stream, Utc::now() + ttl);
 
         let result = Entity::insert(lock)
             .on_conflict_do_nothing()

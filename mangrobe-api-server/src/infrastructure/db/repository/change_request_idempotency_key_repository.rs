@@ -1,13 +1,14 @@
 use crate::domain::model::change_request_id::ChangeRequestId;
 use crate::domain::model::idempotency_key::IdempotencyKey;
 use crate::infrastructure::db::entity::change_request_idempotency_keys::{
-    ActiveModel, Column, Entity, Model,
+    Column, Entity, Model,
 };
 use crate::infrastructure::db::entity::prelude::ChangeRequestIdempotencyKeys;
+use crate::infrastructure::db::repository::change_request_idempotency_key_dto::build_entity_change_request_idempotency_key;
 use chrono::{DateTime, Utc};
 use sea_orm::QueryFilter;
 use sea_orm::{ColumnTrait, ConnectionTrait};
-use sea_orm::{EntityTrait, Set, TryInsertResult};
+use sea_orm::{EntityTrait, TryInsertResult};
 
 // ChangeRequestIdempotencyKeyRepository is only for other infra repositories. Must not be used from domain.
 pub(super) struct ChangeRequestIdempotencyKeyRepository {}
@@ -33,7 +34,7 @@ impl ChangeRequestIdempotencyKeyRepository {
         Ok(key)
     }
 
-    pub async fn insert_if_no_exists<C>(
+    pub(super) async fn insert_if_no_exists<C>(
         &self,
         conn: &C,
         key: &IdempotencyKey,
@@ -43,13 +44,8 @@ impl ChangeRequestIdempotencyKeyRepository {
     where
         C: ConnectionTrait,
     {
-        let new_idempotency_key = ActiveModel {
-            change_request_id: Set(change_request_id.val()),
-            key: Set(key.vec()),
-            expires_at: Set(expires_at.into()),
-            created_at: Default::default(),
-            updated_at: Default::default(),
-        };
+        let new_idempotency_key =
+            build_entity_change_request_idempotency_key(key, change_request_id, expires_at);
         let result = Entity::insert(new_idempotency_key)
             .on_conflict_do_nothing()
             .exec_with_returning(conn)
