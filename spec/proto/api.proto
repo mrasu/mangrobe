@@ -13,6 +13,7 @@ service DataManipulationService {
 
 service LockControlService {
   rpc AcquireFileLock(AcquireFileLockRequest) returns (AcquireFileLockResponse);
+  rpc ReleaseFileLock(ReleaseFileLockRequest) returns (ReleaseFileLockResponse);
 }
 
 // IdempotencyKey must be unique across all methods
@@ -143,4 +144,12 @@ message AcquireFileLockFileInfoEntry {
 
 message AcquireFileLockResponse {
   repeated File files = 1;
+}
+
+message ReleaseFileLockRequest {
+  FileLockKey file_lock_key = 1;
+}
+
+message ReleaseFileLockResponse {
+  bool deleted = 1;
 }

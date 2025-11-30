@@ -223,5 +223,20 @@ pub async fn smoke_run() -> Result<(), anyhow::Error> {
         .await?;
     println!("change_files! id={:?}", response.get_ref().commit_id);
 
+    let acquire_file_lock_entries = vec![AcquireFileLockEntry {
+        partition_time: Some(DEFAULT_PARTITION_TIME),
+        acquire_file_info_entries: vec![AcquireFileLockFileInfoEntry {
+            path: "a_compact.txt".into(),
+        }],
+    }];
+
+    let lock_key = Uuid::now_v7();
+    let response = api_client
+        .acquire_lock(lock_key, stream_id, acquire_file_lock_entries)
+        .await?;
+    println!("locked acquired! id={:?}", lock_key);
+    let response = api_client.release_lock(lock_key).await?;
+    println!("lock released! id={:?}", lock_key);
+
     Ok(())
 }

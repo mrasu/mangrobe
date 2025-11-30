@@ -94,4 +94,21 @@ impl FileLockService {
 
         Ok(files)
     }
+
+    pub async fn release(&self, file_lock_key: &FileLockKey) -> Result<bool, anyhow::Error> {
+        let txn = self.connection.begin().await?;
+
+        self.current_file_repository
+            .release_lock(&txn, file_lock_key)
+            .await?;
+
+        let deleted = self
+            .file_lock_repository
+            .release(&txn, file_lock_key)
+            .await?;
+
+        txn.commit().await?;
+
+        Ok(deleted)
+    }
 }

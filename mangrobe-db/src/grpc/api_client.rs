@@ -4,7 +4,8 @@ use crate::grpc::proto::{
     AcquireFileLockEntry, AcquireFileLockRequest, AcquireFileLockResponse, AddFileEntry,
     AddFilesRequest, AddFilesResponse, ChangeFileEntry, ChangeFilesRequest, ChangeFilesResponse,
     CompactFileEntry, CompactFilesRequest, CompactFilesResponse, FileLockKey,
-    GetCurrentSnapshotRequest, GetCurrentSnapshotResponse, IdempotencyKey,
+    GetCurrentSnapshotRequest, GetCurrentSnapshotResponse, IdempotencyKey, ReleaseFileLockRequest,
+    ReleaseFileLockResponse,
 };
 use prost_types::Timestamp;
 use tonic::Response;
@@ -120,6 +121,21 @@ impl ApiClient {
 
         self.lock_control_service_client
             .acquire_file_lock(request)
+            .await
+    }
+
+    pub async fn release_lock(
+        &mut self,
+        txn_key: Uuid,
+    ) -> Result<Response<ReleaseFileLockResponse>, tonic::Status> {
+        let request = tonic::Request::new(ReleaseFileLockRequest {
+            file_lock_key: Some(FileLockKey {
+                key: txn_key.into(),
+            }),
+        });
+
+        self.lock_control_service_client
+            .release_file_lock(request)
             .await
     }
 }

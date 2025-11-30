@@ -46,8 +46,7 @@ async fn main() {
                 run_query().await.unwrap();
             }
             ServeCommands::Writer => {
-                // TODO: write more or serve
-                prepare().await.unwrap();
+                todo!();
             }
         },
         SubCommands::Prepare => {
