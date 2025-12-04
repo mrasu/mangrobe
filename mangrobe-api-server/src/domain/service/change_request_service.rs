@@ -1,11 +1,14 @@
 use crate::domain::model::change_request::{
     BaseChangeRequest, ChangeRequest, ChangeRequestForAdd, ChangeRequestForChange,
-    ChangeRequestForCompact, ChangeRequestStatus, ChangeRequestType,
+    ChangeRequestForCompact, ChangeRequestStatus, ChangeRequestTrait, ChangeRequestType,
 };
-use crate::domain::model::change_request_file_entry::ChangeRequestCompactFileEntry;
 use crate::domain::model::change_request_file_entry::ChangeRequestFileEntry::{
     AddFiles, ChangeFiles, Compact,
 };
+use crate::domain::model::change_request_file_entry::{
+    ChangeRequestCompactFileEntry, ChangeRequestFileEntry,
+};
+use crate::domain::model::change_request_id::ChangeRequestId;
 use crate::domain::model::change_request_raw_file_entry::{
     ChangeRequestRawAddFileEntry, ChangeRequestRawChangeFilesEntry,
     ChangeRequestRawCompactFilesEntry,
@@ -27,7 +30,7 @@ use crate::util::error::MangrobeError::UnexpectedState;
 use crate::util::error::{MangrobeError, UserError};
 use anyhow::bail;
 use sea_orm::sqlx::types::chrono::{DateTime, Utc};
-use sea_orm::{DatabaseConnection, DatabaseTransaction, TransactionTrait};
+use sea_orm::{ConnectionTrait, DatabaseConnection, DatabaseTransaction, TransactionTrait};
 
 pub struct ChangeRequestService {
     connection: DatabaseConnection,
@@ -85,18 +88,14 @@ impl ChangeRequestService {
     ) -> Result<ChangeRequestForAdd, anyhow::Error> {
         let txn = self.connection.begin().await?;
 
-        // TODO: make ChangeRequest state machine
-        let change_request = self
-            .change_request_repository
-            .select_for_update(&txn, change_request)
-            .await?;
-        let status = &change_request.base.status;
-        if status.is_completed(ChangeRequestStatus::ChangeInserted) {
-            let Some(ref entry) = change_request.file_entry else {
-                bail!(UnexpectedState(
-                    "no entry is saved for the change_request".into()
-                ));
-            };
+        if let Some(entry) = self
+            .select_entry_of_change_request_for_update(
+                &txn,
+                change_request,
+                ChangeRequestStatus::ChangeInserted,
+            )
+            .await?
+        {
             match entry {
                 AddFiles { add_files } => {
                     return Ok(ChangeRequestForAdd::new(
@@ -108,11 +107,6 @@ impl ChangeRequestService {
                     "not AddFile entry is saved for the changed_request".into()
                 )),
             }
-        } else if !status.can_progress_to(ChangeRequestStatus::ChangeInserted) {
-            bail!(MangrobeError::UnexpectedStateChange(
-                status.to_string(),
-                ChangeRequestStatus::ChangeInserted.to_string(),
-            ));
         }
 
         let mut file_ids = vec![];
@@ -129,7 +123,7 @@ impl ChangeRequestService {
         }
 
         let mut add_request = self
-            .update_file_entry_as_add(&txn, change_request, &file_ids)
+            .update_file_entry_as_add(&txn, change_request.clone(), &file_ids)
             .await?;
 
         self.change_request_repository
@@ -163,18 +157,14 @@ impl ChangeRequestService {
     ) -> Result<ChangeRequestForChange, anyhow::Error> {
         let txn = self.connection.begin().await?;
 
-        // TODO: make ChangeRequest state machine
-        let change_request = self
-            .change_request_repository
-            .select_for_update(&txn, change_request)
-            .await?;
-        let status = change_request.base.status;
-        if status.is_completed(ChangeRequestStatus::ChangeInserted) {
-            let Some(ref entry) = change_request.file_entry else {
-                bail!(UnexpectedState(
-                    "no entry is saved for the change_request".into()
-                ));
-            };
+        if let Some(entry) = self
+            .select_entry_of_change_request_for_update(
+                &txn,
+                change_request,
+                ChangeRequestStatus::ChangeInserted,
+            )
+            .await?
+        {
             match entry {
                 ChangeFiles { change_files } => {
                     return Ok(ChangeRequestForChange::new(
@@ -186,11 +176,6 @@ impl ChangeRequestService {
                     "not ChangeFile entry is saved for the changed_request".into()
                 )),
             }
-        } else if !status.can_progress_to(ChangeRequestStatus::ChangeInserted) {
-            bail!(MangrobeError::UnexpectedStateChange(
-                status.to_string(),
-                ChangeRequestStatus::ChangeInserted.to_string(),
-            ));
         }
 
         let mut file_ids_to_delete = vec![];
@@ -207,7 +192,7 @@ impl ChangeRequestService {
         }
 
         let mut change_request = self
-            .update_file_entry_as_change(&txn, change_request, &file_ids_to_delete)
+            .update_file_entry_as_change(&txn, change_request.clone(), &file_ids_to_delete)
             .await?;
 
         self.change_request_repository
@@ -265,18 +250,14 @@ impl ChangeRequestService {
     ) -> Result<ChangeRequestForCompact, anyhow::Error> {
         let txn = self.connection.begin().await?;
 
-        // TODO: make ChangeRequest state machine
-        let change_request = self
-            .change_request_repository
-            .select_for_update(&txn, change_request)
-            .await?;
-        let status = change_request.base.status;
-        if status.is_completed(ChangeRequestStatus::ChangeInserted) {
-            let Some(ref entry) = change_request.file_entry else {
-                bail!(UnexpectedState(
-                    "no entry is saved for the change_request".into()
-                ));
-            };
+        if let Some(entry) = self
+            .select_entry_of_change_request_for_update(
+                &txn,
+                change_request,
+                ChangeRequestStatus::ChangeInserted,
+            )
+            .await?
+        {
             match entry {
                 Compact { compact } => {
                     return Ok(ChangeRequestForCompact::new(
@@ -288,11 +269,6 @@ impl ChangeRequestService {
                     "not ChangeFile entry is saved for the changed_request".into()
                 )),
             }
-        } else if !status.can_progress_to(ChangeRequestStatus::ChangeInserted) {
-            bail!(MangrobeError::UnexpectedStateChange(
-                status.to_string(),
-                ChangeRequestStatus::ChangeInserted.to_string(),
-            ));
         }
 
         let mut compact_entries = vec![];
@@ -324,7 +300,7 @@ impl ChangeRequestService {
         }
 
         let mut compaction_request = self
-            .update_file_entry_as_compaction(&txn, change_request, &compact_entries)
+            .update_file_entry_as_compaction(&txn, change_request.clone(), &compact_entries)
             .await?;
 
         self.change_request_repository
@@ -338,6 +314,37 @@ impl ChangeRequestService {
         txn.commit().await?;
 
         Ok(compaction_request)
+    }
+
+    async fn select_entry_of_change_request_for_update<CR>(
+        &self,
+        txn: &DatabaseTransaction,
+        change_request: &CR,
+        next_status: ChangeRequestStatus,
+    ) -> Result<Option<ChangeRequestFileEntry>, anyhow::Error>
+    where
+        CR: ChangeRequestTrait,
+    {
+        let change_request = self
+            .change_request_repository
+            .select_for_update(txn, change_request)
+            .await?;
+        let status = change_request.base.status;
+        if status.is_completed(next_status) {
+            let Some(entry) = change_request.file_entry else {
+                bail!(UnexpectedState(
+                    "no entry is saved for the change_request".into()
+                ));
+            };
+            return Ok(Some(entry));
+        } else if !status.can_progress_to(next_status) {
+            bail!(MangrobeError::UnexpectedStateChange(
+                status.to_string(),
+                next_status.to_string(),
+            ));
+        }
+
+        Ok(None)
     }
 
     async fn insert_file(
@@ -468,7 +475,7 @@ impl ChangeRequestService {
         }
 
         let commit_id = self
-            .commit_changeset(&txn, file_lock_key, &base_change_request, changeset)
+            .commit_changeset(&txn, file_lock_key, base_change_request, changeset)
             .await?;
 
         self.change_request_repository
