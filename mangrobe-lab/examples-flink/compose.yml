@@ -2,7 +2,7 @@ services:
   jobmanager:
     build:
       context: ../..
-      dockerfile: mangrobe-db/examples-flink/Dockerfile
+      dockerfile: mangrobe-lab/examples-flink/Dockerfile
     ports:
       - "8081:8081"
     command: standalone-job --job-classname mangrobelabs.prometheus.Main --jars /opt/flink/usrlib/examples-flink-0.1.jar
@@ -20,7 +20,7 @@ services:
   taskmanager:
     build:
       context: ../..
-      dockerfile: mangrobe-db/examples-flink/Dockerfile
+      dockerfile: mangrobe-lab/examples-flink/Dockerfile
     depends_on:
       - jobmanager
     command: taskmanager

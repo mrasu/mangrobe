@@ -11,17 +11,17 @@
     ```
 3. Run Prometheus receiver
     ```shell
-    cd mangrobe-db
+    cd mangrobe-lab
     cargo run -- serve writer
     ```
 4. Run Prometheus
     ```shell
-    cd mangrobe-db/examples
+    cd mangrobe-lab/examples
     docker compose up
     ```
 5. Run Flink
     ```shell
-    cd mangrobe-db/examples-flink
+    cd mangrobe-lab/examples-flink
     docker compose up --build
     ```
 
