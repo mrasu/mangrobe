@@ -1,5 +1,3 @@
-use crate::grpc::api_client::ApiClient;
-use crate::prepare::{STREAM_ID, TABLE_ID};
 use async_trait::async_trait;
 use datafusion::arrow::datatypes::{DataType, Field, Schema, SchemaRef};
 use datafusion::catalog::Session;
@@ -12,6 +10,7 @@ use datafusion::datasource::{TableProvider, TableType};
 use datafusion::error::DataFusionError;
 use datafusion::logical_expr::Expr;
 use datafusion::physical_plan::ExecutionPlan;
+use mangrobe_lab::{ApiClient, Stream};
 use std::any::Any;
 use std::sync::Arc;
 use vortex::VortexSessionDefault;
@@ -23,6 +22,7 @@ pub struct VortexProvider {
     api_client: ApiClient,
     object_store_url: ObjectStoreUrl,
     format: VortexFormat,
+    stream: Stream,
 }
 
 #[async_trait]
@@ -52,7 +52,7 @@ impl TableProvider for VortexProvider {
     ) -> Result<Arc<dyn ExecutionPlan>> {
         let response = self
             .api_client
-            .fetch_current_state(TABLE_ID, STREAM_ID)
+            .fetch_current_state(self.stream.table_id, self.stream.stream_id)
             .await
             .map_err(|e| DataFusionError::External(e.into()))?;
         let files: Vec<_> = response
@@ -74,12 +74,17 @@ impl TableProvider for VortexProvider {
 }
 
 impl VortexProvider {
-    pub(crate) fn new(api_client: ApiClient, object_store_url: &ObjectStoreUrl) -> Result<Self> {
+    pub(crate) fn new(
+        api_client: ApiClient,
+        object_store_url: &ObjectStoreUrl,
+        stream: Stream,
+    ) -> Result<Self> {
         let format = VortexFormat::new(VortexSession::default());
         Ok(Self {
             api_client,
             object_store_url: object_store_url.clone(),
             format,
+            stream,
         })
     }
 }

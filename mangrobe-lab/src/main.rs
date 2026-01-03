@@ -84,7 +84,7 @@ async fn handle_remote_write(req: Request<Body>) -> Result<Response<Body>, anyho
         return Ok(resp);
     }
 
-    let rustfs = create_rustfs()?;
+    let rustfs = create_rustfs("mangrobe-development".into())?;
 
     let conn = tonic::transport::Endpoint::new("http://[::1]:50051")?
         .connect()

@@ -26,6 +26,8 @@ prost-types = "0.14.1"
 anyhow = "1.0.100"
 arrow-schema = "56.2.0"
 parquet = "56.2.0"
+aws-config = "1.8.12"
+aws-sdk-s3 = "1.119.0"
 
 [build-dependencies]
 tonic-prost-build = "*"
