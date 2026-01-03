@@ -11,20 +11,25 @@
     make migrate/fresh
     MANGROBE_API_ADDR=[::]:50051 cargo run
     ```
-3. Run Prometheus receiver
+3. Run Object Storage(RustFS)
     ```shell
     cd mangrobe-lab
-    cargo run -- serve writer
-    ```
-4. Run Prometheus
-    ```shell
-    cd mangrobe-lab/examples
     docker compose up
     ```
-5. Run Flink
+4. Run Prometheus receiver
     ```shell
-    cd mangrobe-lab/examples-flink
-    docker compose up --build
+    cd mangrobe-lab
+    cargo run --example prometheus-flink
+    ```
+5. Run Prometheus
+    ```shell
+    cd mangrobe-lab/examples/prometheus-flink
+    docker compose --profile prometheus up
+    ```
+6. Run Flink
+    ```shell
+    cd mangrobe-lab/examples/prometheus-flink
+    docker compose --profile flink up --build
     ```
 
 Then, you will see Flink outputs text like: 

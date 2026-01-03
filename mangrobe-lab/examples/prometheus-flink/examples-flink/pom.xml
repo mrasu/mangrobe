@@ -238,7 +238,7 @@ under the License.
 				<configuration>
 					<protoc>${protobuf.version}</protoc>
 					<sourceDirectories>
-						<sourceDirectory>../../spec/proto/</sourceDirectory>
+						<sourceDirectory>../../../../spec/proto/</sourceDirectory>
 					</sourceDirectories>
 					<binaryMavenPlugins>
 						<binaryMavenPlugin>

@@ -1,18 +1,16 @@
-use crate::prometheus::proto::WriteRequest;
 use arrow_array::RecordBatch;
 use arrow_array::array::ArrayRef as ArrowArrayRef;
 use arrow_array::builder::{
     ArrayBuilder, Float64Builder, Int64Builder, ListBuilder, StringBuilder, StructBuilder,
 };
 use arrow_schema::{DataType, Field, Fields};
+use mangrobe_lab::prometheus_proto;
+use mangrobe_lab::prometheus_proto::WriteRequest;
 use parquet::arrow::ArrowWriter;
 use parquet::file::properties::WriterProperties;
 use serde::Serialize;
 use std::io::Cursor;
 use std::sync::Arc;
-
-pub const PROM_TABLE_ID: i64 = 901;
-pub const PROM_STREAM_ID: i64 = 1;
 
 #[derive(Serialize)]
 pub struct WriteRequestView {
@@ -45,8 +43,8 @@ impl From<&WriteRequest> for WriteRequestView {
     }
 }
 
-impl From<&crate::prometheus::proto::TimeSeries> for TimeSeriesView {
-    fn from(ts: &crate::prometheus::proto::TimeSeries) -> Self {
+impl From<&prometheus_proto::TimeSeries> for TimeSeriesView {
+    fn from(ts: &prometheus_proto::TimeSeries) -> Self {
         Self {
             labels: ts.labels.iter().map(LabelView::from).collect(),
             samples: ts.samples.iter().map(SampleView::from).collect(),
@@ -54,8 +52,8 @@ impl From<&crate::prometheus::proto::TimeSeries> for TimeSeriesView {
     }
 }
 
-impl From<&crate::prometheus::proto::Label> for LabelView {
-    fn from(label: &crate::prometheus::proto::Label) -> Self {
+impl From<&prometheus_proto::Label> for LabelView {
+    fn from(label: &prometheus_proto::Label) -> Self {
         Self {
             name: label.name.clone(),
             value: label.value.clone(),
@@ -63,8 +61,8 @@ impl From<&crate::prometheus::proto::Label> for LabelView {
     }
 }
 
-impl From<&crate::prometheus::proto::Sample> for SampleView {
-    fn from(sample: &crate::prometheus::proto::Sample) -> Self {
+impl From<&prometheus_proto::Sample> for SampleView {
+    fn from(sample: &prometheus_proto::Sample) -> Self {
         Self {
             value: sample.value,
             timestamp: sample.timestamp,

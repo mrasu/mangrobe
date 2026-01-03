@@ -52,7 +52,7 @@ public class MangrobeSplitReader implements SplitReader<MangrobeRecord, Mangrobe
             if (records.isEmpty()) {
                 state.pollNextMillis = now + NO_COMMIT_SLEEP_INTERVAL;
                 sleepCount++;
-                if (sleepCount > 1) {
+                if (sleepCount > 2) {
                     System.out.println("no change found. sleeping...");
                     sleepCount = 0;
                 }

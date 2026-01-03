@@ -1,10 +1,10 @@
-use crate::DEFAULT_PARTITION_TIME;
-use crate::grpc::api_client::ApiClient;
-use crate::grpc::proto::{AddFileEntry, AddFileInfoEntry};
-use crate::prometheus::proto::WriteRequest;
-use crate::prometheus::vortex::{PROM_STREAM_ID, PROM_TABLE_ID, create_parquet_from_write_request};
+use crate::prometheus::model::create_parquet_from_write_request;
+use crate::{DEFAULT_PARTITION_TIME, PROM_STREAM_ID, PROM_TABLE_ID};
 use hyper::body::to_bytes;
 use hyper::{Body, Request, Response, StatusCode};
+use mangrobe_lab::ApiClient;
+use mangrobe_lab::prometheus_proto::WriteRequest;
+use mangrobe_lab::proto::{AddFileEntry, AddFileInfoEntry};
 use object_store::aws::AmazonS3;
 use object_store::path::Path;
 use object_store::{ObjectStore, PutPayload};
