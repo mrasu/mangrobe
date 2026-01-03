@@ -1,0 +1,37 @@
+services:
+  jobmanager:
+    build:
+      context: ../..
+      dockerfile: mangrobe-db/examples-flink/Dockerfile
+    ports:
+      - "8081:8081"
+    command: standalone-job --job-classname mangrobelabs.prometheus.Main --jars /opt/flink/usrlib/examples-flink-0.1.jar
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        parallelism.default: 2
+        JDK_JAVA_OPTIONS=--add-opens\=java.base/java.nio\=org.apache.arrow.memory.core,ALL-UNNAMED
+      - MANGROBE_API_ADDR=dns:///host.docker.internal:50051
+      - MANGROBE_S3_ADDR=http://host.docker.internal:9000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  taskmanager:
+    build:
+      context: ../..
+      dockerfile: mangrobe-db/examples-flink/Dockerfile
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 2
+        parallelism.default: 2
+        JDK_JAVA_OPTIONS=--add-opens\=java.base/java.nio\=org.apache.arrow.memory.core,ALL-UNNAMED
+      - MANGROBE_API_ADDR=dns:///host.docker.internal:50051
+      - MANGROBE_S3_ADDR=http://host.docker.internal:9000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

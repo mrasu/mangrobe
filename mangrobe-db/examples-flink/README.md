@@ -1,0 +1,35 @@
+# How to run
+
+1. Run Docker Compose for api-server
+    ```shell
+    docker compose up
+    ```
+2. Run api server
+    ```shell
+    cd mangrobe-api-server
+    MANGROBE_API_ADDR=[::]:50051 cargo run
+    ```
+3. Run Prometheus receiver
+    ```shell
+    cd mangrobe-db
+    cargo run -- serve writer
+    ```
+4. Run Prometheus
+    ```shell
+    cd mangrobe-db/examples
+    docker compose up
+    ```
+5. Run Flink
+    ```shell
+    cd mangrobe-db/examples-flink
+    docker compose up --build
+    ```
+
+Then, you will see Flink outputs text like: 
+```
+taskmanager-1  | [Mangrobe] Flink recognized Prometheus data: samples=[0.0], labels=[__name__=prometheus_remote_storage_samples_in_total,instance=prometheus:9090,job=prometheus]
+taskmanager-1  | [Mangrobe] Flink recognized Prometheus data: samples=[46.0], labels=[__name__=prometheus_tsdb_wal_segment_current,instance=prometheus:9090,job=prometheus]
+taskmanager-1  | [Mangrobe] Flink recognized Prometheus data: samples=[360448.0], labels=[__name__=prometheus_tsdb_wal_storage_size_bytes,instance=prometheus:9090,job=prometheus]
+taskmanager-1  | [Mangrobe] Flink recognized Prometheus data: samples=[0.00570134], labels=[__name__=scrape_duration_seconds,instance=prometheus:9090,job=prometheus]
+...
+```
