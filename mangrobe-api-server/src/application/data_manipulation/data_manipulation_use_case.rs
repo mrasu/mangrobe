@@ -2,7 +2,7 @@ use crate::application::data_manipulation::add_files_param::AddFilesParam;
 use crate::application::data_manipulation::change_files_param::ChangeFilesParam;
 use crate::application::data_manipulation::compact_files_param::CompactFilesParam;
 use crate::application::data_manipulation::get_changes_param::GetChangesParam;
-use crate::application::data_manipulation::get_current_snapshot_param::GetCurrentSnapshotParam;
+use crate::application::data_manipulation::get_current_state_param::GetCurrentStateParam;
 use crate::domain::model::change_request::ChangeRequestType;
 use crate::domain::model::commit_id::CommitId;
 use crate::domain::model::committed_change_request::CommittedStreamChange;
@@ -33,9 +33,9 @@ impl DataManipulationUseCase {
         }
     }
 
-    pub async fn get_current_snapshot(
+    pub async fn get_current_state(
         &self,
-        param: GetCurrentSnapshotParam,
+        param: GetCurrentStateParam,
     ) -> Result<Snapshot, anyhow::Error> {
         self.snapshot_service.get_current(&param.stream).await
     }

@@ -4,7 +4,7 @@ use crate::grpc::proto::{
     AcquireFileLockEntry, AcquireFileLockRequest, AcquireFileLockResponse, AddFileEntry,
     AddFilesRequest, AddFilesResponse, ChangeFileEntry, ChangeFilesRequest, ChangeFilesResponse,
     CompactFileEntry, CompactFilesRequest, CompactFilesResponse, FileLockKey,
-    GetCurrentSnapshotRequest, GetCurrentSnapshotResponse, IdempotencyKey, ReleaseFileLockRequest,
+    GetCurrentStateRequest, GetCurrentStateResponse, IdempotencyKey, ReleaseFileLockRequest,
     ReleaseFileLockResponse,
 };
 use tonic::Response;
@@ -19,28 +19,28 @@ pub struct ApiClient {
 
 impl ApiClient {
     pub fn new(channel: Channel) -> Self {
-        let snapshot_service_client = DataManipulationServiceClient::new(channel.clone());
-        let lock_service_client = LockControlServiceClient::new(channel.clone());
+        let data_manipulation_service_client = DataManipulationServiceClient::new(channel.clone());
+        let lock_control_service_client = LockControlServiceClient::new(channel.clone());
 
         Self {
-            data_manipulation_service_client: snapshot_service_client,
-            lock_control_service_client: lock_service_client,
+            data_manipulation_service_client,
+            lock_control_service_client,
         }
     }
 
-    pub async fn fetch_snapshot(
+    pub async fn fetch_current_state(
         &self,
         table_id: i64,
         stream_id: i64,
-    ) -> Result<Response<GetCurrentSnapshotResponse>, tonic::Status> {
-        let request = tonic::Request::new(GetCurrentSnapshotRequest {
+    ) -> Result<Response<GetCurrentStateResponse>, tonic::Status> {
+        let request = tonic::Request::new(GetCurrentStateRequest {
             table_id,
             stream_id,
         });
 
         self.data_manipulation_service_client
             .clone()
-            .get_current_snapshot(request)
+            .get_current_state(request)
             .await
     }
 

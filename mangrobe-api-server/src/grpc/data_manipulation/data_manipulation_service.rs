@@ -4,11 +4,11 @@ use crate::grpc::data_manipulation::change_files_param::build_change_file_param;
 use crate::grpc::data_manipulation::compact_files_param::build_compact_files_param;
 use crate::grpc::data_manipulation::get_changes_param::build_get_commits_param;
 use crate::grpc::data_manipulation::get_changes_response::build_get_commits_response;
-use crate::grpc::data_manipulation::get_current_snapshot_param::build_get_current_snapshot_param;
+use crate::grpc::data_manipulation::get_current_state_param::build_get_current_state_param;
 use crate::grpc::proto::{
     AddFilesRequest, AddFilesResponse, ChangeFilesRequest, ChangeFilesResponse,
     CompactFilesRequest, CompactFilesResponse, File, GetCommitsRequest, GetCommitsResponse,
-    GetCurrentSnapshotRequest, GetCurrentSnapshotResponse, data_manipulation_service_server,
+    GetCurrentStateRequest, GetCurrentStateResponse, data_manipulation_service_server,
 };
 use crate::grpc::util::error::{build_invalid_argument, to_grpc_error};
 use chrono::Utc;
@@ -23,28 +23,28 @@ pub struct DataManipulationService {
 
 impl DataManipulationService {
     pub fn new(db: &DatabaseConnection) -> Self {
-        let snapshot_use_case = DataManipulationUseCase::new(db.clone());
+        let data_manipulation_use_case = DataManipulationUseCase::new(db.clone());
         Self {
-            data_manipulation_use_case: snapshot_use_case,
+            data_manipulation_use_case,
         }
     }
 }
 
 #[tonic::async_trait]
 impl data_manipulation_service_server::DataManipulationService for DataManipulationService {
-    async fn get_current_snapshot(
+    async fn get_current_state(
         &self,
-        request: Request<GetCurrentSnapshotRequest>,
-    ) -> Result<Response<GetCurrentSnapshotResponse>, Status> {
-        let param = build_get_current_snapshot_param(request).map_err(build_invalid_argument)?;
+        request: Request<GetCurrentStateRequest>,
+    ) -> Result<Response<GetCurrentStateResponse>, Status> {
+        let param = build_get_current_state_param(request).map_err(build_invalid_argument)?;
 
         let snapshot = self
             .data_manipulation_use_case
-            .get_current_snapshot(param)
+            .get_current_state(param)
             .await
             .map_err(to_grpc_error)?;
 
-        let response = GetCurrentSnapshotResponse {
+        let response = GetCurrentStateResponse {
             commit_id: snapshot
                 .commit_id
                 .map_or_else(|| None, |v| Some(v.to_string())),

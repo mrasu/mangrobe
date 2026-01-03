@@ -76,7 +76,7 @@ impl TableProvider for Provider {
     ) -> datafusion::common::Result<Arc<dyn ExecutionPlan>> {
         let response = self
             .api_client
-            .fetch_snapshot(PROM_TABLE_ID, PROM_STREAM_ID)
+            .fetch_current_state(PROM_TABLE_ID, PROM_STREAM_ID)
             .await
             .map_err(|e| DataFusionError::External(e.into()))?;
         let files: Vec<_> = response

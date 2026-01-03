@@ -4,7 +4,7 @@ package mangrobe.api;
 import "google/protobuf/timestamp.proto";
 
 service DataManipulationService {
-  rpc GetCurrentSnapshot(GetCurrentSnapshotRequest) returns (GetCurrentSnapshotResponse);
+  rpc GetCurrentState(GetCurrentStateRequest) returns (GetCurrentStateResponse);
   rpc GetCommits(GetCommitsRequest) returns (GetCommitsResponse);
 
   rpc AddFiles(AddFilesRequest) returns (AddFilesResponse);
@@ -33,12 +33,12 @@ message FileLockKey {
   bytes key = 1;
 }
 
-message GetCurrentSnapshotRequest {
+message GetCurrentStateRequest {
   int64 table_id = 1;
   int64 stream_id = 2;
 }
 
-message GetCurrentSnapshotResponse {
+message GetCurrentStateResponse {
   optional string commit_id = 1;
 
   repeated File files = 2;

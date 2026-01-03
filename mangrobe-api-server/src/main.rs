@@ -47,12 +47,14 @@ async fn main() -> Result<(), anyhow::Error> {
 async fn run_api_server(addr: SocketAddr, db: &DatabaseConnection) -> Result<(), anyhow::Error> {
     println!("Starting Mangrobe API Server at {}...", addr);
 
-    let snapshot_service = DataManipulationService::new(db);
+    let data_manipulation_service = DataManipulationService::new(db);
     let lock_control_service = LockControlService::new(db);
     let information_schema_service = InformationSchemaService::new(db);
 
     Server::builder()
-        .add_service(DataManipulationServiceServer::new(snapshot_service))
+        .add_service(DataManipulationServiceServer::new(
+            data_manipulation_service,
+        ))
         .add_service(LockControlServiceServer::new(lock_control_service))
         .add_service(InformationSchemaServiceServer::new(
             information_schema_service,
