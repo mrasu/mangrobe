@@ -1,15 +1,14 @@
 use crate::grpc::api_client::ApiClient;
-use crate::prepare::{STREAM_ID, TABLE_ID};
+use crate::prometheus::vortex::{PROM_STREAM_ID, PROM_TABLE_ID};
+use arrow_schema::{DataType, Field, Fields, Schema, SchemaRef};
 use async_trait::async_trait;
-use datafusion::arrow::datatypes::{DataType, Field, Schema, SchemaRef};
-use datafusion::catalog::Session;
-use datafusion::common::Result;
+use datafusion::catalog::{Session, TableProvider};
+use datafusion::common::DataFusionError;
+use datafusion::datasource::TableType;
 use datafusion::datasource::file_format::FileFormat;
 use datafusion::datasource::listing::PartitionedFile;
 use datafusion::datasource::object_store::ObjectStoreUrl;
 use datafusion::datasource::physical_plan::{FileGroup, FileScanConfigBuilder};
-use datafusion::datasource::{TableProvider, TableType};
-use datafusion::error::DataFusionError;
 use datafusion::logical_expr::Expr;
 use datafusion::physical_plan::ExecutionPlan;
 use std::any::Any;
@@ -19,24 +18,49 @@ use vortex::session::VortexSession;
 use vortex_datafusion::VortexFormat;
 
 #[derive(Debug)]
-pub struct VortexProvider {
+pub struct Provider {
     api_client: ApiClient,
     object_store_url: ObjectStoreUrl,
     format: VortexFormat,
 }
 
 #[async_trait]
-impl TableProvider for VortexProvider {
+impl TableProvider for Provider {
     fn as_any(&self) -> &dyn Any {
         self
     }
 
     fn schema(&self) -> SchemaRef {
-        SchemaRef::new(Schema::new(vec![
-            Field::new("id", DataType::Int32, false),
-            Field::new("code", DataType::Int32, false),
-            Field::new("name", DataType::Utf8, false),
-        ]))
+        SchemaRef::new(Schema::new(vec![Field::new(
+            "timeseries",
+            DataType::Struct(Fields::from(vec![
+                Field::new(
+                    "labels",
+                    DataType::List(Arc::new(Field::new(
+                        "item",
+                        DataType::Struct(Fields::from(vec![
+                            Field::new("name", DataType::Utf8, true),
+                            Field::new("value", DataType::Utf8, true),
+                        ])),
+                        true,
+                    ))),
+                    true,
+                ),
+                Field::new(
+                    "samples",
+                    DataType::List(Arc::new(Field::new(
+                        "item",
+                        DataType::Struct(Fields::from(vec![
+                            Field::new("value", DataType::Float64, true),
+                            Field::new("timestamp", DataType::Int64, true),
+                        ])),
+                        true,
+                    ))),
+                    true,
+                ),
+            ])),
+            true,
+        )]))
     }
 
     fn table_type(&self) -> TableType {
@@ -49,10 +73,10 @@ impl TableProvider for VortexProvider {
         _projection: Option<&Vec<usize>>,
         _filters: &[Expr],
         _limit: Option<usize>,
-    ) -> Result<Arc<dyn ExecutionPlan>> {
+    ) -> datafusion::common::Result<Arc<dyn ExecutionPlan>> {
         let response = self
             .api_client
-            .fetch_snapshot(TABLE_ID, STREAM_ID)
+            .fetch_snapshot(PROM_TABLE_ID, PROM_STREAM_ID)
             .await
             .map_err(|e| DataFusionError::External(e.into()))?;
         let files: Vec<_> = response
@@ -73,8 +97,11 @@ impl TableProvider for VortexProvider {
     }
 }
 
-impl VortexProvider {
-    pub(crate) fn new(api_client: ApiClient, object_store_url: &ObjectStoreUrl) -> Result<Self> {
+impl Provider {
+    pub(crate) fn new(
+        api_client: ApiClient,
+        object_store_url: &ObjectStoreUrl,
+    ) -> datafusion::common::Result<Self> {
         let format = VortexFormat::new(VortexSession::default());
         Ok(Self {
             api_client,

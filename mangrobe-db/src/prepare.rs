@@ -18,10 +18,12 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tempfile::TempDir;
 use uuid::Uuid;
+use vortex::VortexSessionDefault;
 use vortex::arrays::ChunkedArray;
 use vortex::dtype::DType;
 use vortex::dtype::arrow::FromArrowType;
 use vortex::file::VortexWriteOptions;
+use vortex::session::VortexSession;
 use vortex_array::arrow::FromArrowArray;
 use vortex_array::{ArrayRef, IntoArray};
 
@@ -29,6 +31,9 @@ const DEFAULT_PARTITION_TIME: Timestamp = Timestamp {
     seconds: 0,
     nanos: 0,
 };
+
+pub const TABLE_ID: i64 = 0;
+pub const STREAM_ID: i64 = 0;
 
 pub async fn prepare() -> Result<(), anyhow::Error> {
     let temp_dir = tempfile::tempdir()?;
@@ -59,7 +64,9 @@ pub async fn prepare() -> Result<(), anyhow::Error> {
         .connect()
         .await?;
     let api_client = ApiClient::new(conn);
-    let response = api_client.add_files(0, vec![add_file_entry]).await?;
+    let response = api_client
+        .add_files(TABLE_ID, STREAM_ID, vec![add_file_entry])
+        .await?;
 
     println!("success! id={:?}", response.get_ref().commit_id);
     Ok(())
@@ -102,7 +109,7 @@ async fn create_vortex(filename: PathBuf, start: i32, end: i32) -> Result<(), an
     let vortex_array = ChunkedArray::try_new(chunks, dtype)?.into_array();
 
     // Write a Vortex file with the default compression and layout strategy.
-    VortexWriteOptions::default()
+    VortexWriteOptions::new(VortexSession::default())
         .write(
             &mut tokio::fs::File::create(filename).await?,
             vortex_array.to_array_stream(),
@@ -153,7 +160,9 @@ pub async fn smoke_run() -> Result<(), anyhow::Error> {
             }],
         },
     ];
-    let response = api_client.add_files(stream_id, file_add_entries).await?;
+    let response = api_client
+        .add_files(TABLE_ID, stream_id, file_add_entries)
+        .await?;
     println!("add_files! id={:?}", response.get_ref().commit_id);
 
     let lock_key = Uuid::now_v7();
@@ -169,7 +178,7 @@ pub async fn smoke_run() -> Result<(), anyhow::Error> {
         ],
     }];
     let response = api_client
-        .acquire_lock(lock_key, stream_id, acquire_file_lock_entries)
+        .acquire_lock(lock_key, TABLE_ID, stream_id, acquire_file_lock_entries)
         .await?;
     println!(
         "locked! locked_file_count={:?}",
@@ -194,7 +203,7 @@ pub async fn smoke_run() -> Result<(), anyhow::Error> {
         }],
     }];
     let response = api_client
-        .compact_files(lock_key, stream_id, compact_file_entries)
+        .compact_files(lock_key, TABLE_ID, stream_id, compact_file_entries)
         .await?;
     println!("compacted! id={:?}", response.get_ref().commit_id);
 
@@ -206,7 +215,7 @@ pub async fn smoke_run() -> Result<(), anyhow::Error> {
         }],
     }];
     let response = api_client
-        .acquire_lock(lock_key, stream_id, acquire_file_lock_entries)
+        .acquire_lock(lock_key, TABLE_ID, stream_id, acquire_file_lock_entries)
         .await?;
     println!(
         "locked! locked_file_count={:?}",
@@ -219,7 +228,7 @@ pub async fn smoke_run() -> Result<(), anyhow::Error> {
         }],
     }];
     let response = api_client
-        .change_files(lock_key, stream_id, change_file_entries)
+        .change_files(lock_key, TABLE_ID, stream_id, change_file_entries)
         .await?;
     println!("change_files! id={:?}", response.get_ref().commit_id);
 
@@ -232,7 +241,7 @@ pub async fn smoke_run() -> Result<(), anyhow::Error> {
 
     let lock_key = Uuid::now_v7();
     let response = api_client
-        .acquire_lock(lock_key, stream_id, acquire_file_lock_entries)
+        .acquire_lock(lock_key, TABLE_ID, stream_id, acquire_file_lock_entries)
         .await?;
     println!("locked acquired! id={:?}", lock_key);
     let response = api_client.release_lock(lock_key).await?;
