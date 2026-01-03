@@ -1,11 +1,9 @@
 mod grpc;
 mod infrastructure;
-mod prepare;
 mod prometheus;
 
 use crate::grpc::api_client::ApiClient;
 use crate::infrastructure::s3::store::create_rustfs;
-use crate::prepare::smoke_run;
 use crate::prometheus::handler::Handler;
 use clap::{Parser, Subcommand};
 use hyper::service::{make_service_fn, service_fn};
@@ -26,7 +24,6 @@ enum SubCommands {
         #[command(subcommand)]
         command: ServeCommands,
     },
-    SmokeRun,
 }
 
 #[derive(Debug, Subcommand)]
@@ -44,9 +41,6 @@ async fn main() {
                 serve_writer().await.unwrap();
             }
         },
-        SubCommands::SmokeRun => {
-            smoke_run().await.unwrap();
-        }
     }
 }
 

@@ -11,6 +11,7 @@ use std::sync::Arc;
 
 const DEFAULT_MANGROBE_API_ADDR: &str = "http://[::1]:50051";
 const BUCKET_NAME: &str = "mangrobe-lab-datafusion-reader";
+const QUERY_TABLE_ID: i64 = 900;
 
 #[tokio::main]
 async fn main() {
@@ -32,14 +33,14 @@ async fn run(api_server_addr: String) -> Result<(), anyhow::Error> {
 async fn query_datafusion(api_server_addr: String, stream: Stream) -> Result<(), anyhow::Error> {
     let ctx = build_datafusion_ctx(api_server_addr, stream).await?;
 
-    let res = ctx
-        .sql("SELECT * FROM custom_vortex_table order by id limit 3")
-        .await?;
+    let sql = "SELECT * FROM custom_vortex_table order by id limit 3";
+    println!("Running: {}", sql);
+    let res = ctx.sql(sql).await?;
     res.show().await?;
 
-    let res = ctx
-        .sql("SELECT * FROM custom_vortex_table order by id desc limit 3")
-        .await?;
+    let sql = "SELECT * FROM custom_vortex_table order by id desc limit 3";
+    println!("Running: {}", sql);
+    let res = ctx.sql(sql).await?;
     res.show().await?;
 
     Ok(())

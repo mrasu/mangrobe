@@ -2,11 +2,13 @@
 
 1. Run Docker Compose for api-server
     ```shell
+    cd mangrobe-api-server
     docker compose up
     ```
 2. Run api server
     ```shell
     cd mangrobe-api-server
+    make migrate/fresh
     MANGROBE_API_ADDR=[::]:50051 cargo run
     ```
 3. Run Prometheus receiver

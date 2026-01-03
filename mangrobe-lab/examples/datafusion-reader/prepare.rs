@@ -1,3 +1,4 @@
+use crate::QUERY_TABLE_ID;
 use arrow_array::array::ArrayRef as ArrowArrayRef;
 use arrow_array::{Int32Array, RecordBatch, StringArray};
 use mangrobe_lab::proto::{AddFileEntry, AddFileInfoEntry};
@@ -8,7 +9,6 @@ use prost_types::Timestamp;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::SystemTime;
 use tempfile::TempDir;
 use tonic::transport::Endpoint;
 use vortex::VortexSessionDefault;
@@ -20,19 +20,13 @@ use vortex_array::arrays::ChunkedArray;
 use vortex_array::arrow::FromArrowArray;
 use vortex_array::{ArrayRef, IntoArray};
 
-const QUERY_TABLE_ID: i64 = 900;
 const QUERY_PARTITION_TIME: Timestamp = Timestamp {
     seconds: 0,
     nanos: 0,
 };
 
 pub async fn prepare_table(bucket_name: String) -> Result<Stream, anyhow::Error> {
-    let stream = Stream {
-        table_id: QUERY_TABLE_ID,
-        stream_id: SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)?
-            .as_secs() as i64,
-    };
+    let stream = Stream::new_with_random_stream_id(QUERY_TABLE_ID)?;
 
     create_bucket_if_not_exists(bucket_name).await?;
 
