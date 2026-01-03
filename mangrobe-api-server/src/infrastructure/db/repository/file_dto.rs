@@ -1,4 +1,4 @@
-use crate::domain::model::file::File;
+use crate::domain::model::file::{File, FileWithId};
 use crate::domain::model::user_table_stream::UserTablStream;
 use crate::infrastructure::db::entity::files;
 use crate::infrastructure::db::entity::files::ActiveModel;
@@ -18,8 +18,9 @@ pub(super) fn build_entity_file(file: &File) -> ActiveModel {
     }
 }
 
-pub(super) fn build_domain_file(file: &files::Model) -> File {
-    File::new(
+pub(super) fn build_domain_file(file: &files::Model) -> FileWithId {
+    FileWithId::new(
+        file.id.into(),
         UserTablStream::new(file.user_table_id.into(), file.stream_id.into()),
         file.partition_time.into(),
         file.path.clone().into(),

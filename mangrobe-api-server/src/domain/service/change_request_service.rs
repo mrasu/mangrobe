@@ -8,7 +8,6 @@ use crate::domain::model::change_request_file_entry::ChangeRequestFileEntry::{
 use crate::domain::model::change_request_file_entry::{
     ChangeRequestCompactFileEntry, ChangeRequestFileEntry,
 };
-use crate::domain::model::change_request_id::ChangeRequestId;
 use crate::domain::model::change_request_raw_file_entry::{
     ChangeRequestRawAddFileEntry, ChangeRequestRawChangeFilesEntry,
     ChangeRequestRawCompactFilesEntry,
@@ -30,7 +29,7 @@ use crate::util::error::MangrobeError::UnexpectedState;
 use crate::util::error::{MangrobeError, UserError};
 use anyhow::bail;
 use sea_orm::sqlx::types::chrono::{DateTime, Utc};
-use sea_orm::{ConnectionTrait, DatabaseConnection, DatabaseTransaction, TransactionTrait};
+use sea_orm::{DatabaseConnection, DatabaseTransaction, TransactionTrait};
 
 pub struct ChangeRequestService {
     connection: DatabaseConnection,
@@ -114,7 +113,7 @@ impl ChangeRequestService {
             file_ids.extend(
                 self.insert_files(
                     &txn,
-                    &change_request,
+                    change_request,
                     entry.partition_time,
                     &entry.files_to_add,
                 )
@@ -183,7 +182,7 @@ impl ChangeRequestService {
             file_ids_to_delete.extend(
                 self.find_file_ids(
                     &txn,
-                    &change_request,
+                    change_request,
                     entry.partition_time,
                     &entry.files_to_delete,
                 )
@@ -278,7 +277,7 @@ impl ChangeRequestService {
                 let src_file_ids = self
                     .find_file_ids(
                         &txn,
-                        &change_request,
+                        change_request,
                         entry.partition_time,
                         &info_entry.src_file_paths,
                     )
@@ -287,7 +286,7 @@ impl ChangeRequestService {
                 let dst_file_id = self
                     .insert_file(
                         &txn,
-                        &change_request,
+                        change_request,
                         entry.partition_time,
                         &info_entry.dst_file,
                     )
@@ -411,7 +410,7 @@ impl ChangeRequestService {
             ));
         }
 
-        let commit_id = self.commit_add_only_change(&txn, &change_request).await?;
+        let commit_id = self.commit_add_only_change(&txn, change_request).await?;
 
         self.change_request_repository
             .update_status(&txn, change_request, ChangeRequestStatus::Committed)

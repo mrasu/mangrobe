@@ -1,5 +1,5 @@
 use crate::application::lock_control::acquire_file_lock_param::AcquireFileLockParam;
-use crate::domain::model::file::File;
+use crate::domain::model::file::FileWithId;
 use crate::domain::model::file_lock_key::FileLockKey;
 use crate::domain::service::file_lock_key_service::FileLockService;
 use sea_orm::DatabaseConnection;
@@ -18,7 +18,7 @@ impl LockControlUseCase {
     pub async fn acquire_lock(
         &self,
         param: AcquireFileLockParam,
-    ) -> Result<Vec<File>, anyhow::Error> {
+    ) -> Result<Vec<FileWithId>, anyhow::Error> {
         let locked_files = self
             .file_lock_service
             .acquire(

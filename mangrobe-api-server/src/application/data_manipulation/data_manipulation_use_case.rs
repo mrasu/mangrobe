@@ -1,11 +1,15 @@
 use crate::application::data_manipulation::add_files_param::AddFilesParam;
 use crate::application::data_manipulation::change_files_param::ChangeFilesParam;
 use crate::application::data_manipulation::compact_files_param::CompactFilesParam;
+use crate::application::data_manipulation::get_changes_param::GetChangesParam;
 use crate::application::data_manipulation::get_current_snapshot_param::GetCurrentSnapshotParam;
 use crate::domain::model::change_request::ChangeRequestType;
 use crate::domain::model::commit_id::CommitId;
+use crate::domain::model::committed_change_request::CommittedStreamChange;
 use crate::domain::model::snapshot::Snapshot;
+use crate::domain::model::user_table_stream::UserTablStream;
 use crate::domain::service::change_request_service::ChangeRequestService;
+use crate::domain::service::committed_change_request_service::CommittedChangeRequestService;
 use crate::domain::service::file_lock_key_service::FileLockService;
 use crate::domain::service::snapshot_service::SnapshotService;
 use crate::util::error::UserError;
@@ -15,6 +19,7 @@ use sea_orm::DatabaseConnection;
 pub struct DataManipulationUseCase {
     snapshot_service: SnapshotService,
     change_request_service: ChangeRequestService,
+    committed_change_request_service: CommittedChangeRequestService,
     file_lock_service: FileLockService,
 }
 
@@ -23,6 +28,7 @@ impl DataManipulationUseCase {
         Self {
             snapshot_service: SnapshotService::new(&connection),
             change_request_service: ChangeRequestService::new(&connection),
+            committed_change_request_service: CommittedChangeRequestService::new(&connection),
             file_lock_service: FileLockService::new(&connection),
         }
     }
@@ -32,6 +38,26 @@ impl DataManipulationUseCase {
         param: GetCurrentSnapshotParam,
     ) -> Result<Snapshot, anyhow::Error> {
         self.snapshot_service.get_current(&param.stream).await
+    }
+
+    pub async fn get_changes(
+        &self,
+        param: &GetChangesParam,
+        limit_per_stream: u64,
+    ) -> Result<CommittedStreamChange, anyhow::Error> {
+        let changes = self
+            .committed_change_request_service
+            .get_after(
+                &UserTablStream::new(param.table_id.clone(), param.stream_id.clone()),
+                &param.commit_id_after,
+                limit_per_stream,
+            )
+            .await;
+
+        match changes {
+            Ok(changes) => Ok(CommittedStreamChange::new(param.stream_id.clone(), changes)),
+            Err(e) => Err(e),
+        }
     }
 
     pub async fn add_files(&self, param: AddFilesParam) -> Result<CommitId, anyhow::Error> {

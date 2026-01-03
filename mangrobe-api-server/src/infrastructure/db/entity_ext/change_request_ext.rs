@@ -61,6 +61,16 @@ impl ChangeRequestExt {
         }
     }
 
+    pub fn build_domain_commited_file_entry(
+        change_request: &change_requests::Model,
+    ) -> Result<ChangeRequestFileEntry, anyhow::Error> {
+        let Some(json) = &change_request.file_entry else {
+            bail!("no join is saved for commited change request")
+        };
+
+        Ok(serde_json::from_value(json.clone())?)
+    }
+
     pub fn build_model_file_entry(
         change_file_entry: &ChangeRequestFileEntry,
     ) -> Result<Value, serde_json::Error> {

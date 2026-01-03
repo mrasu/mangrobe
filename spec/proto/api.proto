@@ -5,6 +5,7 @@ import "google/protobuf/timestamp.proto";
 
 service DataManipulationService {
   rpc GetCurrentSnapshot(GetCurrentSnapshotRequest) returns (GetCurrentSnapshotResponse);
+  rpc GetCommits(GetCommitsRequest) returns (GetCommitsResponse);
 
   rpc AddFiles(AddFilesRequest) returns (AddFilesResponse);
   rpc ChangeFiles(ChangeFilesRequest) returns (ChangeFilesResponse);
@@ -14,6 +15,10 @@ service DataManipulationService {
 service LockControlService {
   rpc AcquireFileLock(AcquireFileLockRequest) returns (AcquireFileLockResponse);
   rpc ReleaseFileLock(ReleaseFileLockRequest) returns (ReleaseFileLockResponse);
+}
+
+service InformationSchemaService {
+  rpc ListStreams(ListStreamsRequest) returns (ListStreamsResponse);
 }
 
 // IdempotencyKey must be unique across all methods
@@ -42,6 +47,53 @@ message GetCurrentSnapshotResponse {
 message File {
   string path = 1;
   int64 size = 2;
+}
+
+message GetCommitsRequest {
+  int64 table_id = 1;
+  int64 stream_id = 2;
+
+  // Optional. Starts at the beginning if not set.
+  string commit_id_after = 3;
+}
+
+message GetCommitsResponse {
+  int64 table_id = 1;
+  int64 stream_id = 2;
+
+  // Commits are ordered in the order they were applied.
+  repeated Commit commits = 3;
+}
+
+message Commit {
+  string commit_id = 1;
+
+  oneof changes {
+    AddedFiles added_files = 2;
+    ChangedFiles changed_files = 3;
+    CompactedFiles compacted_files = 4;
+  }
+}
+
+message AddedFiles {
+  repeated CommittedFile added_files = 1;
+}
+
+message ChangedFiles {
+  repeated CommittedFile deleted_files = 1;
+}
+
+message CompactedFiles {
+  repeated CompactedFile compacted_files = 1;
+}
+
+message CompactedFile {
+  repeated CommittedFile src_files = 1;
+  CommittedFile dst_file = 2;
+}
+
+message CommittedFile {
+  string path = 1;
 }
 
 message AddFilesRequest {
@@ -152,4 +204,33 @@ message ReleaseFileLockRequest {
 
 message ReleaseFileLockResponse {
   bool deleted = 1;
+}
+
+message ListStreamsRequest {
+  PaginationRequest pagination = 1;
+
+  int64 table_id = 2;
+}
+
+message ListStreamsResponse {
+  PaginationResponse pagination = 1;
+
+  int64 table_id = 2;
+  repeated StreamInfo streams = 3;
+}
+
+message StreamInfo {
+  int64 stream_id = 1;
+  string last_commit_id = 2;
+}
+
+message PaginationRequest  {
+  // Must be positive. If zero, the system chooses an appropriate default. If too large, the system coerces down to an acceptable size.
+  int32 size = 1;
+  // Optional. Starts at the beginning if not set.
+  string token = 2;
+}
+
+message PaginationResponse {
+  string next_token = 1;
 }

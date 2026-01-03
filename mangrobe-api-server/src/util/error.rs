@@ -15,7 +15,7 @@ pub enum ParameterError {
     #[error("Invalid parameter. key='{0}'. required")]
     Required(String),
 
-    #[error("Invalid parameter. key='{0}', value='{1}'")]
+    #[error("Invalid parameter. key='{0}', message='{1}'")]
     Invalid(String, String),
 }
 

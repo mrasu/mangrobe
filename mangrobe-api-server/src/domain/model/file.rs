@@ -1,3 +1,4 @@
+use crate::domain::model::file_id::FileId;
 use crate::domain::model::user_table_stream::UserTablStream;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -23,6 +24,27 @@ impl File {
             partition_time,
             path,
             size,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct FileWithId {
+    pub id: FileId,
+    pub file: File,
+}
+
+impl FileWithId {
+    pub fn new(
+        id: FileId,
+        stream: UserTablStream,
+        partition_time: DateTime<Utc>,
+        path: FilePath,
+        size: i64,
+    ) -> Self {
+        Self {
+            id,
+            file: File::new(stream, partition_time, path, size),
         }
     }
 }

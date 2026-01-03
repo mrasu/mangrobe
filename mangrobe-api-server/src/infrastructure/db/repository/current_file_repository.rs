@@ -1,11 +1,11 @@
 use crate::domain::model::current_file::CurrentFile;
-use crate::domain::model::file::{File, FilePath};
+use crate::domain::model::file::{FilePath, FileWithId};
 use crate::domain::model::file_id::FileId;
 use crate::domain::model::file_lock_key::FileLockKey;
 use crate::domain::model::user_table_stream::UserTablStream;
 use crate::infrastructure::db::entity::current_files::{Column, Entity};
-use crate::infrastructure::db::entity::prelude::{CurrentFiles, Files};
 use crate::infrastructure::db::entity::file_locks;
+use crate::infrastructure::db::entity::prelude::{CurrentFiles, Files};
 use crate::infrastructure::db::repository::current_file_dto::{
     build_domain_current_file, build_entity_current_file,
 };
@@ -35,7 +35,7 @@ impl CurrentFileRepository {
         &self,
         conn: &C,
         stream: &UserTablStream,
-    ) -> Result<Vec<File>, anyhow::Error>
+    ) -> Result<Vec<FileWithId>, anyhow::Error>
     where
         C: ConnectionTrait,
     {
@@ -46,7 +46,7 @@ impl CurrentFileRepository {
             .all(conn)
             .await?;
 
-        let result: Vec<File> = current_files
+        let result = current_files
             .iter()
             .filter_map(|(current_file, file)| {
                 let Some(file) = file else { return None };

@@ -1,4 +1,4 @@
-use crate::domain::model::file::{File, FilePath};
+use crate::domain::model::file::{File, FilePath, FileWithId};
 use crate::domain::model::file_id::FileId;
 use crate::domain::model::user_table_stream::UserTablStream;
 use crate::infrastructure::db::entity::files;
@@ -8,6 +8,7 @@ use crate::infrastructure::db::repository::file_dto::{build_domain_file, build_e
 use chrono::{DateTime, Utc};
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QuerySelect};
 
+#[derive(Clone, Copy)]
 pub struct FileRepository {}
 
 impl FileRepository {
@@ -20,7 +21,7 @@ impl FileRepository {
         conn: &C,
         stream: &UserTablStream,
         ids: &[FileId],
-    ) -> Result<Vec<File>, anyhow::Error>
+    ) -> Result<Vec<FileWithId>, anyhow::Error>
     where
         C: ConnectionTrait,
     {

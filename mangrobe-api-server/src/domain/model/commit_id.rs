@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 
+#[derive(Clone)]
 pub struct CommitId {
     val: i64,
 }

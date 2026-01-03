@@ -1,4 +1,4 @@
-use crate::domain::model::file::File;
+use crate::domain::model::file::FileWithId;
 use crate::domain::model::file_lock_key::FileLockKey;
 use crate::domain::model::lock_raw_file_entry::LockFileRawAcquireEntry;
 use crate::domain::model::user_table_stream::UserTablStream;
@@ -42,7 +42,7 @@ impl FileLockService {
         stream: &UserTablStream,
         ttl: Duration,
         entries: &[LockFileRawAcquireEntry],
-    ) -> Result<Vec<File>, anyhow::Error> {
+    ) -> Result<Vec<FileWithId>, anyhow::Error> {
         let txn = self.connection.begin().await?;
 
         let acquired = self
