@@ -33,36 +33,33 @@ pub async fn print_current_files(
     Ok(())
 }
 
-pub async fn add_files(api_client: &ApiClient, stream: &Stream) -> Result<(), anyhow::Error> {
+pub async fn add_files(
+    api_client: &ApiClient,
+    stream: &Stream,
+    files: Vec<&str>,
+) -> Result<(), anyhow::Error> {
     let file_add_entries = vec![AddFileEntry {
         partition_time: Some(Timestamp {
             seconds: 0,
             nanos: 0,
         }),
-        file_info_entries: vec![
-            AddFileInfoEntry {
-                path: "file1.txt".into(),
+        file_info_entries: files
+            .iter()
+            .map(|path| AddFileInfoEntry {
+                path: path.to_string(),
                 size: 1,
-            },
-            AddFileInfoEntry {
-                path: "file2.txt".into(),
-                size: 2,
-            },
-            AddFileInfoEntry {
-                path: "file3.txt".into(),
-                size: 3,
-            },
-            AddFileInfoEntry {
-                path: "file4.txt".into(),
-                size: 4,
-            },
-        ],
+            })
+            .collect(),
     }];
     let response = api_client
         .add_files(stream.table_id, stream.stream_id, file_add_entries)
         .await?;
 
-    println!("Run AddFiles! commit_id={:?}", response.get_ref().commit_id);
+    println!(
+        "Run AddFiles! files=[{}] (commit_id={})",
+        files.join(", "),
+        response.get_ref().commit_id
+    );
 
     Ok(())
 }
@@ -71,17 +68,20 @@ pub async fn compact_files(
     api_client: &mut ApiClient,
     stream: &Stream,
     lock_key: Uuid,
-    src_files: Vec<String>,
+    src_files: Vec<&str>,
+    dst_file: &str,
 ) -> Result<(), anyhow::Error> {
     let compact_file_entries = vec![CompactFileEntry {
         partition_time: Some(DEFAULT_PARTITION_TIME),
         file_info_entries: vec![CompactFileInfoEntry {
             src_entries: src_files
-                .into_iter()
-                .map(|f| CompactFileSrcEntry { path: f })
+                .iter()
+                .map(|f| CompactFileSrcEntry {
+                    path: f.to_string(),
+                })
                 .collect(),
             dst_entry: Some(CompactFileDstEntry {
-                path: "compacted.txt".into(),
+                path: dst_file.to_string(),
                 size: 123,
             }),
         }],
@@ -97,7 +97,9 @@ pub async fn compact_files(
         .await?;
 
     println!(
-        "Run CompactFiles! commit_id={:?}",
+        "Run CompactFiles! src=[{}], dst={} (commit_id={})",
+        src_files.join(", "),
+        dst_file,
         response.get_ref().commit_id
     );
 
@@ -108,13 +110,15 @@ pub async fn change_files(
     api_client: &mut ApiClient,
     stream: &Stream,
     lock_key: Uuid,
-    delete_files: Vec<String>,
+    delete_files: Vec<&str>,
 ) -> Result<(), anyhow::Error> {
     let change_file_entries = vec![ChangeFileEntry {
         partition_time: Some(DEFAULT_PARTITION_TIME),
         delete_entries: delete_files
-            .into_iter()
-            .map(|f| ChangeFileDeleteEntry { path: f })
+            .iter()
+            .map(|f| ChangeFileDeleteEntry {
+                path: f.to_string(),
+            })
             .collect(),
     }];
     let response = api_client
@@ -127,7 +131,8 @@ pub async fn change_files(
         .await?;
 
     println!(
-        "Run ChangeFiles! commit_id={:?}",
+        "Run ChangeFiles! delete=[{}], commit_id={}",
+        delete_files.join(", "),
         response.get_ref().commit_id
     );
 
@@ -137,7 +142,7 @@ pub async fn change_files(
 pub async fn lock(
     api_client: &mut ApiClient,
     stream: &Stream,
-    target_files: &[String],
+    target_files: &[&str],
 ) -> Result<Uuid, anyhow::Error> {
     let lock_key = Uuid::now_v7();
 
@@ -145,7 +150,9 @@ pub async fn lock(
         partition_time: Some(DEFAULT_PARTITION_TIME),
         acquire_file_info_entries: target_files
             .iter()
-            .map(|file| AcquireFileLockFileInfoEntry { path: file.clone() })
+            .map(|file| AcquireFileLockFileInfoEntry {
+                path: file.to_string(),
+            })
             .collect(),
     }];
     let response = api_client

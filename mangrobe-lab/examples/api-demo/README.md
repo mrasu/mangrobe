@@ -33,12 +33,12 @@ Then, you will see registered files are changed. like:
 Running api-demo...
 
 Adding files...
-Run AddFiles! commit_id="1"
+Run AddFiles! files=[file1.txt, file2.txt, file3.txt, file4.txt] (commit_id=1)
 Current files: file1.txt, file2.txt, file3.txt, file4.txt
 
 Compacting files...
-Run AcquireFileLock! key=019b82e5-5104-7ee2-aacc-5866cac4f8fc, locked_file_count=2
-Run CompactFiles! commit_id="2"
+Run AcquireFileLock! key=019b8dc1-d51d-7880-8378-ff6a62a9d1d1, locked_file_count=2
+Run CompactFiles! src=[file1.txt, file2.txt], dst=compacted.txt (commit_id=2)
 Current files: compacted.txt, file3.txt, file4.txt
 ...
 ```

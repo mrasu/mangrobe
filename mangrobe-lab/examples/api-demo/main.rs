@@ -26,13 +26,22 @@ async fn run(api_server_addr: String) -> Result<(), anyhow::Error> {
     let stream = Stream::new_with_random_stream_id(QUERY_TABLE_ID)?;
 
     println!("\nAdding files...");
-    add_files(&api_client, &stream).await?;
+    let files: Vec<&str> = vec!["file1.txt", "file2.txt", "file3.txt", "file4.txt"];
+    add_files(&api_client, &stream, files).await?;
     print_current_files(&api_client, &stream).await?;
 
     println!("\nCompacting files...");
-    let compact_target_files = vec!["file1.txt".into(), "file2.txt".into()];
-    let lock_key = lock(&mut api_client, &stream, &compact_target_files).await?;
-    compact_files(&mut api_client, &stream, lock_key, compact_target_files).await?;
+    let compact_src_files = vec!["file1.txt", "file2.txt"];
+    let compact_dst_file = "compacted.txt";
+    let lock_key = lock(&mut api_client, &stream, &compact_src_files).await?;
+    compact_files(
+        &mut api_client,
+        &stream,
+        lock_key,
+        compact_src_files,
+        compact_dst_file,
+    )
+    .await?;
     print_current_files(&api_client, &stream).await?;
 
     println!("\nDeleting files...");
@@ -41,7 +50,7 @@ async fn run(api_server_addr: String) -> Result<(), anyhow::Error> {
     change_files(&mut api_client, &stream, lock_key, delete_target_files).await?;
     print_current_files(&api_client, &stream).await?;
 
-    println!("\nLocking files with no operation...");
+    println!("\nLocking files with no modification...");
     let nop_target_files = vec!["file4.txt".into()];
     let lock_key = lock(&mut api_client, &stream, &nop_target_files).await?;
     release_lock(&mut api_client, lock_key).await?;
