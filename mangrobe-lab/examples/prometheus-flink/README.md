@@ -1,3 +1,9 @@
+# Prometheus-Flink
+
+Receive Prometheus metrics and consume them with Flink.
+
+![](../../../docs/img/prometheus_flink.png)
+
 # How to run
 
 1. Run Docker Compose for api-server

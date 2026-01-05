@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 const DEFAULT_MANGROBE_API_ADDR: &str = "http://[::1]:50051";
 const BUCKET_NAME: &str = "mangrobe-lab-datafusion-reader";
-const QUERY_TABLE_ID: i64 = 900;
+const QUERY_TABLE_ID: i64 = 902;
 
 #[tokio::main]
 async fn main() {

@@ -11,7 +11,7 @@ const QUERY_TABLE_ID: i64 = 901;
 
 #[tokio::main]
 async fn main() {
-    println!("Running smoke-run...");
+    println!("Running api-demo...");
 
     let api_server_addr = env::var("MANGROBE_API_ADDR").unwrap_or(DEFAULT_MANGROBE_API_ADDR.into());
     run(api_server_addr).await.unwrap();

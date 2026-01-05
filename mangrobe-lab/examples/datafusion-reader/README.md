@@ -1,3 +1,9 @@
+# DataFusion Reader
+
+Execute SQL with DataFusion.  
+
+![](../../../docs/img/datafusion_reader.png)
+
 # How to run
 
 1. Run Docker Compose for api-server
@@ -22,7 +28,7 @@
     cargo run --example datafusion-reader
     ```
 
-Then, you will see the smoke-run change files. like:
+Then, you will see the result of SQL. like:
 ```
 Running datafusion-reader...
 Running: SELECT * FROM custom_vortex_table order by id limit 3

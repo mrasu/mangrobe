@@ -10,7 +10,7 @@ use std::env;
 
 const DEFAULT_MANGROBE_API_ADDR: &str = "http://[::1]:50051";
 
-pub const PROM_TABLE_ID: i64 = 902;
+pub const PROM_TABLE_ID: i64 = 903;
 pub const PROM_STREAM_ID: i64 = 1;
 const HTTP_SERVER_PORT: u16 = 8888;
 

@@ -1,3 +1,9 @@
+# API Demo
+
+Run the gRPC API directly.
+
+![](../../../docs/img/api_demo.png)
+
 # How to run
 
 1. Run Docker Compose for api-server
@@ -16,15 +22,15 @@
     cd mangrobe-lab
     docker compose up
     ```
-4. Run smoke-run
+4. Run api-demo
     ```shell
     cd mangrobe-lab
-    cargo run --example smoke-run
+    cargo run --example api-demo
     ```
 
-Then, you will see the smoke-run change files. like:
+Then, you will see registered files are changed. like:
 ```
-Running smoke-run...
+Running api-demo...
 
 Adding files...
 Run AddFiles! commit_id="1"

@@ -2,9 +2,16 @@
 
 Time-series Table Protocol - like Iceberg, but built for time-series, streaming, and multi-tenancy.
 
-# Current Flow
+# Features
 
-![](./docs/img/current_flow.png)
+* **Fast file registration**. Adding new files won't conflict.
+* **Easy operation**. No Hadoop or ZooKeeper required.
+* **Easy integration**. No complicated implementation needed — just gRPC.
+* **Multi-tenancy**. No conflicts across tenants (streams).
+
+# Examples
+
+You can see examples in [examples](./mangrobe-lab/examples) directory
 
 # Goal
 
