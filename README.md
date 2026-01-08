@@ -7,15 +7,15 @@ Time-series Table Protocol - like Iceberg, but built for time-series, streaming,
 * **Fast file registration**. Adding new files won't conflict.
 * **Easy operation**. No Hadoop or ZooKeeper required.
 * **Easy integration**. No complicated implementation needed — just gRPC.
-* **Multi-tenancy**. No conflicts across tenants (streams).
+* **Multi-tenancy**. No conflicts across tenants.
 
 # Examples
 
 You can see examples in [examples](./mangrobe-lab/examples) directory
 
-# Goal
+# Overview
 
-![](./docs/img/goal_flow.png)
+![](./docs/img/overview.png)
 
 # Mangrobe Protocol
 
