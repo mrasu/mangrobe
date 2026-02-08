@@ -2,8 +2,7 @@ use crate::application::information_schema::information_schema_use_case::Informa
 use crate::grpc::information_schema::list_streams_param::parse_list_streams_param;
 use crate::grpc::information_schema::list_streams_response::build_list_streams_response;
 use crate::grpc::proto::{
-    ListStreamsRequest, ListStreamsResponse,
-    information_schema_service_server,
+    ListStreamsRequest, ListStreamsResponse, information_schema_service_server,
 };
 use crate::grpc::util::error::{build_invalid_argument, to_grpc_error};
 use sea_orm::DatabaseConnection;
@@ -36,7 +35,7 @@ impl information_schema_service_server::InformationSchemaService for Information
             .await
             .map_err(to_grpc_error)?;
 
-        let response = build_list_streams_response(&param.table_id, page_size as usize, &streams);
+        let response = build_list_streams_response(&param.table_name, page_size as usize, &streams);
         Ok(Response::new(response))
     }
 }

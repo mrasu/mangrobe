@@ -48,7 +48,7 @@ impl CurrentFileRepository {
 
         let result = current_files
             .iter()
-            .filter_map(|(current_file, file)| {
+            .filter_map(|(_current_file, file)| {
                 let Some(file) = file else { return None };
 
                 Some(build_domain_file(file))

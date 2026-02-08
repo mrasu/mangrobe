@@ -2,7 +2,7 @@ use crate::domain::model::change_request_file_data::FileData;
 use crate::domain::model::committed_change_request::{
     ChangeRequestFileData, CommittedStreamChange,
 };
-use crate::domain::model::user_table_id::UserTableId;
+use crate::domain::model::user_table_name::UserTableName;
 use crate::grpc::proto::commit::Changes;
 use crate::grpc::proto::{
     AddedFiles, ChangedFiles, Commit, CommittedFile, CompactedFile, CompactedFiles,
@@ -10,11 +10,11 @@ use crate::grpc::proto::{
 };
 
 pub(crate) fn build_get_commits_response(
-    table_id: &UserTableId,
+    table_name: &UserTableName,
     stream_changes: CommittedStreamChange,
 ) -> GetCommitsResponse {
     GetCommitsResponse {
-        table_id: table_id.val(),
+        table_name: table_name.val(),
         stream_id: stream_changes.stream_id.val(),
         commits: stream_changes
             .committed_changes

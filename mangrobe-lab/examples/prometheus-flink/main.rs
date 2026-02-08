@@ -10,7 +10,7 @@ use std::env;
 
 const DEFAULT_MANGROBE_API_ADDR: &str = "http://[::1]:50051";
 
-pub const PROM_TABLE_ID: i64 = 903;
+pub const PROM_TABLE_NAME: &str = "examples-prometheus-flink";
 pub const PROM_STREAM_ID: i64 = 1;
 const HTTP_SERVER_PORT: u16 = 8888;
 
@@ -29,6 +29,10 @@ async fn serve_writer(api_server_addr: String) -> Result<(), anyhow::Error> {
         .connect()
         .await?;
     let api_client = ApiClient::new(conn);
+
+    api_client
+        .create_table(PROM_TABLE_NAME.to_string(), true)
+        .await?;
 
     let make_svc = make_service_fn(move |_conn| {
         let api_client = api_client.clone();

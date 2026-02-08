@@ -11,6 +11,9 @@ pub fn to_grpc_error(error: anyhow::Error) -> Status {
             UserError::InvalidLockMessage(_) => {
                 build_invalid_argument_with_error_message(e.to_string())
             }
+            UserError::AlreadyExistsMessage(_) => {
+                Status::new(Code::AlreadyExists, e.to_string())
+            }
         };
     }
 

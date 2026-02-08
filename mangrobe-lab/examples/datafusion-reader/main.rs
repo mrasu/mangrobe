@@ -8,10 +8,11 @@ use datafusion::prelude::SessionContext;
 use mangrobe_lab::{ApiClient, Stream, create_rustfs};
 use std::env;
 use std::sync::Arc;
+use tonic::transport::Endpoint;
 
 const DEFAULT_MANGROBE_API_ADDR: &str = "http://[::1]:50051";
 const BUCKET_NAME: &str = "mangrobe-lab-datafusion-reader";
-const QUERY_TABLE_ID: i64 = 902;
+const QUERY_TABLE_NAME: &str = "examples-datafusion-reader";
 
 #[tokio::main]
 async fn main() {
@@ -22,8 +23,11 @@ async fn main() {
 }
 
 async fn run(api_server_addr: String) -> Result<(), anyhow::Error> {
-    let stream = prepare_table(BUCKET_NAME.into()).await?;
-    register_files(api_server_addr.clone(), &stream, BUCKET_NAME.into()).await?;
+    let conn = Endpoint::new(api_server_addr.clone())?.connect().await?;
+    let api_client = ApiClient::new(conn);
+
+    let stream = prepare_table(&api_client, BUCKET_NAME.into()).await?;
+    register_files(&api_client, &stream, BUCKET_NAME.into()).await?;
 
     query_datafusion(api_server_addr, stream).await?;
 

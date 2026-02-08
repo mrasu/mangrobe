@@ -1,7 +1,9 @@
+use crate::grpc::data_definition::data_definition_service::DataDefinitionService;
 use crate::grpc::data_manipulation::data_manipulation_service::DataManipulationService;
 use crate::grpc::information_schema::information_schema_service::InformationSchemaService;
 use crate::grpc::lock_control::lock_control_service::LockControlService;
 use crate::grpc::proto::FILE_DESCRIPTOR_SET2;
+use crate::grpc::proto::data_definition_service_server::DataDefinitionServiceServer;
 use crate::grpc::proto::data_manipulation_service_server::DataManipulationServiceServer;
 use crate::grpc::proto::information_schema_service_server::InformationSchemaServiceServer;
 use crate::grpc::proto::lock_control_service_server::LockControlServiceServer;
@@ -48,6 +50,7 @@ async fn run_api_server(addr: SocketAddr, db: &DatabaseConnection) -> Result<(),
     println!("Starting Mangrobe API Server at {}...", addr);
 
     let data_manipulation_service = DataManipulationService::new(db);
+    let data_definition_service = DataDefinitionService::new(db);
     let lock_control_service = LockControlService::new(db);
     let information_schema_service = InformationSchemaService::new(db);
 
@@ -55,6 +58,7 @@ async fn run_api_server(addr: SocketAddr, db: &DatabaseConnection) -> Result<(),
         .add_service(DataManipulationServiceServer::new(
             data_manipulation_service,
         ))
+        .add_service(DataDefinitionServiceServer::new(data_definition_service))
         .add_service(LockControlServiceServer::new(lock_control_service))
         .add_service(InformationSchemaServiceServer::new(
             information_schema_service,

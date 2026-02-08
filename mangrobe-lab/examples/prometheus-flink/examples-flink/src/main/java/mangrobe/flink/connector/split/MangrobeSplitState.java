@@ -9,7 +9,7 @@ public class MangrobeSplitState extends MangrobeSplit {
     long pollNextMillis;
 
     public MangrobeSplitState(MangrobeSplit split) {
-        super(split.getTableId(), split.getStreamId(), split.getStartingCommitId().orElse(null));
+        super(split.getTableName(), split.getStreamId(), split.getStartingCommitId().orElse(null));
         this.currentCommitId = split.getStartingCommitId().orElse(null);
         this.pollNextMillis = 0;
     }
@@ -23,6 +23,6 @@ public class MangrobeSplitState extends MangrobeSplit {
     }
 
     public MangrobeSplit toMangrobeSplit() {
-        return new MangrobeSplit(getTableId(), getStreamId(), currentCommitId);
+        return new MangrobeSplit(getTableName(), getStreamId(), currentCommitId);
     }
 }

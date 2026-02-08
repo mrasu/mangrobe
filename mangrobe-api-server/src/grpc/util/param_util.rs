@@ -1,10 +1,18 @@
 use crate::domain::model::file_lock_key::FileLockKey;
 use crate::domain::model::idempotency_key::IdempotencyKey;
+use crate::domain::model::user_table_name::UserTableName;
 use crate::grpc::proto::FileLockKey as FileLockKeyParam;
 use crate::grpc::proto::IdempotencyKey as IdempotencyKeyParam;
 use crate::util::error::ParameterError;
 use chrono::{DateTime, Utc};
 use prost_types::Timestamp;
+
+pub fn to_table_name(table_name: String) -> Result<UserTableName, ParameterError> {
+    match table_name.try_into() {
+        Ok(t) => Ok(t),
+        Err(e) => Err(ParameterError::Invalid("table_name".into(), e)),
+    }
+}
 
 pub fn to_partition_time(param: Option<Timestamp>) -> Result<DateTime<Utc>, ParameterError> {
     let req_partition_time = param.ok_or(ParameterError::Required("partition_time".into()))?;

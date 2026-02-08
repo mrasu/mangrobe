@@ -12,6 +12,10 @@ service DataManipulationService {
   rpc CompactFiles(CompactFilesRequest) returns (CompactFilesResponse);
 }
 
+service DataDefinitionService {
+  rpc CreateTable(CreateTableRequest) returns (CreateTableResponse);
+}
+
 service LockControlService {
   rpc AcquireFileLock(AcquireFileLockRequest) returns (AcquireFileLockResponse);
   rpc ReleaseFileLock(ReleaseFileLockRequest) returns (ReleaseFileLockResponse);
@@ -34,7 +38,7 @@ message FileLockKey {
 }
 
 message GetCurrentStateRequest {
-  int64 table_id = 1;
+  string table_name = 1;
   int64 stream_id = 2;
 }
 
@@ -50,7 +54,7 @@ message File {
 }
 
 message GetCommitsRequest {
-  int64 table_id = 1;
+  string table_name = 1;
   int64 stream_id = 2;
 
   // Optional. Starts at the beginning if not set.
@@ -58,7 +62,7 @@ message GetCommitsRequest {
 }
 
 message GetCommitsResponse {
-  int64 table_id = 1;
+  string table_name = 1;
   int64 stream_id = 2;
 
   // Commits are ordered in the order they were applied.
@@ -98,7 +102,7 @@ message CommittedFile {
 
 message AddFilesRequest {
   IdempotencyKey idempotency_key = 1;
-  int64 table_id = 2;
+  string table_name = 2;
   int64 stream_id = 3;
 
   repeated AddFileEntry add_file_entries = 4;
@@ -121,7 +125,7 @@ message AddFilesResponse {
 
 message ChangeFilesRequest {
   FileLockKey file_lock_key = 1;
-  int64 table_id = 2;
+  string table_name = 2;
   int64 stream_id = 3;
 
   repeated ChangeFileEntry change_file_entries = 4;
@@ -143,7 +147,7 @@ message ChangeFilesResponse {
 
 message CompactFilesRequest {
   FileLockKey file_lock_key = 1;
-  int64 table_id = 2;
+  string table_name = 2;
   int64 stream_id = 3;
 
   repeated CompactFileEntry compact_file_entries = 4;
@@ -173,10 +177,19 @@ message CompactFilesResponse {
   string commit_id = 1;
 }
 
+message CreateTableRequest {
+  string table_name = 1;
+  bool skip_if_exists = 2;
+}
+
+message CreateTableResponse {
+  string table_name = 1;
+}
+
 message AcquireFileLockRequest {
   FileLockKey file_lock_key = 1;
 
-  int64 table_id = 2;
+  string table_name = 2;
   int64 stream_id = 3;
 
   int64 ttl_sec = 4;
@@ -209,13 +222,13 @@ message ReleaseFileLockResponse {
 message ListStreamsRequest {
   PaginationRequest pagination = 1;
 
-  int64 table_id = 2;
+  string table_name = 2;
 }
 
 message ListStreamsResponse {
   PaginationResponse pagination = 1;
 
-  int64 table_id = 2;
+  string table_name = 2;
   repeated StreamInfo streams = 3;
 }
 

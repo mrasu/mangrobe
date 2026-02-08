@@ -3,6 +3,7 @@ use crate::application::data_manipulation::change_files_param::ChangeFilesParam;
 use crate::application::data_manipulation::compact_files_param::CompactFilesParam;
 use crate::application::data_manipulation::get_changes_param::GetChangesParam;
 use crate::application::data_manipulation::get_current_state_param::GetCurrentStateParam;
+use crate::application::util::user_table::find_table_id;
 use crate::domain::model::change_request::ChangeRequestType;
 use crate::domain::model::commit_id::CommitId;
 use crate::domain::model::committed_change_request::CommittedStreamChange;
@@ -12,6 +13,7 @@ use crate::domain::service::change_request_service::ChangeRequestService;
 use crate::domain::service::committed_change_request_service::CommittedChangeRequestService;
 use crate::domain::service::file_lock_key_service::FileLockService;
 use crate::domain::service::snapshot_service::SnapshotService;
+use crate::domain::service::user_table_service::UserTableService;
 use crate::util::error::UserError;
 use anyhow::bail;
 use sea_orm::DatabaseConnection;
@@ -21,6 +23,7 @@ pub struct DataManipulationUseCase {
     change_request_service: ChangeRequestService,
     committed_change_request_service: CommittedChangeRequestService,
     file_lock_service: FileLockService,
+    user_table_service: UserTableService,
 }
 
 impl DataManipulationUseCase {
@@ -30,6 +33,7 @@ impl DataManipulationUseCase {
             change_request_service: ChangeRequestService::new(&connection),
             committed_change_request_service: CommittedChangeRequestService::new(&connection),
             file_lock_service: FileLockService::new(&connection),
+            user_table_service: UserTableService::new(&connection),
         }
     }
 
@@ -37,7 +41,10 @@ impl DataManipulationUseCase {
         &self,
         param: GetCurrentStateParam,
     ) -> Result<Snapshot, anyhow::Error> {
-        self.snapshot_service.get_current(&param.stream).await
+        let table_id = find_table_id(&self.user_table_service, &param.table_name).await?;
+
+        let stream = UserTablStream::new(table_id, param.stream_id);
+        self.snapshot_service.get_current(&stream).await
     }
 
     pub async fn get_changes(
@@ -45,10 +52,12 @@ impl DataManipulationUseCase {
         param: &GetChangesParam,
         limit_per_stream: u64,
     ) -> Result<CommittedStreamChange, anyhow::Error> {
+        let table_id = find_table_id(&self.user_table_service, &param.table_name).await?;
+
         let changes = self
             .committed_change_request_service
             .get_after(
-                &UserTablStream::new(param.table_id.clone(), param.stream_id.clone()),
+                &UserTablStream::new(table_id, param.stream_id.clone()),
                 &param.commit_id_after,
                 limit_per_stream,
             )
@@ -61,13 +70,11 @@ impl DataManipulationUseCase {
     }
 
     pub async fn add_files(&self, param: AddFilesParam) -> Result<CommitId, anyhow::Error> {
+        let table_id = find_table_id(&self.user_table_service, &param.table_name).await?;
+        let stream = UserTablStream::new(table_id, param.stream_id);
         let change_request = self
             .change_request_service
-            .find_or_create(
-                &param.idempotency_key,
-                &param.stream,
-                ChangeRequestType::AddFiles,
-            )
+            .find_or_create(&param.idempotency_key, &stream, ChangeRequestType::AddFiles)
             .await?;
 
         let mut change_request_with_entry = self
@@ -89,9 +96,11 @@ impl DataManipulationUseCase {
             bail!(UserError::InvalidLockMessage("not acquired".into()))
         }
 
+        let table_id = find_table_id(&self.user_table_service, &param.table_name).await?;
+        let stream = UserTablStream::new(table_id, param.stream_id);
         let change_request = self
             .change_request_service
-            .create(&param.stream, ChangeRequestType::Compact)
+            .create(&stream, ChangeRequestType::Compact)
             .await?;
 
         let mut change_request_with_entry = self
@@ -118,9 +127,11 @@ impl DataManipulationUseCase {
             bail!(UserError::InvalidLockMessage("not acquired".into()))
         }
 
+        let table_id = find_table_id(&self.user_table_service, &param.table_name).await?;
+        let stream = UserTablStream::new(table_id, param.stream_id);
         let change_request = self
             .change_request_service
-            .create(&param.stream, ChangeRequestType::Compact)
+            .create(&stream, ChangeRequestType::Compact)
             .await?;
 
         let mut change_request_with_entry = self

@@ -1,13 +1,15 @@
 mod operation;
 
 use crate::operation::{
-    add_files, change_files, compact_files, lock, print_current_files, release_lock,
+    add_files, change_files, compact_files, create_table_if_not_exists, lock, print_current_files,
+    release_lock,
 };
 use mangrobe_lab::{ApiClient, Stream};
 use std::env;
+use std::string::ToString;
 
 const DEFAULT_MANGROBE_API_ADDR: &str = "http://[::1]:50051";
-const QUERY_TABLE_ID: i64 = 901;
+const QUERY_TABLE_NAME: &str = "examples-api-demo";
 
 #[tokio::main]
 async fn main() {
@@ -23,7 +25,9 @@ async fn run(api_server_addr: String) -> Result<(), anyhow::Error> {
         .await?;
     let mut api_client = ApiClient::new(conn);
 
-    let stream = Stream::new_with_random_stream_id(QUERY_TABLE_ID)?;
+    let stream = Stream::new_with_random_stream_id(QUERY_TABLE_NAME.to_string())?;
+
+    create_table_if_not_exists(&api_client, &stream).await?;
 
     println!("\nAdding files...");
     let files: Vec<&str> = vec!["file1.txt", "file2.txt", "file3.txt", "file4.txt"];

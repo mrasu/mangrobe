@@ -52,7 +52,7 @@ impl TableProvider for VortexProvider {
     ) -> Result<Arc<dyn ExecutionPlan>> {
         let response = self
             .api_client
-            .fetch_current_state(self.stream.table_id, self.stream.stream_id)
+            .fetch_current_state(self.stream.table_name.clone(), self.stream.stream_id)
             .await
             .map_err(|e| DataFusionError::External(e.into()))?;
         let files: Vec<_> = response

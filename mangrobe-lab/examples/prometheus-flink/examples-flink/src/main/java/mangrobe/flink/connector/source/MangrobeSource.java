@@ -8,12 +8,12 @@ import org.apache.flink.core.io.SimpleVersionedSerializer;
 
 public class MangrobeSource implements Source<MangrobeRecord, MangrobeSplit, String> {
     private final String grpcTarget;
-    private final long tableId;
+    private final String tableName;
 
 
-    public MangrobeSource(String grpcTarget, long tableId) {
+    public MangrobeSource(String grpcTarget, String tableName) {
         this.grpcTarget = grpcTarget;
-        this.tableId = tableId;
+        this.tableName = tableName;
     }
 
     @Override
@@ -23,12 +23,12 @@ public class MangrobeSource implements Source<MangrobeRecord, MangrobeSplit, Str
 
     @Override
     public SplitEnumerator<MangrobeSplit, String> createEnumerator(SplitEnumeratorContext<MangrobeSplit> enumContext) throws Exception {
-        return new MangrobeSplitEnumerator(enumContext, this.grpcTarget, this.tableId);
+        return new MangrobeSplitEnumerator(enumContext, this.grpcTarget, this.tableName);
     }
 
     @Override
     public SplitEnumerator<MangrobeSplit, String> restoreEnumerator(SplitEnumeratorContext<MangrobeSplit> enumContext, String checkpoint) throws Exception {
-        return new MangrobeSplitEnumerator(enumContext, this.grpcTarget, this.tableId);
+        return new MangrobeSplitEnumerator(enumContext, this.grpcTarget, this.tableName);
     }
 
     @Override

@@ -16,5 +16,7 @@ pub mod lock_raw_file_entry;
 pub mod snapshot;
 pub mod stream;
 pub mod stream_id;
+pub mod user_table;
 pub mod user_table_id;
+pub mod user_table_name;
 pub mod user_table_stream;

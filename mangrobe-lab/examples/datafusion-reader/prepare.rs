@@ -1,4 +1,4 @@
-use crate::QUERY_TABLE_ID;
+use crate::QUERY_TABLE_NAME;
 use arrow_array::array::ArrayRef as ArrowArrayRef;
 use arrow_array::{Int32Array, RecordBatch, StringArray};
 use mangrobe_lab::proto::{AddFileEntry, AddFileInfoEntry};
@@ -10,7 +10,6 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tempfile::TempDir;
-use tonic::transport::Endpoint;
 use vortex::VortexSessionDefault;
 use vortex::dtype::DType;
 use vortex::dtype::arrow::FromArrowType;
@@ -25,16 +24,23 @@ const QUERY_PARTITION_TIME: Timestamp = Timestamp {
     nanos: 0,
 };
 
-pub async fn prepare_table(bucket_name: String) -> Result<Stream, anyhow::Error> {
-    let stream = Stream::new_with_random_stream_id(QUERY_TABLE_ID)?;
+pub async fn prepare_table(
+    api_client: &ApiClient,
+    bucket_name: String,
+) -> Result<Stream, anyhow::Error> {
+    let stream = Stream::new_with_random_stream_id(QUERY_TABLE_NAME.to_string())?;
 
     create_bucket_if_not_exists(bucket_name).await?;
+
+    api_client
+        .create_table(stream.table_name.clone(), true)
+        .await?;
 
     Ok(stream)
 }
 
 pub async fn register_files(
-    api_server_addr: String,
+    api_client: &ApiClient,
     stream: &Stream,
     bucket_name: String,
 ) -> Result<(), anyhow::Error> {
@@ -63,10 +69,12 @@ pub async fn register_files(
         })
     }
 
-    let conn = Endpoint::new(api_server_addr)?.connect().await?;
-    let api_client = ApiClient::new(conn);
     api_client
-        .add_files(stream.table_id, stream.stream_id, vec![add_file_entry])
+        .add_files(
+            stream.table_name.clone(),
+            stream.stream_id,
+            vec![add_file_entry],
+        )
         .await?;
 
     Ok(())

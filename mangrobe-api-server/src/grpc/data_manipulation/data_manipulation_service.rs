@@ -73,7 +73,7 @@ impl data_manipulation_service_server::DataManipulationService for DataManipulat
             .await
             .map_err(to_grpc_error)?;
 
-        let response = build_get_commits_response(&param.table_id, changes);
+        let response = build_get_commits_response(&param.table_name, changes);
         Ok(Response::new(response))
     }
 

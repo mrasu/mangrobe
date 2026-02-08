@@ -4,7 +4,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 public class MangrobeRecord {
-    private final long tableId;
+    private final String tableName;
     private final long streamId;
     private final String commitId;
     private final CommitChangeCase changeCase;
@@ -17,14 +17,14 @@ public class MangrobeRecord {
     private final List<CompactedFile> compactedFiles;
 
     MangrobeRecord(
-            long tableId,
+            String tableName,
             long streamId,
             String commitId,
             CommitChangeCase changeCase,
             @Nullable List<CommittedFile> addedFiles,
             @Nullable ChangedFiles changedFiles,
             @Nullable List<CompactedFile> compactedFiles) {
-        this.tableId = tableId;
+        this.tableName = tableName;
         this.streamId = streamId;
         this.commitId = commitId;
         this.changeCase = changeCase == null ? CommitChangeCase.UNKNOWN : changeCase;
@@ -35,7 +35,7 @@ public class MangrobeRecord {
 
     @Override
     public String toString() {
-        return "tableId=" + tableId + ", streamId=" + streamId + ", commitId=" + commitId;
+        return "tableName=" + tableName + ", tableName=" + streamId + ", commitId=" + commitId;
     }
 
     public String getCommitId() {

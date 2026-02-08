@@ -8,19 +8,19 @@ import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 public class MangrobeSplit implements SourceSplit {
-    private final long tableId;
+    private final String tableName;
     private final long streamId;
     @Nullable
     private final String startingCommitId;
 
-    public MangrobeSplit(long tableId, long streamId, @Nullable String commitId) {
-        this.tableId = tableId;
+    public MangrobeSplit(String tableName, long streamId, @Nullable String commitId) {
+        this.tableName = tableName;
         this.streamId = streamId;
         this.startingCommitId = commitId;
     }
 
-    public long getTableId() {
-        return tableId;
+    public String getTableName() {
+        return tableName;
     }
 
     public long getStreamId() {
@@ -33,12 +33,12 @@ public class MangrobeSplit implements SourceSplit {
 
     @Override
     public String splitId() {
-        return this.tableId + ":" + this.streamId;
+        return this.tableName + ":" + this.streamId;
     }
 
     public byte[] serialize() {
         var commitId = this.startingCommitId == null ? "" : this.startingCommitId;
-        var data = this.tableId + ":" + this.streamId + ":" + commitId;
+        var data = this.tableName + ":" + this.streamId + ":" + commitId;
         return data.getBytes(StandardCharsets.UTF_8);
     }
 
@@ -49,10 +49,10 @@ public class MangrobeSplit implements SourceSplit {
             throw new InvalidObjectException("corrupted");
         }
         try {
-            var tableId = Long.parseLong(splits[0]);
+            var tableName = splits[0];
             var streamId = Long.parseLong(splits[1]);
             var commitId = splits.length == 3 ? splits[2] : null;
-            return new MangrobeSplit(tableId, streamId, commitId);
+            return new MangrobeSplit(tableName, streamId, commitId);
         } catch (NumberFormatException e) {
             throw new InvalidObjectException("corrupted");
         }

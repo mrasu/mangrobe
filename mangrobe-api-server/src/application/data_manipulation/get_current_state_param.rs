@@ -1,5 +1,7 @@
-use crate::domain::model::user_table_stream::UserTablStream;
+use crate::domain::model::stream_id::StreamId;
+use crate::domain::model::user_table_name::UserTableName;
 
 pub struct GetCurrentStateParam {
-    pub stream: UserTablStream,
+    pub table_name: UserTableName,
+    pub stream_id: StreamId,
 }

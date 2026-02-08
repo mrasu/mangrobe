@@ -20,12 +20,12 @@ public class MangrobeSplitEnumerator implements SplitEnumerator<MangrobeSplit, S
     private boolean isFirstFetch = true;
 
     private final ManagedChannel channel;
-    private final long tableId;
+    private final String tableName;
     private final Set<Long> knownStreamIds = new HashSet<>();
 
-    public MangrobeSplitEnumerator(SplitEnumeratorContext<MangrobeSplit> context, String grpcTarget, long tableId) {
+    public MangrobeSplitEnumerator(SplitEnumeratorContext<MangrobeSplit> context, String grpcTarget, String tableName) {
         this.context = context;
-        this.tableId = tableId;
+        this.tableName = tableName;
         this.channel = ManagedChannelBuilder.forTarget(grpcTarget)
                 .usePlaintext()
                 .build();
@@ -79,10 +79,10 @@ public class MangrobeSplitEnumerator implements SplitEnumerator<MangrobeSplit, S
             var request = Api.ListStreamsRequest.newBuilder()
                     .setPagination(
                             Api.PaginationRequest.newBuilder().setToken(nextToken).build())
-                    .setTableId(this.tableId)
+                    .setTableName(this.tableName)
                     .build();
 
-            var stub = InformationSchemaServiceGrpc.newBlockingStub(channel);
+        var stub = InformationSchemaServiceGrpc.newBlockingStub(channel);
             var response = stub.listStreams(request);
             nextToken = response.getPagination().getNextToken();
 
@@ -90,7 +90,7 @@ public class MangrobeSplitEnumerator implements SplitEnumerator<MangrobeSplit, S
                 var streamId = stream.getStreamId();
                 if (knownStreamIds.add(streamId)) {
                     var commitId = isFirstFetch ? stream.getLastCommitId() : null;
-                    newSplits.add(new MangrobeSplit(this.tableId, streamId, commitId));
+                    newSplits.add(new MangrobeSplit(this.tableName, streamId, commitId));
                 }
             }
         } while (!nextToken.isEmpty());

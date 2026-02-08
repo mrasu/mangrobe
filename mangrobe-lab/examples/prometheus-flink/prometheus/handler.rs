@@ -1,5 +1,5 @@
 use crate::prometheus::model::create_parquet_from_write_request;
-use crate::{DEFAULT_PARTITION_TIME, PROM_STREAM_ID, PROM_TABLE_ID};
+use crate::{DEFAULT_PARTITION_TIME, PROM_STREAM_ID, PROM_TABLE_NAME};
 use hyper::body::to_bytes;
 use hyper::{Body, Request, Response, StatusCode};
 use mangrobe_lab::ApiClient;
@@ -67,7 +67,11 @@ impl Handler {
         };
 
         self.api_client
-            .add_files(PROM_TABLE_ID, PROM_STREAM_ID, vec![add_file_entry])
+            .add_files(
+                PROM_TABLE_NAME.to_string(),
+                PROM_STREAM_ID,
+                vec![add_file_entry],
+            )
             .await?;
 
         println!(

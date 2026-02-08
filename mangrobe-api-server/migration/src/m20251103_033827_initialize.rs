@@ -35,6 +35,7 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .take(),
                     )
+                    .col(text(UserTable::Name).unique_key())
                     .col(
                         timestamp_with_time_zone(UserTable::CreatedAt)
                             .default(Expr::current_timestamp()),
@@ -109,21 +110,33 @@ impl MigrationTrait for Migration {
             ))
             .await?;
 
-        // TODO: add FK after adding rpc for table creation
-        //
-        // manager
-        //     .create_foreign_key(
-        //         ForeignKey::create()
-        //             .name(format!(
-        //                 "fk_{}_{}",
-        //                 ChangeRequest::Table.to_string(),
-        //                 UserTable::Table.to_string()
-        //             ))
-        //             .from(ChangeRequest::Table, ChangeRequest::UserTableId)
-        //             .to(UserTable::Table, UserTable::Id)
-        //             .to_owned(),
-        //     )
-        //     .await?;
+        manager
+            .create_foreign_key(
+                ForeignKey::create()
+                    .name(format!(
+                        "fk_{}_{}",
+                        ChangeRequest::Table.to_string(),
+                        UserTable::Table.to_string()
+                    ))
+                    .from(ChangeRequest::Table, ChangeRequest::UserTableId)
+                    .to(UserTable::Table, UserTable::Id)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name(format!(
+                        "idx_{}_{}",
+                        ChangeRequest::Table.to_string(),
+                        ChangeRequest::UserTableId.to_string(),
+                    ))
+                    .table(ChangeRequest::Table)
+                    .col(ChangeRequest::UserTableId)
+                    .to_owned(),
+            )
+            .await?;
 
         manager
             .create_table(
@@ -224,6 +237,20 @@ impl MigrationTrait for Migration {
                     .name(format!(
                         "fk_{}_{}",
                         Commit::Table.to_string(),
+                        UserTable::Table.to_string()
+                    ))
+                    .from(Commit::Table, Commit::UserTableId)
+                    .to(UserTable::Table, UserTable::Id)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_foreign_key(
+                ForeignKey::create()
+                    .name(format!(
+                        "fk_{}_{}",
+                        Commit::Table.to_string(),
                         ChangeRequest::Table.to_string()
                     ))
                     .from(Commit::Table, Commit::ChangeRequestId)
@@ -304,6 +331,20 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
+            .create_foreign_key(
+                ForeignKey::create()
+                    .name(format!(
+                        "fk_{}_{}",
+                        File::Table.to_string(),
+                        UserTable::Table.to_string()
+                    ))
+                    .from(File::Table, File::UserTableId)
+                    .to(UserTable::Table, UserTable::Id)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
             .create_index(
                 Index::create()
                     .name(format!(
@@ -359,6 +400,34 @@ impl MigrationTrait for Migration {
                 )
                 .to_owned(),
             ))
+            .await?;
+
+        manager
+            .create_foreign_key(
+                ForeignKey::create()
+                    .name(format!(
+                        "fk_{}_{}",
+                        FileLock::Table.to_string(),
+                        UserTable::Table.to_string()
+                    ))
+                    .from(FileLock::Table, FileLock::UserTableId)
+                    .to(UserTable::Table, UserTable::Id)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name(format!(
+                        "idx_{}_{}",
+                        FileLock::Table.to_string(),
+                        FileLock::UserTableId.to_string(),
+                    ))
+                    .table(FileLock::Table)
+                    .col(FileLock::UserTableId)
+                    .to_owned(),
+            )
             .await?;
 
         manager
@@ -431,6 +500,20 @@ impl MigrationTrait for Migration {
                     ))
                     .table(CurrentFile::Table)
                     .col(CurrentFile::FileId)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_foreign_key(
+                ForeignKey::create()
+                    .name(format!(
+                        "fk_{}_{}",
+                        CurrentFile::Table.to_string(),
+                        UserTable::Table.to_string()
+                    ))
+                    .from(CurrentFile::Table, CurrentFile::UserTableId)
+                    .to(UserTable::Table, UserTable::Id)
                     .to_owned(),
             )
             .await?;
@@ -527,6 +610,7 @@ enum UserTable {
     #[sea_orm(iden = "user_tables")]
     Table,
     Id,
+    Name,
     // TODO: add definition's info
     CreatedAt,
     UpdatedAt,

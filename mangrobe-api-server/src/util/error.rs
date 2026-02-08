@@ -26,4 +26,7 @@ pub enum UserError {
 
     #[error("Invalid lock. {0}")]
     InvalidLockMessage(String),
+
+    #[error("Already exists. {0}")]
+    AlreadyExistsMessage(String),
 }

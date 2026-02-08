@@ -18,7 +18,7 @@ import java.util.Set;
 
 
 public class Main {
-    private static final Long PROM_TABLE_ID = 901L;
+    private static final String PROM_TABLE_NAME = "examples-prometheus-flink";
     private static final Set<String> TARGET_LABELS = Set.of(
             "prometheus_tsdb_wal_storage_size_bytes", "prometheus_tsdb_wal_segment_current",
             "prometheus_remote_storage_samples_in_total", "scrape_duration_seconds"
@@ -36,7 +36,7 @@ public class Main {
         env.setRuntimeMode(RuntimeExecutionMode.STREAMING);
 
         DataStream<MangrobeRecord> records = env
-                .fromSource(new MangrobeSource(grpcTarget, PROM_TABLE_ID), WatermarkStrategy.noWatermarks(), "mangrobe-examples-flink");
+                .fromSource(new MangrobeSource(grpcTarget, PROM_TABLE_NAME), WatermarkStrategy.noWatermarks(), "mangrobe-examples-flink");
 
         var promWriteRequests = records.map(new PromFileFetchOperator("mangrobe-development"));
 

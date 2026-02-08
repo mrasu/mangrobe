@@ -1,8 +1,7 @@
 use crate::application::lock_control::acquire_file_lock_param::AcquireFileLockParam;
 use crate::domain::model::lock_raw_file_entry::LockFileRawAcquireEntry;
-use crate::domain::model::user_table_stream::UserTablStream;
 use crate::grpc::proto::AcquireFileLockRequest;
-use crate::grpc::util::param_util::{to_file_lock_key, to_partition_time};
+use crate::grpc::util::param_util::{to_file_lock_key, to_partition_time, to_table_name};
 use crate::util::error::ParameterError;
 use chrono::{DateTime, Duration, Utc};
 use tonic::Request;
@@ -12,6 +11,7 @@ pub fn build_acquire_file_lock_param(
     request_started_at: DateTime<Utc>,
 ) -> Result<AcquireFileLockParam, ParameterError> {
     let req = request.get_ref();
+    let table_name = to_table_name(req.table_name.clone())?;
 
     let file_lock_key = to_file_lock_key(req.file_lock_key.clone(), request_started_at)?;
 
@@ -30,7 +30,8 @@ pub fn build_acquire_file_lock_param(
 
     let param = AcquireFileLockParam {
         file_lock_key,
-        stream: UserTablStream::new(req.table_id.into(), req.stream_id.into()),
+        table_name,
+        stream_id: req.stream_id.into(),
         ttl: Duration::seconds(req.ttl_sec),
         entries,
     };
