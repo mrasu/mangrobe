@@ -63,6 +63,7 @@ impl Handler {
             file_info_entries: vec![AddFileInfoEntry {
                 path: parquet_path.to_string(),
                 size: buffer_len as i64,
+                column_statistics: vec![],
             }],
         };
 

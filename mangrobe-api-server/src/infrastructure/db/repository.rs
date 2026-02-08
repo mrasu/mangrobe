@@ -11,5 +11,7 @@ mod file_dto;
 mod file_lock_dto;
 pub mod file_lock_repository;
 pub mod file_repository;
+mod file_column_statistics_dto;
+pub mod file_column_statistics_repository;
 mod user_table_dto;
 pub mod user_table_repository;

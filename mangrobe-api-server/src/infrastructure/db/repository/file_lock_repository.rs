@@ -4,7 +4,7 @@ use crate::infrastructure::db::entity::file_locks::{Column, Entity};
 use crate::infrastructure::db::entity::prelude::FileLocks;
 use crate::infrastructure::db::repository::file_lock_dto::build_entity_file_lock;
 use chrono::{Duration, Utc};
-use sea_orm::{ActiveModelTrait, ColumnTrait, TryInsertResult};
+use sea_orm::{ColumnTrait, TryInsertResult};
 use sea_orm::{ConnectionTrait, EntityTrait, QueryFilter};
 
 pub struct FileLockRepository {}

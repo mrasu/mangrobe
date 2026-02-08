@@ -367,6 +367,81 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
+                    .table(FileColumnStatistics::Table)
+                    .if_not_exists()
+                    .col(
+                        big_integer(FileColumnStatistics::Id)
+                            .auto_increment()
+                            .primary_key()
+                            .take(),
+                    )
+                    .col(big_integer(FileColumnStatistics::FileId))
+                    .col(text(FileColumnStatistics::ColumnName))
+                    .col(double_null(FileColumnStatistics::Min))
+                    .col(double_null(FileColumnStatistics::Max))
+                    .col(
+                        timestamp_with_time_zone(FileColumnStatistics::CreatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(
+                        timestamp_with_time_zone(FileColumnStatistics::UpdatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .get_connection()
+            .execute(Statement::from_string(
+                manager.get_database_backend(),
+                format!(
+                    r#"
+                CREATE TRIGGER trigger_update_updated_at
+                BEFORE UPDATE ON {}
+                FOR EACH ROW
+                EXECUTE FUNCTION update_timestamp();
+                "#,
+                    FileColumnStatistics::Table.to_string()
+                )
+                .to_owned(),
+            ))
+            .await?;
+
+        manager
+            .create_foreign_key(
+                ForeignKey::create()
+                    .name(format!(
+                        "fk_{}_{}",
+                        FileColumnStatistics::Table.to_string(),
+                        File::Table.to_string()
+                    ))
+                    .from(FileColumnStatistics::Table, FileColumnStatistics::FileId)
+                    .to(File::Table, File::Id)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name(format!(
+                        "idx_{}_{}_{}",
+                        FileColumnStatistics::Table.to_string(),
+                        FileColumnStatistics::FileId.to_string(),
+                        FileColumnStatistics::ColumnName.to_string(),
+                    ))
+                    .table(FileColumnStatistics::Table)
+                    .col(FileColumnStatistics::FileId)
+                    .col(FileColumnStatistics::ColumnName)
+                    .unique()
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
                     .table(FileLock::Table)
                     .if_not_exists()
                     .col(binary_len(FileLock::Key, 16).primary_key())
@@ -663,6 +738,19 @@ enum File {
     Path,
     PathXxh3,
     Size,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(DeriveIden)]
+enum FileColumnStatistics {
+    #[sea_orm(iden = "file_column_statistics")]
+    Table,
+    Id,
+    FileId,
+    ColumnName,
+    Min,
+    Max,
     CreatedAt,
     UpdatedAt,
 }

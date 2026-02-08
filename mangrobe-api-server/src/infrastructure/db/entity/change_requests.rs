@@ -23,6 +23,14 @@ pub enum Relation {
     ChangeRequestIdempotencyKeys,
     #[sea_orm(has_many = "super::commits::Entity")]
     Commits,
+    #[sea_orm(
+        belongs_to = "super::user_tables::Entity",
+        from = "Column::UserTableId",
+        to = "super::user_tables::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    UserTables,
 }
 
 impl Related<super::change_request_idempotency_keys::Entity> for Entity {
@@ -34,6 +42,12 @@ impl Related<super::change_request_idempotency_keys::Entity> for Entity {
 impl Related<super::commits::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Commits.def()
+    }
+}
+
+impl Related<super::user_tables::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::UserTables.def()
     }
 }
 

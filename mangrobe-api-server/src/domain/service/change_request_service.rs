@@ -23,6 +23,7 @@ use crate::infrastructure::db::repository::change_request_repository::ChangeRequ
 use crate::infrastructure::db::repository::commit_lock_repository::CommitLockRepository;
 use crate::infrastructure::db::repository::commit_repository::CommitRepository;
 use crate::infrastructure::db::repository::current_file_repository::CurrentFileRepository;
+use crate::infrastructure::db::repository::file_column_statistics_repository::FileColumnStatisticsRepository;
 use crate::infrastructure::db::repository::file_lock_repository::FileLockRepository;
 use crate::infrastructure::db::repository::file_repository::FileRepository;
 use crate::util::error::MangrobeError::UnexpectedState;
@@ -38,6 +39,7 @@ pub struct ChangeRequestService {
     commit_repository: CommitRepository,
     commit_lock_repository: CommitLockRepository,
     file_repository: FileRepository,
+    file_column_statistics_repository: FileColumnStatisticsRepository,
     current_file_repository: CurrentFileRepository,
 }
 
@@ -50,6 +52,7 @@ impl ChangeRequestService {
             commit_repository: CommitRepository::new(),
             commit_lock_repository: CommitLockRepository::new(),
             file_repository: FileRepository::new(),
+            file_column_statistics_repository: FileColumnStatisticsRepository::new(),
             current_file_repository: CurrentFileRepository::new(),
         }
     }
@@ -224,6 +227,22 @@ impl ChangeRequestService {
             .collect();
         let file_ids = self.file_repository.insert_many(txn, &files).await?;
 
+        let statistics_to_insert: Vec<_> = file_ids
+            .iter()
+            .zip(files_to_add.iter())
+            .flat_map(|(file_id, entry)| {
+                entry
+                    .column_statistics
+                    .iter()
+                    .cloned()
+                    .map(|statistics| (file_id.clone(), statistics))
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        self.file_column_statistics_repository
+            .insert_many(txn, &statistics_to_insert)
+            .await?;
+
         Ok(file_ids)
     }
 
@@ -355,7 +374,21 @@ impl ChangeRequestService {
     ) -> Result<FileId, anyhow::Error> {
         let file = file_entry.to_file(change_request.base.stream.clone(), partition_time);
 
-        self.file_repository.insert(txn, &file).await
+        let file_id = self.file_repository.insert(txn, &file).await?;
+
+        if !file_entry.column_statistics.is_empty() {
+            let stats_to_insert: Vec<_> = file_entry
+                .column_statistics
+                .iter()
+                .cloned()
+                .map(|statistics| (file_id.clone(), statistics))
+                .collect();
+            self.file_column_statistics_repository
+                .insert_many(txn, &stats_to_insert)
+                .await?;
+        }
+
+        Ok(file_id)
     }
 
     async fn find_file_ids(

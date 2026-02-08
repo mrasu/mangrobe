@@ -66,6 +66,7 @@ pub async fn register_files(
         add_file_entry.file_info_entries.push(AddFileInfoEntry {
             path: filename.into(),
             size: size as i64,
+            column_statistics: vec![],
         })
     }
 

@@ -3,6 +3,7 @@ use crate::domain::model::change_request_raw_file_entry::{
     ChangeRequestRawCompactFileInfoEntry, ChangeRequestRawCompactFilesEntry,
 };
 use crate::domain::model::file::FileEntry;
+use crate::domain::model::file_column_statistics::FileColumnStatistics;
 use crate::grpc::proto::CompactFilesRequest;
 use crate::grpc::util::param_util::{to_file_lock_key, to_partition_time, to_table_name};
 use crate::util::error::ParameterError;
@@ -36,7 +37,23 @@ pub(super) fn build_compact_files_param(
             let Some(ref req_dst_file) = info_entry.dst_entry else {
                 return Err(ParameterError::Required("dst_file_entry".to_string()));
             };
-            let dst_file = FileEntry::new(req_dst_file.path.clone().into(), req_dst_file.size);
+
+            let mut dst_stats = Vec::with_capacity(req_dst_file.column_statistics.len());
+            for statistics in &req_dst_file.column_statistics {
+                if statistics.column_name.is_empty() {
+                    return Err(ParameterError::Required("column_name".to_string()));
+                }
+                dst_stats.push(FileColumnStatistics::new(
+                    statistics.column_name.clone(),
+                    statistics.min,
+                    statistics.max,
+                ));
+            }
+            let dst_file = FileEntry::new(
+                req_dst_file.path.clone().into(),
+                req_dst_file.size,
+                dst_stats,
+            );
             file_info_entries.push(ChangeRequestRawCompactFileInfoEntry::new(
                 src_file_paths,
                 dst_file,

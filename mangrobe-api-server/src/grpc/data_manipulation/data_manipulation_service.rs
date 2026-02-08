@@ -1,14 +1,17 @@
 use crate::application::data_manipulation::data_manipulation_use_case::DataManipulationUseCase;
 use crate::grpc::data_manipulation::add_files_param::build_add_files_param;
+use crate::grpc::data_manipulation::build_file_info_response::build_file_info_response;
 use crate::grpc::data_manipulation::change_files_param::build_change_file_param;
 use crate::grpc::data_manipulation::compact_files_param::build_compact_files_param;
 use crate::grpc::data_manipulation::get_changes_param::build_get_commits_param;
 use crate::grpc::data_manipulation::get_changes_response::build_get_commits_response;
 use crate::grpc::data_manipulation::get_current_state_param::build_get_current_state_param;
+use crate::grpc::data_manipulation::get_file_info_param::build_get_file_info_param;
 use crate::grpc::proto::{
     AddFilesRequest, AddFilesResponse, ChangeFilesRequest, ChangeFilesResponse,
     CompactFilesRequest, CompactFilesResponse, File, GetCommitsRequest, GetCommitsResponse,
-    GetCurrentStateRequest, GetCurrentStateResponse, data_manipulation_service_server,
+    GetCurrentStateRequest, GetCurrentStateResponse, GetFileInfoRequest, GetFileInfoResponse,
+    data_manipulation_service_server,
 };
 use crate::grpc::util::error::{build_invalid_argument, to_grpc_error};
 use chrono::Utc;
@@ -52,6 +55,7 @@ impl data_manipulation_service_server::DataManipulationService for DataManipulat
                 .files
                 .iter()
                 .map(|f| File {
+                    file_id: f.id.val().to_string(),
                     path: f.file.path.path(),
                     size: f.file.size,
                 })
@@ -74,6 +78,27 @@ impl data_manipulation_service_server::DataManipulationService for DataManipulat
             .map_err(to_grpc_error)?;
 
         let response = build_get_commits_response(&param.table_name, changes);
+        Ok(Response::new(response))
+    }
+
+    async fn get_file_info(
+        &self,
+        request: Request<GetFileInfoRequest>,
+    ) -> Result<Response<GetFileInfoResponse>, Status> {
+        let param = build_get_file_info_param(request).map_err(build_invalid_argument)?;
+
+        let file_with_stats = self
+            .data_manipulation_use_case
+            .get_file_with_stat(param.clone())
+            .await
+            .map_err(to_grpc_error)?;
+
+        let response = GetFileInfoResponse {
+            file_info: file_with_stats
+                .iter()
+                .map(|f| build_file_info_response(&param, f))
+                .collect(),
+        };
         Ok(Response::new(response))
     }
 

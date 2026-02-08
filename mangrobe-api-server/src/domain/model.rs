@@ -9,6 +9,7 @@ pub mod commit_id;
 pub mod committed_change_request;
 pub mod current_file;
 pub mod file;
+pub mod file_column_statistics;
 pub mod file_id;
 pub mod file_lock_key;
 pub mod idempotency_key;

@@ -3,15 +3,18 @@ use crate::application::data_manipulation::change_files_param::ChangeFilesParam;
 use crate::application::data_manipulation::compact_files_param::CompactFilesParam;
 use crate::application::data_manipulation::get_changes_param::GetChangesParam;
 use crate::application::data_manipulation::get_current_state_param::GetCurrentStateParam;
+use crate::application::data_manipulation::get_file_info_param::GetFileInfoParam;
 use crate::application::util::user_table::find_table_id;
 use crate::domain::model::change_request::ChangeRequestType;
 use crate::domain::model::commit_id::CommitId;
 use crate::domain::model::committed_change_request::CommittedStreamChange;
+use crate::domain::model::file::FileWithStatistics;
 use crate::domain::model::snapshot::Snapshot;
 use crate::domain::model::user_table_stream::UserTablStream;
 use crate::domain::service::change_request_service::ChangeRequestService;
 use crate::domain::service::committed_change_request_service::CommittedChangeRequestService;
 use crate::domain::service::file_lock_key_service::FileLockService;
+use crate::domain::service::file_service::FileService;
 use crate::domain::service::snapshot_service::SnapshotService;
 use crate::domain::service::user_table_service::UserTableService;
 use crate::util::error::UserError;
@@ -23,6 +26,7 @@ pub struct DataManipulationUseCase {
     change_request_service: ChangeRequestService,
     committed_change_request_service: CommittedChangeRequestService,
     file_lock_service: FileLockService,
+    file_service: FileService,
     user_table_service: UserTableService,
 }
 
@@ -33,6 +37,7 @@ impl DataManipulationUseCase {
             change_request_service: ChangeRequestService::new(&connection),
             committed_change_request_service: CommittedChangeRequestService::new(&connection),
             file_lock_service: FileLockService::new(&connection),
+            file_service: FileService::new(&connection),
             user_table_service: UserTableService::new(&connection),
         }
     }
@@ -67,6 +72,13 @@ impl DataManipulationUseCase {
             Ok(changes) => Ok(CommittedStreamChange::new(param.stream_id.clone(), changes)),
             Err(e) => Err(e),
         }
+    }
+
+    pub async fn get_file_with_stat(
+        &self,
+        param: GetFileInfoParam,
+    ) -> Result<Vec<FileWithStatistics>, anyhow::Error> {
+        self.file_service.get_files_with_stat(&param.file_ids).await
     }
 
     pub async fn add_files(&self, param: AddFilesParam) -> Result<CommitId, anyhow::Error> {

@@ -22,11 +22,33 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(has_many = "super::current_files::Entity")]
     CurrentFiles,
+    #[sea_orm(has_many = "super::file_column_statistics::Entity")]
+    FileColumnStatistics,
+    #[sea_orm(
+        belongs_to = "super::user_tables::Entity",
+        from = "Column::UserTableId",
+        to = "super::user_tables::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    UserTables,
 }
 
 impl Related<super::current_files::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::CurrentFiles.def()
+    }
+}
+
+impl Related<super::file_column_statistics::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::FileColumnStatistics.def()
+    }
+}
+
+impl Related<super::user_tables::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::UserTables.def()
     }
 }
 

@@ -4,6 +4,7 @@ pub use super::change_request_idempotency_keys::Entity as ChangeRequestIdempoten
 pub use super::change_requests::Entity as ChangeRequests;
 pub use super::commits::Entity as Commits;
 pub use super::current_files::Entity as CurrentFiles;
+pub use super::file_column_statistics::Entity as FileColumnStatistics;
 pub use super::file_locks::Entity as FileLocks;
 pub use super::files::Entity as Files;
 pub use super::user_tables::Entity as UserTables;

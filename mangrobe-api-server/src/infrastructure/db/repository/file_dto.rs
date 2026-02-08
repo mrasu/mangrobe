@@ -1,7 +1,8 @@
-use crate::domain::model::file::{File, FileWithId};
+use crate::domain::model::file::{File, FileWithId, FileWithStatistics};
+use crate::domain::model::file_column_statistics::FileColumnStatistics;
 use crate::domain::model::user_table_stream::UserTablStream;
-use crate::infrastructure::db::entity::files;
 use crate::infrastructure::db::entity::files::ActiveModel;
+use crate::infrastructure::db::entity::{file_column_statistics, files};
 use sea_orm::Set;
 
 pub(super) fn build_entity_file(file: &File) -> ActiveModel {
@@ -25,5 +26,24 @@ pub(super) fn build_domain_file(file: &files::Model) -> FileWithId {
         file.partition_time.into(),
         file.path.clone().into(),
         file.size,
+    )
+}
+
+pub(super) fn build_domain_file_with_statistics(
+    file: &files::Model,
+    column_stats: &[file_column_statistics::Model],
+) -> FileWithStatistics {
+    let column_statistics = column_stats
+        .iter()
+        .map(|stat| FileColumnStatistics::new(stat.column_name.clone(), stat.min, stat.max))
+        .collect();
+
+    FileWithStatistics::new(
+        file.id.into(),
+        UserTablStream::new(file.user_table_id.into(), file.stream_id.into()),
+        file.partition_time.into(),
+        file.path.clone().into(),
+        file.size,
+        column_statistics,
     )
 }

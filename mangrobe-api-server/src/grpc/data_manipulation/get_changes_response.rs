@@ -58,6 +58,7 @@ fn build_committed_files(files: &[FileData]) -> Vec<CommittedFile> {
 
 fn build_committed_file(file: &FileData) -> CommittedFile {
     CommittedFile {
+        file_id: file.id.val().to_string(),
         path: file.path.path(),
     }
 }

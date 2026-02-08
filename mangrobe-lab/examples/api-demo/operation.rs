@@ -1,7 +1,7 @@
 use mangrobe_lab::proto::{
     AcquireFileLockEntry, AcquireFileLockFileInfoEntry, AddFileEntry, AddFileInfoEntry,
-    ChangeFileDeleteEntry, ChangeFileEntry, CompactFileDstEntry, CompactFileEntry,
-    CompactFileInfoEntry, CompactFileSrcEntry,
+    ChangeFileDeleteEntry, ChangeFileEntry, ColumnStatisticsEntry, CompactFileDstEntry,
+    CompactFileEntry, CompactFileInfoEntry, CompactFileSrcEntry,
 };
 use mangrobe_lab::{ApiClient, Stream};
 use prost_types::Timestamp;
@@ -61,6 +61,7 @@ pub async fn add_files(
             .map(|path| AddFileInfoEntry {
                 path: path.to_string(),
                 size: 1,
+                column_statistics: vec![],
             })
             .collect(),
     }];
@@ -100,6 +101,7 @@ pub async fn compact_files(
             dst_entry: Some(CompactFileDstEntry {
                 path: dst_file.to_string(),
                 size: 123,
+                column_statistics: vec![],
             }),
         }],
     }];

@@ -104,6 +104,6 @@ impl ChangeRequestFileEntry {
         file_map: &HashMap<FileId, FileWithId>,
         file_id: &FileId,
     ) -> FileData {
-        FileData::new(file_map[file_id].file.path.clone())
+        FileData::new(file_id.clone(), file_map[file_id].file.path.clone())
     }
 }

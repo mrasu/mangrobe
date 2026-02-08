@@ -42,6 +42,7 @@ impl lock_control_service_server::LockControlService for LockControlService {
             files: locked_files
                 .iter()
                 .map(|f| File {
+                    file_id: f.id.val().to_string(),
                     path: f.file.path.path(),
                     size: f.file.size,
                 })

@@ -1,6 +1,7 @@
 use crate::application::data_manipulation::add_files_param::AddFilesParam;
 use crate::domain::model::change_request_raw_file_entry::ChangeRequestRawAddFileEntry;
 use crate::domain::model::file::FileEntry;
+use crate::domain::model::file_column_statistics::FileColumnStatistics;
 use crate::grpc::proto::AddFilesRequest;
 use crate::grpc::util::param_util::{to_idempotency_key, to_partition_time, to_table_name};
 use crate::util::error::ParameterError;
@@ -22,8 +23,22 @@ pub(super) fn build_add_files_param(
             entry
                 .file_info_entries
                 .iter()
-                .map(|f| FileEntry::new(f.path.clone().into(), f.size))
-                .collect(),
+                .map(|f| {
+                    let mut stats = Vec::with_capacity(f.column_statistics.len());
+                    for statistics in &f.column_statistics {
+                        if statistics.column_name.is_empty() {
+                            return Err(ParameterError::Required("column_name".to_string()));
+                        }
+                        stats.push(FileColumnStatistics::new(
+                            statistics.column_name.clone(),
+                            statistics.min,
+                            statistics.max,
+                        ));
+                    }
+
+                    Ok(FileEntry::new(f.path.clone().into(), f.size, stats))
+                })
+                .collect::<Result<Vec<_>, _>>()?,
         ))
     }
 

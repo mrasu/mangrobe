@@ -6,6 +6,7 @@ import "google/protobuf/timestamp.proto";
 service DataManipulationService {
   rpc GetCurrentState(GetCurrentStateRequest) returns (GetCurrentStateResponse);
   rpc GetCommits(GetCommitsRequest) returns (GetCommitsResponse);
+  rpc GetFileInfo(GetFileInfoRequest) returns (GetFileInfoResponse);
 
   rpc AddFiles(AddFilesRequest) returns (AddFilesResponse);
   rpc ChangeFiles(ChangeFilesRequest) returns (ChangeFilesResponse);
@@ -49,8 +50,9 @@ message GetCurrentStateResponse {
 }
 
 message File {
-  string path = 1;
-  int64 size = 2;
+  string file_id = 1;
+  string path = 2;
+  int64 size = 3;
 }
 
 message GetCommitsRequest {
@@ -65,6 +67,7 @@ message GetCommitsResponse {
   string table_name = 1;
   int64 stream_id = 2;
 
+  // TODO: add `optional` keyword
   // Commits are ordered in the order they were applied.
   repeated Commit commits = 3;
 }
@@ -97,7 +100,35 @@ message CompactedFile {
 }
 
 message CommittedFile {
-  string path = 1;
+  string file_id = 1;
+  string path = 2;
+}
+
+message GetFileInfoRequest {
+  repeated string file_ids = 1;
+  repeated FileColumnStatisticsType included_column_statistics_types = 2;
+}
+
+enum FileColumnStatisticsType {
+  FILE_COLUMN_STATISTICS_TYPE_MIN = 0;
+  FILE_COLUMN_STATISTICS_TYPE_MAX = 1;
+}
+
+message GetFileInfoResponse {
+  repeated FileInfoResponse file_info = 1;
+}
+
+message FileInfoResponse {
+  string file_id = 1;
+  string path = 2;
+  int64 size = 3;
+  repeated FileColumnStatistics column_statistics = 4;
+}
+
+message FileColumnStatistics {
+  string column_name = 1;
+  optional double min = 2;
+  optional double max = 3;
 }
 
 message AddFilesRequest {
@@ -117,6 +148,14 @@ message AddFileEntry {
 message AddFileInfoEntry {
   string path = 1;
   int64 size = 2;
+
+  repeated ColumnStatisticsEntry column_statistics = 3;
+}
+
+message ColumnStatisticsEntry {
+  string column_name = 1;
+  optional double min = 2;
+  optional double max = 3;
 }
 
 message AddFilesResponse {
@@ -171,6 +210,8 @@ message CompactFileSrcEntry {
 message CompactFileDstEntry {
   string path = 1;
   int64 size = 2;
+
+  repeated ColumnStatisticsEntry column_statistics = 3;
 }
 
 message CompactFilesResponse {

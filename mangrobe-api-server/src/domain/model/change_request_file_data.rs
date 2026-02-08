@@ -1,4 +1,5 @@
 use crate::domain::model::file::FilePath;
+use crate::domain::model::file_id::FileId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
@@ -37,11 +38,12 @@ pub struct ChangeRequestCompactFileData {
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct FileData {
+    pub id: FileId,
     pub path: FilePath,
 }
 
 impl FileData {
-    pub fn new(path: FilePath) -> Self {
-        Self { path }
+    pub fn new(id: FileId, path: FilePath) -> Self {
+        Self { id, path }
     }
 }

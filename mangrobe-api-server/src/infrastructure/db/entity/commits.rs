@@ -23,11 +23,25 @@ pub enum Relation {
         on_delete = "NoAction"
     )]
     ChangeRequests,
+    #[sea_orm(
+        belongs_to = "super::user_tables::Entity",
+        from = "Column::UserTableId",
+        to = "super::user_tables::Column::Id",
+        on_update = "NoAction",
+        on_delete = "NoAction"
+    )]
+    UserTables,
 }
 
 impl Related<super::change_requests::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::ChangeRequests.def()
+    }
+}
+
+impl Related<super::user_tables::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::UserTables.def()
     }
 }
 

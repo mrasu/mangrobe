@@ -1,3 +1,4 @@
+use crate::domain::model::file_column_statistics::FileColumnStatistics;
 use crate::domain::model::file_id::FileId;
 use crate::domain::model::user_table_stream::UserTablStream;
 use chrono::{DateTime, Utc};
@@ -49,6 +50,30 @@ impl FileWithId {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct FileWithStatistics {
+    pub id: FileId,
+    pub file: File,
+    pub column_statistics: Vec<FileColumnStatistics>,
+}
+
+impl FileWithStatistics {
+    pub fn new(
+        id: FileId,
+        stream: UserTablStream,
+        partition_time: DateTime<Utc>,
+        path: FilePath,
+        size: i64,
+        column_statistics: Vec<FileColumnStatistics>,
+    ) -> Self {
+        Self {
+            id,
+            file: File::new(stream, partition_time, path, size),
+            column_statistics,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct FilePath {
@@ -79,11 +104,16 @@ impl From<String> for FilePath {
 pub struct FileEntry {
     pub path: FilePath,
     pub size: i64,
+    pub column_statistics: Vec<FileColumnStatistics>,
 }
 
 impl FileEntry {
-    pub fn new(path: FilePath, size: i64) -> Self {
-        Self { path, size }
+    pub fn new(path: FilePath, size: i64, column_statistics: Vec<FileColumnStatistics>) -> Self {
+        Self {
+            path,
+            size,
+            column_statistics,
+        }
     }
 
     pub fn to_file(&self, stream: UserTablStream, partition_time: DateTime<Utc>) -> File {
