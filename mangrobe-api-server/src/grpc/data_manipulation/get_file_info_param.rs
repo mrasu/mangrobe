@@ -23,6 +23,12 @@ pub(super) fn build_get_file_info_param(
     let mut include_max = false;
     for stat_type in &req.included_column_statistics_types {
         match FileColumnStatisticsType::try_from(*stat_type) {
+            Ok(FileColumnStatisticsType::Unspecified) => {
+                return Err(ParameterError::Invalid(
+                    "included_column_statistics_types".to_string(),
+                    "unspecified is included".to_string(),
+                ));
+            }
             Ok(FileColumnStatisticsType::Min) => include_min = true,
             Ok(FileColumnStatisticsType::Max) => include_max = true,
             Err(_) => {
