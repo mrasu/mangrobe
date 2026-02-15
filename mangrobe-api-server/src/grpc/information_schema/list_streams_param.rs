@@ -16,7 +16,7 @@ pub(super) fn parse_list_streams_param(
 
     let pagination = req.pagination.clone().unwrap_or(PaginationRequest {
         size: 0,
-        token: "".to_string(),
+        token: None,
     });
     let page = build_page(&pagination, DEFAULT_PAGE_SIZE)?;
 

@@ -10,10 +10,8 @@ pub(super) fn build_get_commits_param(
     let req = request.get_ref();
     let table_name = to_table_name(req.table_name.clone())?;
 
-    let commit_id_after = if req.commit_id_after.is_empty() {
-        0
-    } else {
-        let commit_id_after = req.commit_id_after.parse::<i64>().map_err(|_| {
+    let commit_id_after = if let Some(commit_id_after) = &req.commit_id_after {
+        let commit_id_after = commit_id_after.parse::<i64>().map_err(|_| {
             ParameterError::Invalid("commit_id_after".to_string(), "invalid number".to_string())
         })?;
         if commit_id_after < 0 {
@@ -23,6 +21,8 @@ pub(super) fn build_get_commits_param(
             ));
         }
         commit_id_after
+    } else {
+        0
     };
 
     Ok(GetChangesParam {

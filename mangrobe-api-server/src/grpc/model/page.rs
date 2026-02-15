@@ -29,11 +29,7 @@ pub fn build_page(
         s => s.min(DEFAULT_PAGE_SIZE_LIMIT),
     };
 
-    let token = if pagination_request.token.is_empty() {
-        None
-    } else {
-        Some(pagination_request.token.clone())
-    };
+    let token = pagination_request.token.clone();
 
     Ok(Page { size, token })
 }

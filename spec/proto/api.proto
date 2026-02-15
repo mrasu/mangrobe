@@ -60,14 +60,13 @@ message GetCommitsRequest {
   int64 stream_id = 2;
 
   // Optional. Starts at the beginning if not set.
-  string commit_id_after = 3;
+  optional string commit_id_after = 3;
 }
 
 message GetCommitsResponse {
   string table_name = 1;
   int64 stream_id = 2;
 
-  // TODO: add `optional` keyword
   // Commits are ordered in the order they were applied.
   repeated Commit commits = 3;
 }
@@ -282,7 +281,7 @@ message PaginationRequest  {
   // Must be positive. If zero, the system chooses an appropriate default. If too large, the system coerces down to an acceptable size.
   int32 size = 1;
   // Optional. Starts at the beginning if not set.
-  string token = 2;
+  optional string token = 2;
 }
 
 message PaginationResponse {
