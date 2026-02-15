@@ -1,5 +1,6 @@
 use crate::domain::model::file_column_statistics::FileColumnStatistics;
 use crate::domain::model::file_id::FileId;
+use crate::domain::model::file_metadata::FileMetadata;
 use crate::domain::model::user_table_stream::UserTablStream;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -50,30 +51,6 @@ impl FileWithId {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct FileWithStatistics {
-    pub id: FileId,
-    pub file: File,
-    pub column_statistics: Vec<FileColumnStatistics>,
-}
-
-impl FileWithStatistics {
-    pub fn new(
-        id: FileId,
-        stream: UserTablStream,
-        partition_time: DateTime<Utc>,
-        path: FilePath,
-        size: i64,
-        column_statistics: Vec<FileColumnStatistics>,
-    ) -> Self {
-        Self {
-            id,
-            file: File::new(stream, partition_time, path, size),
-            column_statistics,
-        }
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct FilePath {
@@ -105,14 +82,21 @@ pub struct FileEntry {
     pub path: FilePath,
     pub size: i64,
     pub column_statistics: Vec<FileColumnStatistics>,
+    pub file_metadata: Option<FileMetadata>,
 }
 
 impl FileEntry {
-    pub fn new(path: FilePath, size: i64, column_statistics: Vec<FileColumnStatistics>) -> Self {
+    pub fn new(
+        path: FilePath,
+        size: i64,
+        column_statistics: Vec<FileColumnStatistics>,
+        file_metadata: Option<FileMetadata>,
+    ) -> Self {
         Self {
             path,
             size,
             column_statistics,
+            file_metadata,
         }
     }
 

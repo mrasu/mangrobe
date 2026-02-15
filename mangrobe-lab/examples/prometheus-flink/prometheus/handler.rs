@@ -64,6 +64,7 @@ impl Handler {
                 path: parquet_path.to_string(),
                 size: buffer_len as i64,
                 column_statistics: vec![],
+                file_metadata: None,
             }],
         };
 

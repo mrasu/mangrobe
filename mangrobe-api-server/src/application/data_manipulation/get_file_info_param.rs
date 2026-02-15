@@ -15,8 +15,22 @@ impl FileStatisticsSelection {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct FileMetadataSelection {
+    pub includes_parquet_metadata: bool,
+}
+
+impl FileMetadataSelection {
+    pub fn new(includes_parquet_metadata: bool) -> Self {
+        Self {
+            includes_parquet_metadata,
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct GetFileInfoParam {
     pub file_ids: Vec<FileId>,
     pub stat_types: FileStatisticsSelection,
+    pub metadata_types: FileMetadataSelection,
 }

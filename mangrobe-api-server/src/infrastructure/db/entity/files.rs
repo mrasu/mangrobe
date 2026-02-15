@@ -24,6 +24,8 @@ pub enum Relation {
     CurrentFiles,
     #[sea_orm(has_many = "super::file_column_statistics::Entity")]
     FileColumnStatistics,
+    #[sea_orm(has_one = "super::file_metadata::Entity")]
+    FileMetadata,
     #[sea_orm(
         belongs_to = "super::user_tables::Entity",
         from = "Column::UserTableId",
@@ -43,6 +45,12 @@ impl Related<super::current_files::Entity> for Entity {
 impl Related<super::file_column_statistics::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::FileColumnStatistics.def()
+    }
+}
+
+impl Related<super::file_metadata::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::FileMetadata.def()
     }
 }
 

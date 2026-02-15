@@ -8,7 +8,7 @@ use crate::application::util::user_table::find_table_id;
 use crate::domain::model::change_request::ChangeRequestType;
 use crate::domain::model::commit_id::CommitId;
 use crate::domain::model::committed_change_request::CommittedStreamChange;
-use crate::domain::model::file::FileWithStatistics;
+use crate::domain::model::file_with_statistics::FileWithStatistics;
 use crate::domain::model::snapshot::Snapshot;
 use crate::domain::model::user_table_stream::UserTablStream;
 use crate::domain::service::change_request_service::ChangeRequestService;
@@ -78,7 +78,12 @@ impl DataManipulationUseCase {
         &self,
         param: GetFileInfoParam,
     ) -> Result<Vec<FileWithStatistics>, anyhow::Error> {
-        self.file_service.get_files_with_stat(&param.file_ids).await
+        self.file_service
+            .get_files_with_stat(
+                &param.file_ids,
+                param.metadata_types.includes_parquet_metadata,
+            )
+            .await
     }
 
     pub async fn add_files(&self, param: AddFilesParam) -> Result<CommitId, anyhow::Error> {

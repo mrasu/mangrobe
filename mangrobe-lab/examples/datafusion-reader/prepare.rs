@@ -67,6 +67,7 @@ pub async fn register_files(
             path: filename.into(),
             size: size as i64,
             column_statistics: vec![],
+            file_metadata: None,
         })
     }
 

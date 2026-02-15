@@ -10,6 +10,8 @@ pub mod current_file_repository;
 mod file_dto;
 mod file_lock_dto;
 pub mod file_lock_repository;
+mod file_metadata_dto;
+pub mod file_metadata_repository;
 pub mod file_repository;
 mod file_column_statistics_dto;
 pub mod file_column_statistics_repository;

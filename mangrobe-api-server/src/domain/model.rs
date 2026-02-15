@@ -12,6 +12,8 @@ pub mod file;
 pub mod file_column_statistics;
 pub mod file_id;
 pub mod file_lock_key;
+pub mod file_metadata;
+pub mod file_with_statistics;
 pub mod idempotency_key;
 pub mod lock_raw_file_entry;
 pub mod snapshot;

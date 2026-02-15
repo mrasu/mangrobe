@@ -367,6 +367,56 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
+                    .table(FileMetadata::Table)
+                    .if_not_exists()
+                    .col(big_integer(FileMetadata::FileId).primary_key())
+                    .col(binary_null(FileMetadata::ParquetMetadata))
+                    .col(
+                        timestamp_with_time_zone(FileMetadata::CreatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(
+                        timestamp_with_time_zone(FileMetadata::UpdatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .get_connection()
+            .execute(Statement::from_string(
+                manager.get_database_backend(),
+                format!(
+                    r#"
+                CREATE TRIGGER trigger_update_updated_at
+                BEFORE UPDATE ON {}
+                FOR EACH ROW
+                EXECUTE FUNCTION update_timestamp();
+                "#,
+                    FileMetadata::Table.to_string()
+                )
+                .to_owned(),
+            ))
+            .await?;
+
+        manager
+            .create_foreign_key(
+                ForeignKey::create()
+                    .name(format!(
+                        "fk_{}_{}",
+                        FileMetadata::Table.to_string(),
+                        File::Table.to_string()
+                    ))
+                    .from(FileMetadata::Table, FileMetadata::FileId)
+                    .to(File::Table, File::Id)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
                     .table(FileColumnStatistics::Table)
                     .if_not_exists()
                     .col(
@@ -655,6 +705,14 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
+            .drop_table(Table::drop().table(FileColumnStatistics::Table).to_owned())
+            .await?;
+
+        manager
+            .drop_table(Table::drop().table(FileMetadata::Table).to_owned())
+            .await?;
+
+        manager
             .drop_table(Table::drop().table(File::Table).to_owned())
             .await?;
 
@@ -738,6 +796,16 @@ enum File {
     Path,
     PathXxh3,
     Size,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(DeriveIden)]
+enum FileMetadata {
+    #[sea_orm(iden = "file_metadata")]
+    Table,
+    FileId,
+    ParquetMetadata,
     CreatedAt,
     UpdatedAt,
 }

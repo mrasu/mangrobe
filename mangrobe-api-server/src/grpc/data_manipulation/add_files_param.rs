@@ -2,6 +2,7 @@ use crate::application::data_manipulation::add_files_param::AddFilesParam;
 use crate::domain::model::change_request_raw_file_entry::ChangeRequestRawAddFileEntry;
 use crate::domain::model::file::FileEntry;
 use crate::domain::model::file_column_statistics::FileColumnStatistics;
+use crate::domain::model::file_metadata::FileMetadata;
 use crate::grpc::proto::AddFilesRequest;
 use crate::grpc::util::param_util::{to_idempotency_key, to_partition_time, to_table_name};
 use crate::util::error::ParameterError;
@@ -36,7 +37,17 @@ pub(super) fn build_add_files_param(
                         ));
                     }
 
-                    Ok(FileEntry::new(f.path.clone().into(), f.size, stats))
+                    let file_metadata = f
+                        .file_metadata
+                        .as_ref()
+                        .map(|metadata| FileMetadata::new(metadata.parquet_metadata.clone()));
+
+                    Ok(FileEntry::new(
+                        f.path.clone().into(),
+                        f.size,
+                        stats,
+                        file_metadata,
+                    ))
                 })
                 .collect::<Result<Vec<_>, _>>()?,
         ))

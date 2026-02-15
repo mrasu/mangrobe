@@ -1,5 +1,6 @@
-use crate::domain::model::file_id::FileId;
 use crate::domain::model::file_column_statistics::FileColumnStatistics;
+use crate::domain::model::file_id::FileId;
+use crate::infrastructure::db::entity::file_column_statistics::Model;
 use crate::infrastructure::db::entity::file_column_statistics;
 use sea_orm::Set;
 
@@ -16,4 +17,8 @@ pub fn build_entity_file_column_statistics(
         created_at: Default::default(),
         updated_at: Default::default(),
     }
+}
+
+pub(super) fn build_domain_column_statistics(model: Model) -> FileColumnStatistics {
+    FileColumnStatistics::new(model.column_name, model.min, model.max)
 }

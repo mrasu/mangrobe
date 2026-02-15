@@ -4,6 +4,7 @@ use crate::domain::model::change_request_raw_file_entry::{
 };
 use crate::domain::model::file::FileEntry;
 use crate::domain::model::file_column_statistics::FileColumnStatistics;
+use crate::domain::model::file_metadata::FileMetadata;
 use crate::grpc::proto::CompactFilesRequest;
 use crate::grpc::util::param_util::{to_file_lock_key, to_partition_time, to_table_name};
 use crate::util::error::ParameterError;
@@ -53,6 +54,10 @@ pub(super) fn build_compact_files_param(
                 req_dst_file.path.clone().into(),
                 req_dst_file.size,
                 dst_stats,
+                req_dst_file
+                    .file_metadata
+                    .as_ref()
+                    .map(|metadata| FileMetadata::new(metadata.parquet_metadata.clone())),
             );
             file_info_entries.push(ChangeRequestRawCompactFileInfoEntry::new(
                 src_file_paths,

@@ -8,5 +8,6 @@ pub mod commits;
 pub mod current_files;
 pub mod file_column_statistics;
 pub mod file_locks;
+pub mod file_metadata;
 pub mod files;
 pub mod user_tables;

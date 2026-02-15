@@ -1,8 +1,8 @@
 use crate::application::data_manipulation::get_file_info_param::{
-    FileStatisticsSelection, GetFileInfoParam,
+    FileMetadataSelection, FileStatisticsSelection, GetFileInfoParam,
 };
 use crate::domain::model::file_id::FileId;
-use crate::grpc::proto::{FileColumnStatisticsType, GetFileInfoRequest};
+use crate::grpc::proto::{FileColumnStatisticsType, FileMetadataType, GetFileInfoRequest};
 use crate::util::error::ParameterError;
 use tonic::Request;
 
@@ -23,14 +23,15 @@ pub(super) fn build_get_file_info_param(
     let mut include_max = false;
     for stat_type in &req.included_column_statistics_types {
         match FileColumnStatisticsType::try_from(*stat_type) {
+            Ok(FileColumnStatisticsType::Min) => include_min = true,
+            Ok(FileColumnStatisticsType::Max) => include_max = true,
+
             Ok(FileColumnStatisticsType::Unspecified) => {
                 return Err(ParameterError::Invalid(
                     "included_column_statistics_types".to_string(),
                     "unspecified is included".to_string(),
                 ));
             }
-            Ok(FileColumnStatisticsType::Min) => include_min = true,
-            Ok(FileColumnStatisticsType::Max) => include_max = true,
             Err(_) => {
                 return Err(ParameterError::Invalid(
                     "included_column_statistics_types".to_string(),
@@ -40,8 +41,29 @@ pub(super) fn build_get_file_info_param(
         }
     }
 
+    let mut include_parquet_metadata = false;
+    for metadata_type in &req.included_file_metadata_types {
+        match FileMetadataType::try_from(*metadata_type) {
+            Ok(FileMetadataType::ParquetMetadata) => include_parquet_metadata = true,
+
+            Ok(FileMetadataType::Unspecified) => {
+                return Err(ParameterError::Invalid(
+                    "included_file_metadata_types".to_string(),
+                    "unspecified is included".to_string(),
+                ));
+            }
+            Err(_) => {
+                return Err(ParameterError::Invalid(
+                    "included_file_metadata_types".to_string(),
+                    "unknown value".to_string(),
+                ));
+            }
+        }
+    }
+
     Ok(GetFileInfoParam {
         file_ids,
         stat_types: FileStatisticsSelection::new(include_min, include_max),
+        metadata_types: FileMetadataSelection::new(include_parquet_metadata),
     })
 }

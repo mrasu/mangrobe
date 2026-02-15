@@ -25,6 +25,7 @@ use crate::infrastructure::db::repository::commit_repository::CommitRepository;
 use crate::infrastructure::db::repository::current_file_repository::CurrentFileRepository;
 use crate::infrastructure::db::repository::file_column_statistics_repository::FileColumnStatisticsRepository;
 use crate::infrastructure::db::repository::file_lock_repository::FileLockRepository;
+use crate::infrastructure::db::repository::file_metadata_repository::FileMetadataRepository;
 use crate::infrastructure::db::repository::file_repository::FileRepository;
 use crate::util::error::MangrobeError::UnexpectedState;
 use crate::util::error::{MangrobeError, UserError};
@@ -40,6 +41,7 @@ pub struct ChangeRequestService {
     commit_lock_repository: CommitLockRepository,
     file_repository: FileRepository,
     file_column_statistics_repository: FileColumnStatisticsRepository,
+    file_metadata_repository: FileMetadataRepository,
     current_file_repository: CurrentFileRepository,
 }
 
@@ -53,6 +55,7 @@ impl ChangeRequestService {
             commit_lock_repository: CommitLockRepository::new(),
             file_repository: FileRepository::new(),
             file_column_statistics_repository: FileColumnStatisticsRepository::new(),
+            file_metadata_repository: FileMetadataRepository::new(),
             current_file_repository: CurrentFileRepository::new(),
         }
     }
@@ -243,6 +246,20 @@ impl ChangeRequestService {
             .insert_many(txn, &statistics_to_insert)
             .await?;
 
+        let metadata_to_insert: Vec<_> = file_ids
+            .iter()
+            .zip(files_to_add.iter())
+            .filter_map(|(file_id, entry)| {
+                entry
+                    .file_metadata
+                    .clone()
+                    .map(|metadata| (file_id.clone(), metadata))
+            })
+            .collect();
+        self.file_metadata_repository
+            .insert_many(txn, &metadata_to_insert)
+            .await?;
+
         Ok(file_ids)
     }
 
@@ -385,6 +402,12 @@ impl ChangeRequestService {
                 .collect();
             self.file_column_statistics_repository
                 .insert_many(txn, &stats_to_insert)
+                .await?;
+        }
+
+        if let Some(metadata) = file_entry.file_metadata.clone() {
+            self.file_metadata_repository
+                .insert_many(txn, &[(file_id.clone(), metadata)])
                 .await?;
         }
 

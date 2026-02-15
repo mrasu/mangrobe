@@ -1,12 +1,11 @@
-use crate::domain::model::file::{File, FilePath, FileWithId, FileWithStatistics};
+use crate::domain::model::file::{File, FilePath, FileWithId};
 use crate::domain::model::file_id::FileId;
 use crate::domain::model::user_table_stream::UserTablStream;
 use crate::infrastructure::db::entity::files;
 use crate::infrastructure::db::entity::files::Column;
-use crate::infrastructure::db::entity::prelude::{FileColumnStatistics, Files};
+use crate::infrastructure::db::entity::prelude::Files;
 use crate::infrastructure::db::repository::file_dto::{
-    build_domain_file, build_domain_file_with_statistics,
-    build_entity_file,
+    build_domain_file, build_entity_file,
 };
 use chrono::{DateTime, Utc};
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QuerySelect};
@@ -83,24 +82,20 @@ impl FileRepository {
         Ok(files)
     }
 
-    pub async fn find_files_with_statics_by_ids<C>(
+    pub async fn find_all_files_by_ids<C>(
         &self,
         conn: &C,
         file_ids: &[FileId],
-    ) -> Result<Vec<FileWithStatistics>, anyhow::Error>
+    ) -> Result<Vec<FileWithId>, anyhow::Error>
     where
         C: ConnectionTrait,
     {
         let files = Files::find()
             .filter(Column::Id.is_in(file_ids.iter().map(|f| f.val())))
-            .find_with_related(FileColumnStatistics)
             .all(conn)
             .await?;
 
-        let res = files
-            .iter()
-            .map(|(f, column_stats)| build_domain_file_with_statistics(f, column_stats))
-            .collect();
+        let res = files.iter().map(build_domain_file).collect();
         Ok(res)
     }
 

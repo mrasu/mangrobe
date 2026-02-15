@@ -62,6 +62,7 @@ pub async fn add_files(
                 path: path.to_string(),
                 size: 1,
                 column_statistics: vec![],
+                file_metadata: None,
             })
             .collect(),
     }];
@@ -102,6 +103,7 @@ pub async fn compact_files(
                 path: dst_file.to_string(),
                 size: 123,
                 column_statistics: vec![],
+                file_metadata: None,
             }),
         }],
     }];
