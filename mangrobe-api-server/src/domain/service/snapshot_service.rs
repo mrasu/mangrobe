@@ -1,3 +1,4 @@
+use crate::domain::model::partition_time_filter::PartitionTimeFilter;
 use crate::domain::model::snapshot::Snapshot;
 use crate::domain::model::user_table_stream::UserTablStream;
 use crate::infrastructure::db::repository::commit_repository::CommitRepository;
@@ -19,7 +20,11 @@ impl SnapshotService {
         }
     }
 
-    pub async fn get_current(&self, stream: &UserTablStream) -> Result<Snapshot, anyhow::Error> {
+    pub async fn get_current(
+        &self,
+        stream: &UserTablStream,
+        partition_time_filter: &PartitionTimeFilter,
+    ) -> Result<Snapshot, anyhow::Error> {
         let txn = self
             .connection
             .begin_with_config(
@@ -36,7 +41,7 @@ impl SnapshotService {
 
         let files = self
             .current_file_repository
-            .find_files_by_stream(&txn, stream)
+            .find_files_by_stream(&txn, stream, partition_time_filter)
             .await?;
 
         Ok(Snapshot::new(stream.clone(), Some(commit.id), files))

@@ -2,6 +2,9 @@ use crate::domain::model::current_file::CurrentFile;
 use crate::domain::model::file::{FilePath, FileWithId};
 use crate::domain::model::file_id::FileId;
 use crate::domain::model::file_lock_key::FileLockKey;
+use crate::domain::model::partition_time_filter::{
+    BoundInclusivity, PartitionTimeFilter, PartitionTimePredicate, PartitionTimeRange,
+};
 use crate::domain::model::user_table_stream::UserTablStream;
 use crate::infrastructure::db::entity::current_files::{Column, Entity};
 use crate::infrastructure::db::entity::file_locks;
@@ -35,16 +38,22 @@ impl CurrentFileRepository {
         &self,
         conn: &C,
         stream: &UserTablStream,
+        partition_time_filter: &PartitionTimeFilter,
     ) -> Result<Vec<FileWithId>, anyhow::Error>
     where
         C: ConnectionTrait,
     {
-        let current_files = CurrentFiles::find()
+        let mut query = CurrentFiles::find()
             .find_also_related(Files)
             .filter(Column::UserTableId.eq(stream.user_table_id.val()))
-            .filter(Column::StreamId.eq(stream.stream_id.val()))
-            .all(conn)
-            .await?;
+            .filter(Column::StreamId.eq(stream.stream_id.val()));
+
+        if partition_time_filter.should_filter() {
+            let condition = build_partition_time_filter_condition(partition_time_filter);
+            query = query.filter(condition);
+        }
+
+        let current_files = query.all(conn).await?;
 
         let result = current_files
             .iter()
@@ -217,4 +226,44 @@ impl CurrentFileRepository {
 
         Ok(())
     }
+}
+
+fn build_partition_time_filter_condition(partition_time_filter: &PartitionTimeFilter) -> Condition {
+    partition_time_filter
+        .predicates
+        .iter()
+        .fold(Condition::any(), |condition, predicate| {
+            condition.add(build_partition_time_predicate_condition(predicate))
+        })
+}
+
+fn build_partition_time_predicate_condition(
+    partition_time_predicate: &PartitionTimePredicate,
+) -> Condition {
+    match partition_time_predicate {
+        PartitionTimePredicate::In(param) => {
+            Condition::all().add(Column::PartitionTime.is_in(param.times.clone()))
+        }
+        PartitionTimePredicate::Range(param) => build_partition_time_range_condition(param),
+    }
+}
+
+fn build_partition_time_range_condition(partition_time_range: &PartitionTimeRange) -> Condition {
+    let mut condition = Condition::all();
+
+    if let Some(lower) = &partition_time_range.lower {
+        condition = condition.add(match lower.inclusivity {
+            BoundInclusivity::Inclusive => Column::PartitionTime.gte(lower.time),
+            BoundInclusivity::Exclusive => Column::PartitionTime.gt(lower.time),
+        });
+    }
+
+    if let Some(upper) = &partition_time_range.upper {
+        condition = condition.add(match upper.inclusivity {
+            BoundInclusivity::Inclusive => Column::PartitionTime.lte(upper.time),
+            BoundInclusivity::Exclusive => Column::PartitionTime.lt(upper.time),
+        });
+    }
+
+    condition
 }

@@ -1,4 +1,4 @@
-use crate::application::data_manipulation::get_changes_param::GetChangesParam;
+use crate::application::data_manipulation::get_commits_param::GetCommitsParam;
 use crate::grpc::proto::GetCommitsRequest;
 use crate::grpc::util::param_util::to_table_name;
 use crate::util::error::ParameterError;
@@ -6,7 +6,7 @@ use tonic::Request;
 
 pub(super) fn build_get_commits_param(
     request: Request<GetCommitsRequest>,
-) -> Result<GetChangesParam, ParameterError> {
+) -> Result<GetCommitsParam, ParameterError> {
     let req = request.get_ref();
     let table_name = to_table_name(req.table_name.clone())?;
 
@@ -25,7 +25,7 @@ pub(super) fn build_get_commits_param(
         0
     };
 
-    Ok(GetChangesParam {
+    Ok(GetCommitsParam {
         table_name,
         stream_id: req.stream_id.into(),
         commit_id_after: commit_id_after.into(),

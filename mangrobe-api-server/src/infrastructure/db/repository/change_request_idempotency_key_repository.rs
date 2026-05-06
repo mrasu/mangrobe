@@ -1,8 +1,6 @@
 use crate::domain::model::change_request_id::ChangeRequestId;
 use crate::domain::model::idempotency_key::IdempotencyKey;
-use crate::infrastructure::db::entity::change_request_idempotency_keys::{
-    Column, Entity, Model,
-};
+use crate::infrastructure::db::entity::change_request_idempotency_keys::{Column, Entity, Model};
 use crate::infrastructure::db::entity::prelude::ChangeRequestIdempotencyKeys;
 use crate::infrastructure::db::repository::change_request_idempotency_key_dto::build_entity_change_request_idempotency_key;
 use chrono::{DateTime, Utc};

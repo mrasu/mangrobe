@@ -1,7 +1,7 @@
 use crate::domain::model::file::{File, FileWithId};
 use crate::domain::model::user_table_stream::UserTablStream;
-use crate::infrastructure::db::entity::files::ActiveModel;
 use crate::infrastructure::db::entity::files;
+use crate::infrastructure::db::entity::files::ActiveModel;
 use sea_orm::Set;
 
 pub(super) fn build_entity_file(file: &File) -> ActiveModel {

@@ -28,7 +28,7 @@ service InformationSchemaService {
 
 // IdempotencyKey must be unique across all methods
 message IdempotencyKey {
-  // Must be shorter than 16 byte
+  // Must be 16 bytes or shorter.
   bytes key = 1;
 }
 
@@ -41,11 +41,55 @@ message FileLockKey {
 message GetCurrentStateRequest {
   string table_name = 1;
   int64 stream_id = 2;
+
+  // Optional filter. If empty, returns all partitions.
+  PartitionTimeFilter partition_time_filter = 3;
+}
+
+message PartitionTimeFilter {
+  // Predicates are OR-ed.
+  repeated PartitionTimePredicate predicates = 1;
+}
+
+message PartitionTimePredicate {
+  oneof predicate {
+    PartitionTimeIn in = 1;
+    PartitionTimeRange range = 2;
+  }
+}
+
+message PartitionTimeIn {
+  // Times are OR-ed.
+  repeated google.protobuf.Timestamp times = 1;
+}
+
+message PartitionTimeRange {
+  // Bounds are AND-ed.
+  optional PartitionTimeBound lower = 1;
+  optional PartitionTimeBound upper = 2;
+}
+
+message PartitionTimeBound {
+  google.protobuf.Timestamp time = 1;
+  BoundInclusivity inclusivity = 2;
+}
+
+enum BoundInclusivity {
+  // Unspecified. Invalid value.
+  BOUND_INCLUSIVITY_UNSPECIFIED = 0;
+
+  BOUND_INCLUSIVITY_INCLUSIVE = 1;
+  BOUND_INCLUSIVITY_EXCLUSIVE = 2;
 }
 
 message GetCurrentStateResponse {
   optional string commit_id = 1;
 
+  repeated CurrentStatePartition partitions = 2;
+}
+
+message CurrentStatePartition {
+  google.protobuf.Timestamp partition_time = 1;
   repeated File files = 2;
 }
 
@@ -106,9 +150,11 @@ message CommittedFile {
 }
 
 message GetFileInfoRequest {
-  repeated string file_ids = 1;
-  repeated FileColumnStatisticsType included_column_statistics_types = 2;
-  repeated FileMetadataType included_file_metadata_types = 3;
+  string table_name = 1;
+  repeated string file_ids = 2;
+
+  repeated FileColumnStatisticsType included_column_statistics_types = 3;
+  repeated FileMetadataType included_file_metadata_types = 4;
 }
 
 enum FileColumnStatisticsType {

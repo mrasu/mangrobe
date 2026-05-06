@@ -1,3 +1,4 @@
+use datafusion::datasource::listing::PartitionedFile;
 use mangrobe_lab::proto::{
     AcquireFileLockEntry, AcquireFileLockFileInfoEntry, AddFileEntry, AddFileInfoEntry,
     ChangeFileDeleteEntry, ChangeFileEntry, ColumnStatisticsEntry, CompactFileDstEntry,
@@ -22,9 +23,9 @@ pub async fn print_current_files(
 
     let mut files = current_state
         .get_ref()
-        .files
+        .partitions
         .iter()
-        .map(|f| f.path.clone())
+        .flat_map(|p| p.files.iter().map(|f| f.path.clone()))
         .collect::<Vec<_>>();
     files.sort();
     let files_text = files.join(", ");

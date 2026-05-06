@@ -16,6 +16,7 @@ pub mod file_metadata;
 pub mod file_with_statistics;
 pub mod idempotency_key;
 pub mod lock_raw_file_entry;
+pub mod partition_time_filter;
 pub mod snapshot;
 pub mod stream;
 pub mod stream_id;

@@ -3,19 +3,21 @@ use crate::grpc::data_manipulation::add_files_param::build_add_files_param;
 use crate::grpc::data_manipulation::build_file_info_response::build_file_info_response;
 use crate::grpc::data_manipulation::change_files_param::build_change_file_param;
 use crate::grpc::data_manipulation::compact_files_param::build_compact_files_param;
-use crate::grpc::data_manipulation::get_changes_param::build_get_commits_param;
-use crate::grpc::data_manipulation::get_changes_response::build_get_commits_response;
+use crate::grpc::data_manipulation::get_commits_param::build_get_commits_param;
+use crate::grpc::data_manipulation::get_commits_response::build_get_commits_response;
 use crate::grpc::data_manipulation::get_current_state_param::build_get_current_state_param;
 use crate::grpc::data_manipulation::get_file_info_param::build_get_file_info_param;
 use crate::grpc::proto::{
     AddFilesRequest, AddFilesResponse, ChangeFilesRequest, ChangeFilesResponse,
-    CompactFilesRequest, CompactFilesResponse, File, GetCommitsRequest, GetCommitsResponse,
-    GetCurrentStateRequest, GetCurrentStateResponse, GetFileInfoRequest, GetFileInfoResponse,
-    data_manipulation_service_server,
+    CompactFilesRequest, CompactFilesResponse, CurrentStatePartition, File, GetCommitsRequest,
+    GetCommitsResponse, GetCurrentStateRequest, GetCurrentStateResponse, GetFileInfoRequest,
+    GetFileInfoResponse, data_manipulation_service_server,
 };
 use crate::grpc::util::error::{build_invalid_argument, to_grpc_error};
-use chrono::Utc;
+use chrono::{DateTime, Utc};
+use prost_types::Timestamp;
 use sea_orm::DatabaseConnection;
+use std::collections::BTreeMap;
 use tonic::{Request, Response, Status};
 
 const CHANGES_LIMIT_PER_STREAM: u64 = 100;
@@ -51,15 +53,7 @@ impl data_manipulation_service_server::DataManipulationService for DataManipulat
             commit_id: snapshot
                 .commit_id
                 .map_or_else(|| None, |v| Some(v.to_string())),
-            files: snapshot
-                .files
-                .iter()
-                .map(|f| File {
-                    file_id: f.id.val().to_string(),
-                    path: f.file.path.path(),
-                    size: f.file.size,
-                })
-                .collect(),
+            partitions: build_current_state_partitions(&snapshot.files),
         };
 
         Ok(Response::new(response))
@@ -73,7 +67,7 @@ impl data_manipulation_service_server::DataManipulationService for DataManipulat
 
         let changes = self
             .data_manipulation_use_case
-            .get_changes(&param, CHANGES_LIMIT_PER_STREAM)
+            .get_commits(&param, CHANGES_LIMIT_PER_STREAM)
             .await
             .map_err(to_grpc_error)?;
 
@@ -158,5 +152,36 @@ impl data_manipulation_service_server::DataManipulationService for DataManipulat
             commit_id: commit_id.to_string(),
         };
         Ok(Response::new(response))
+    }
+}
+
+fn build_current_state_partitions(
+    files: &[crate::domain::model::file::FileWithId],
+) -> Vec<CurrentStatePartition> {
+    let mut partitions: BTreeMap<DateTime<Utc>, Vec<File>> = BTreeMap::new();
+    for file in files {
+        partitions
+            .entry(file.file.partition_time)
+            .or_default()
+            .push(File {
+                file_id: file.id.val().to_string(),
+                path: file.file.path.path(),
+                size: file.file.size,
+            });
+    }
+
+    partitions
+        .into_iter()
+        .map(|(partition_time, files)| CurrentStatePartition {
+            partition_time: Some(to_timestamp(partition_time)),
+            files,
+        })
+        .collect()
+}
+
+fn to_timestamp(datetime: DateTime<Utc>) -> Timestamp {
+    Timestamp {
+        seconds: datetime.timestamp(),
+        nanos: datetime.timestamp_subsec_nanos() as i32,
     }
 }

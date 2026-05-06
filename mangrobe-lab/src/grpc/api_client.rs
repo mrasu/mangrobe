@@ -57,6 +57,7 @@ impl ApiClient {
         let request = tonic::Request::new(GetCurrentStateRequest {
             table_name,
             stream_id,
+            partition_time_filter: None,
         });
 
         self.data_manipulation_service_client

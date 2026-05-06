@@ -1,7 +1,7 @@
 use crate::application::data_manipulation::add_files_param::AddFilesParam;
 use crate::application::data_manipulation::change_files_param::ChangeFilesParam;
 use crate::application::data_manipulation::compact_files_param::CompactFilesParam;
-use crate::application::data_manipulation::get_changes_param::GetChangesParam;
+use crate::application::data_manipulation::get_commits_param::GetCommitsParam;
 use crate::application::data_manipulation::get_current_state_param::GetCurrentStateParam;
 use crate::application::data_manipulation::get_file_info_param::GetFileInfoParam;
 use crate::application::util::user_table::find_table_id;
@@ -49,12 +49,14 @@ impl DataManipulationUseCase {
         let table_id = find_table_id(&self.user_table_service, &param.table_name).await?;
 
         let stream = UserTablStream::new(table_id, param.stream_id);
-        self.snapshot_service.get_current(&stream).await
+        self.snapshot_service
+            .get_current(&stream, &param.partition_time_filter)
+            .await
     }
 
-    pub async fn get_changes(
+    pub async fn get_commits(
         &self,
-        param: &GetChangesParam,
+        param: &GetCommitsParam,
         limit_per_stream: u64,
     ) -> Result<CommittedStreamChange, anyhow::Error> {
         let table_id = find_table_id(&self.user_table_service, &param.table_name).await?;

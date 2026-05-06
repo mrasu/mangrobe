@@ -1,7 +1,7 @@
 use crate::domain::model::file_column_statistics::FileColumnStatistics;
 use crate::domain::model::file_id::FileId;
-use crate::infrastructure::db::entity::file_column_statistics::Model;
 use crate::infrastructure::db::entity::file_column_statistics;
+use crate::infrastructure::db::entity::file_column_statistics::Model;
 use sea_orm::Set;
 
 pub fn build_entity_file_column_statistics(

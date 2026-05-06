@@ -4,9 +4,7 @@ use crate::domain::model::user_table_stream::UserTablStream;
 use crate::infrastructure::db::entity::files;
 use crate::infrastructure::db::entity::files::Column;
 use crate::infrastructure::db::entity::prelude::Files;
-use crate::infrastructure::db::repository::file_dto::{
-    build_domain_file, build_entity_file,
-};
+use crate::infrastructure::db::repository::file_dto::{build_domain_file, build_entity_file};
 use chrono::{DateTime, Utc};
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QuerySelect};
 
