@@ -4,7 +4,7 @@ use crate::domain::model::user_table_name::UserTableName;
 use crate::infrastructure::db::repository::user_table_repository::UserTableRepository;
 use sea_orm::DatabaseConnection;
 
-pub struct UserTableService {
+pub(crate) struct UserTableService {
     connection: DatabaseConnection,
     user_table_repository: UserTableRepository,
 }

@@ -4,7 +4,7 @@ use crate::domain::model::user_table_id::UserTableId;
 use crate::infrastructure::db::repository::commit_repository::CommitRepository;
 use sea_orm::DatabaseConnection;
 
-pub struct StreamService {
+pub(crate) struct StreamService {
     connection: DatabaseConnection,
     commit_repository: CommitRepository,
 }

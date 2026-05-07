@@ -13,8 +13,9 @@ pub trait ChangeRequestTrait {
     fn set_status(&mut self, status: ChangeRequestStatus);
 }
 
+#[allow(dead_code)]
 #[derive(Clone)]
-pub struct BaseChangeRequest {
+pub(crate) struct BaseChangeRequest {
     pub id: ChangeRequestId,
     pub stream: UserTablStream,
 
@@ -34,7 +35,7 @@ impl ChangeRequestTrait for BaseChangeRequest {
 }
 
 #[derive(Clone)]
-pub struct ChangeRequest {
+pub(crate) struct ChangeRequest {
     pub base: BaseChangeRequest,
 
     pub file_entry: Option<ChangeRequestFileEntry>,
@@ -51,7 +52,7 @@ impl ChangeRequestTrait for ChangeRequest {
 }
 
 #[derive(Clone)]
-pub struct ChangeRequestForAdd {
+pub(crate) struct ChangeRequestForAdd {
     pub base: BaseChangeRequest,
     pub change_files_entry: ChangeRequestAddFilesEntry,
 }
@@ -76,7 +77,7 @@ impl ChangeRequestForAdd {
 }
 
 #[derive(Clone)]
-pub struct ChangeRequestForChange {
+pub(crate) struct ChangeRequestForChange {
     pub base: BaseChangeRequest,
     pub change_files_entry: ChangeRequestChangeFilesEntry,
 }
@@ -105,7 +106,7 @@ impl ChangeRequestForChange {
 }
 
 #[derive(Clone)]
-pub struct ChangeRequestForCompact {
+pub(crate) struct ChangeRequestForCompact {
     pub base: BaseChangeRequest,
     pub compact_files_entry: ChangeRequestCompactFilesEntry,
 }
@@ -137,7 +138,7 @@ impl ChangeRequestTrait for ChangeRequestForCompact {
 }
 
 #[derive(Clone, Copy, Debug, PartialOrd, PartialEq, Display)]
-pub enum ChangeRequestStatus {
+pub(crate) enum ChangeRequestStatus {
     New = 0,
     ChangeInserted = 1,
     Committed = 2,
@@ -154,7 +155,7 @@ impl ChangeRequestStatus {
 }
 
 #[derive(Clone, PartialEq)]
-pub enum ChangeRequestType {
+pub(crate) enum ChangeRequestType {
     AddFiles,
     Change,
     Compact,

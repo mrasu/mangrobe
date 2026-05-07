@@ -1,7 +1,7 @@
 use crate::domain::model::file_id::FileId;
 
 #[derive(Clone, Debug)]
-pub struct CurrentFile {
+pub(crate) struct CurrentFile {
     pub file_id: FileId,
 }
 

@@ -21,7 +21,7 @@ use crate::util::error::UserError;
 use anyhow::bail;
 use sea_orm::DatabaseConnection;
 
-pub struct DataManipulationUseCase {
+pub(crate) struct DataManipulationUseCase {
     snapshot_service: SnapshotService,
     change_request_service: ChangeRequestService,
     committed_change_request_service: CommittedChangeRequestService,

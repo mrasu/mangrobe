@@ -5,7 +5,7 @@ use crate::domain::model::file_id::FileId;
 
 // bag of changes to be committed. Holding ids to be used directly.
 #[derive(Default)]
-pub struct Changeset {
+pub(crate) struct Changeset {
     pub add_file_ids: Vec<FileId>,
     pub delete_file_ids: Vec<FileId>,
 }

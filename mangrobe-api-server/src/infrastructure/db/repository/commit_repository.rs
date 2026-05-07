@@ -18,7 +18,7 @@ use sea_orm::{
 };
 
 #[derive(Clone, Copy)]
-pub struct CommitRepository {}
+pub(crate) struct CommitRepository {}
 
 impl CommitRepository {
     pub fn new() -> Self {

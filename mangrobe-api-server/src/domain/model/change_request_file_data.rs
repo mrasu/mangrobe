@@ -3,7 +3,7 @@ use crate::domain::model::file_id::FileId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub enum ChangeRequestFileData {
+pub(crate) enum ChangeRequestFileData {
     AddFiles {
         add_files: ChangeRequestAddFilesData,
     },
@@ -16,28 +16,28 @@ pub enum ChangeRequestFileData {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct ChangeRequestAddFilesData {
+pub(crate) struct ChangeRequestAddFilesData {
     pub files: Vec<FileData>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct ChangeRequestChangeFilesData {
+pub(crate) struct ChangeRequestChangeFilesData {
     pub delete_files: Vec<FileData>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct ChangeRequestCompactFilesData {
+pub(crate) struct ChangeRequestCompactFilesData {
     pub compacted_files: Vec<ChangeRequestCompactFileData>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct ChangeRequestCompactFileData {
+pub(crate) struct ChangeRequestCompactFileData {
     pub src_files: Vec<FileData>,
     pub dst_file: FileData,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct FileData {
+pub(crate) struct FileData {
     pub id: FileId,
     pub path: FilePath,
 }

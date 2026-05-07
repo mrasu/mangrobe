@@ -10,7 +10,7 @@ use anyhow::bail;
 use chrono::Duration;
 use sea_orm::{DatabaseConnection, TransactionTrait};
 
-pub struct FileLockService {
+pub(crate) struct FileLockService {
     connection: DatabaseConnection,
     file_lock_repository: FileLockRepository,
     file_repository: FileRepository,

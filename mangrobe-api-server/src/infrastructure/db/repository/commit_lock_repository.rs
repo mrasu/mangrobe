@@ -11,7 +11,7 @@ const K1: u64 = 1;
 const K2: u64 = 2;
 const K3: u64 = 3;
 
-pub struct CommitLockRepository {
+pub(crate) struct CommitLockRepository {
     hash_builder: RandomState,
 }
 

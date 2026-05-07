@@ -29,7 +29,7 @@ use sea_orm::{
 };
 use std::time::Duration;
 
-pub struct ChangeRequestRepository {
+pub(crate) struct ChangeRequestRepository {
     idempotency_key_repository: ChangeRequestIdempotencyKeyRepository,
 }
 

@@ -5,7 +5,7 @@ use crate::infrastructure::db::repository::file_metadata_repository::FileMetadat
 use crate::infrastructure::db::repository::file_repository::FileRepository;
 use sea_orm::DatabaseConnection;
 
-pub struct FileService {
+pub(crate) struct FileService {
     connection: DatabaseConnection,
     file_repository: FileRepository,
     file_column_statistics_repository: FileColumnStatisticsRepository,

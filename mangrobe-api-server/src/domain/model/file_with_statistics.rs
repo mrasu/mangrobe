@@ -4,7 +4,7 @@ use crate::domain::model::file_id::FileId;
 use crate::domain::model::file_metadata::FileMetadata;
 
 #[derive(Clone, Debug)]
-pub struct FileWithStatistics {
+pub(crate) struct FileWithStatistics {
     pub id: FileId,
     pub file: File,
     pub column_statistics: Vec<FileColumnStatistics>,

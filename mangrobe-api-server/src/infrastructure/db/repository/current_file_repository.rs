@@ -23,7 +23,7 @@ use sea_orm::{Condition, QueryFilter};
 use sea_orm::{ConnectionTrait, EntityTrait};
 use std::collections::HashMap;
 
-pub struct CurrentFileRepository {
+pub(crate) struct CurrentFileRepository {
     file_repository: FileRepository,
 }
 

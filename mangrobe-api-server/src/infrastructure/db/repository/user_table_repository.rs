@@ -8,10 +8,10 @@ use sea_orm::{ActiveValue::Set, ColumnTrait, ConnectionTrait, EntityTrait, Query
 use thiserror::Error;
 
 #[derive(Clone, Copy)]
-pub struct UserTableRepository {}
+pub(crate) struct UserTableRepository {}
 
 #[derive(Error, Debug)]
-pub enum UserTableRepositoryError {
+pub(crate) enum UserTableRepositoryError {
     #[error("Already exists.")]
     AlreadyExists,
 }

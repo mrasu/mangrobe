@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, Hash, PartialEq)]
 #[serde(transparent)]
-pub struct UserTableId(i64);
+pub(crate) struct UserTableId(i64);
 
 impl From<UserTableId> for i64 {
     fn from(id: UserTableId) -> Self {

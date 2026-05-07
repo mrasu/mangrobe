@@ -2,7 +2,7 @@ use crate::domain::model::file::FilePath;
 use chrono::{DateTime, Utc};
 
 #[derive(Debug)]
-pub struct LockFileRawAcquireEntry {
+pub(crate) struct LockFileRawAcquireEntry {
     pub partition_time: DateTime<Utc>,
     pub file_paths: Vec<FilePath>,
 }

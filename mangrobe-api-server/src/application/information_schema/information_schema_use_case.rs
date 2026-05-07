@@ -5,7 +5,7 @@ use crate::domain::service::stream_service::StreamService;
 use crate::domain::service::user_table_service::UserTableService;
 use sea_orm::DatabaseConnection;
 
-pub struct InformationSchemaUseCase {
+pub(crate) struct InformationSchemaUseCase {
     stream_service: StreamService,
     user_table_service: UserTableService,
 }

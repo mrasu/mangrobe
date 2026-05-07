@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, Hash, PartialEq)]
 #[serde(transparent)]
-pub struct FileId(i64);
+pub(crate) struct FileId(i64);
 
 impl From<FileId> for i64 {
     fn from(id: FileId) -> Self {

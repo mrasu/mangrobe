@@ -2,7 +2,8 @@ use crate::domain::model::commit_id::CommitId;
 use crate::domain::model::file::FileWithId;
 use crate::domain::model::user_table_stream::UserTablStream;
 
-pub struct Snapshot {
+#[allow(dead_code)]
+pub(crate) struct Snapshot {
     pub stream: UserTablStream,
     pub commit_id: Option<CommitId>,
     pub files: Vec<FileWithId>,

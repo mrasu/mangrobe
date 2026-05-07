@@ -1,5 +1,5 @@
 #[derive(Clone)]
-pub struct IdempotencyKey {
+pub(crate) struct IdempotencyKey {
     val: Vec<u8>,
 }
 

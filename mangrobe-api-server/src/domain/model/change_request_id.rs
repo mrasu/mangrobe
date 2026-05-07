@@ -1,5 +1,5 @@
 #[derive(Clone, PartialEq, Eq, Hash)]
-pub struct ChangeRequestId {
+pub(crate) struct ChangeRequestId {
     val: i64,
 }
 

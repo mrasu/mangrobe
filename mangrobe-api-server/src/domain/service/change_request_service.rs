@@ -33,7 +33,7 @@ use anyhow::bail;
 use sea_orm::sqlx::types::chrono::{DateTime, Utc};
 use sea_orm::{DatabaseConnection, DatabaseTransaction, TransactionTrait};
 
-pub struct ChangeRequestService {
+pub(crate) struct ChangeRequestService {
     connection: DatabaseConnection,
     file_lock_repository: FileLockRepository,
     change_request_repository: ChangeRequestRepository,

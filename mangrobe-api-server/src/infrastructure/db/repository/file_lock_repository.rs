@@ -7,7 +7,7 @@ use chrono::{Duration, Utc};
 use sea_orm::{ColumnTrait, TryInsertResult};
 use sea_orm::{ConnectionTrait, EntityTrait, QueryFilter};
 
-pub struct FileLockRepository {}
+pub(crate) struct FileLockRepository {}
 
 impl FileLockRepository {
     pub fn new() -> Self {

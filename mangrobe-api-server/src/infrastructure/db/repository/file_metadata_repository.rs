@@ -9,7 +9,7 @@ use sea_orm::QueryFilter;
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QuerySelect};
 use std::collections::HashMap;
 
-pub struct FileMetadataRepository {}
+pub(crate) struct FileMetadataRepository {}
 
 impl FileMetadataRepository {
     pub fn new() -> Self {

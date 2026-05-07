@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc};
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QuerySelect};
 
 #[derive(Clone, Copy)]
-pub struct FileRepository {}
+pub(crate) struct FileRepository {}
 
 impl FileRepository {
     pub fn new() -> Self {

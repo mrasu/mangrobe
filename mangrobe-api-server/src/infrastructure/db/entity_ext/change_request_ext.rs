@@ -5,7 +5,7 @@ use crate::util::error::MangrobeError;
 use anyhow::bail;
 use serde_json::Value;
 
-pub struct ChangeRequestExt {}
+pub(crate) struct ChangeRequestExt {}
 
 impl ChangeRequestExt {
     pub fn build_domain_status(

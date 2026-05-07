@@ -7,7 +7,7 @@ use crate::domain::service::file_lock_key_service::FileLockService;
 use crate::domain::service::user_table_service::UserTableService;
 use sea_orm::DatabaseConnection;
 
-pub struct LockControlUseCase {
+pub(crate) struct LockControlUseCase {
     file_lock_service: FileLockService,
     user_table_service: UserTableService,
 }

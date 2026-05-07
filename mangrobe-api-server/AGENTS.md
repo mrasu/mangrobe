@@ -4,8 +4,10 @@
 - `src/` is the gRPC API server for the refarence implementation of Mangrobe Protocl.
 - `src/domain/`: core business models, rules, and ports (traits) with no infrastructure dependencies.
 - `src/application/`: use cases/services orchestrating domain behavior and defining DTOs/adapters.
+- `src/api`: entrypoint layer.
+- `src/api/core`: library entrypoint service layer exposed from `lib.rs`; both direct library use and gRPC handlers should go through this layer.
+- `src/api/grpc/`: gRPC delivery layer (handlers + protobuf/app mappings).
 - `src/infrastructure/`: DB/repos/external service implementations for domain ports.
-- `src/grpc/`: gRPC delivery layer (handlers + protobuf/app mappings).
 - `src/generated/`: protobuf output from `build.rs` (do not edit by hand).
 - `src/util/`: shared helpers/utilities (keep dependency direction in mind).
 - `src/*.rs`: module roots and wiring (`domain.rs`, `application.rs`, `infrastructure.rs`, `grpc.rs`, `util.rs`), plus `main.rs` as the binary entry point.
@@ -15,8 +17,9 @@
 ## Architecture & Dependency Rules
 - `domain/` is pure business logic and must not depend on `application/`, `infrastructure/`, `grpc/`, or external frameworks. Define traits (ports) here for persistence or integrations.
 - `application/` orchestrates use cases. It can depend on `domain/`, but should avoid direct DB or network code.
+- `api/core/` is the library endpoint layer. It exposes the service surface used by `lib.rs`, maps request/response types to application use cases, and should be the common path for both direct library calls and gRPC handlers. It may depend on `application/` and protobuf types, but should not contain business rules or transport-specific gRPC error handling.
+- `api/grpc/` is the delivery layer. It wires protobuf types to application use cases and should not contain business rules.
 - `infrastructure/` implements `domain` ports (e.g., repositories, DB access) and can depend on external crates like SeaORM. It may depend on `domain/` but not on `application/`.
-- `grpc/` is the delivery layer. It wires protobuf types to application use cases and should not contain business rules.
 - `generated/` is build output; do not edit by hand.
 
 

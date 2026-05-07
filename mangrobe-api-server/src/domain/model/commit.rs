@@ -3,7 +3,8 @@ use crate::domain::model::commit_id::CommitId;
 use crate::domain::model::user_table_stream::UserTablStream;
 use chrono::{DateTime, Utc};
 
-pub struct Commit {
+#[allow(dead_code)]
+pub(crate) struct Commit {
     pub id: CommitId,
     pub change_request_id: ChangeRequestId,
     pub stream: UserTablStream,

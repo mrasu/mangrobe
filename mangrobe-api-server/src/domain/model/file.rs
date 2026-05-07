@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use xxhash_rust::xxh3::xxh3_128;
 
 #[derive(Clone, Debug)]
-pub struct File {
+pub(crate) struct File {
     pub stream: UserTablStream,
     pub partition_time: DateTime<Utc>,
     pub path: FilePath,
@@ -31,7 +31,7 @@ impl File {
 }
 
 #[derive(Clone, Debug)]
-pub struct FileWithId {
+pub(crate) struct FileWithId {
     pub id: FileId,
     pub file: File,
 }
@@ -53,7 +53,7 @@ impl FileWithId {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct FilePath {
+pub(crate) struct FilePath {
     path: String,
 }
 
@@ -78,7 +78,7 @@ impl From<String> for FilePath {
 }
 
 #[derive(Debug)]
-pub struct FileEntry {
+pub(crate) struct FileEntry {
     pub path: FilePath,
     pub size: i64,
     pub column_statistics: Vec<FileColumnStatistics>,

@@ -1,7 +1,7 @@
 use crate::domain::model::user_table_id::UserTableId;
 use crate::domain::model::user_table_name::UserTableName;
 
-pub struct UserTable {
+pub(crate) struct UserTable {
     pub id: UserTableId,
     pub name: UserTableName,
 }

@@ -13,7 +13,7 @@ use sea_orm::{
 use std::collections::HashMap;
 
 #[derive(Clone)]
-pub struct CommittedChangeRequestService {
+pub(crate) struct CommittedChangeRequestService {
     connection: DatabaseConnection,
     commit_repository: CommitRepository,
     file_repository: FileRepository,

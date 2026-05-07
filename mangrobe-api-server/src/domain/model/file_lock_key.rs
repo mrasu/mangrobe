@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 
 #[derive(Clone)]
-pub struct FileLockKey {
+pub(crate) struct FileLockKey {
     pub key: Vec<u8>,
     pub request_started_at: DateTime<Utc>,
 }

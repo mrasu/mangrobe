@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone)]
-pub struct CommitId {
+pub(crate) struct CommitId {
     val: i64,
 }
 

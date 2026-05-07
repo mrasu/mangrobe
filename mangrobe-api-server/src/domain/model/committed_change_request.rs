@@ -3,12 +3,12 @@ use crate::domain::model::change_request_file_entry::ChangeRequestFileEntry;
 use crate::domain::model::commit_id::CommitId;
 use crate::domain::model::stream_id::StreamId;
 
-pub struct CommittedChangeRequest {
+pub(crate) struct CommittedChangeRequest {
     pub commit_id: CommitId,
     pub file_entry: ChangeRequestFileEntry,
 }
 
-pub struct CommittedStreamChange {
+pub(crate) struct CommittedStreamChange {
     pub stream_id: StreamId,
     pub committed_changes: Vec<CommittedChangeRequestData>,
 }
@@ -22,7 +22,7 @@ impl CommittedStreamChange {
     }
 }
 
-pub struct CommittedChangeRequestData {
+pub(crate) struct CommittedChangeRequestData {
     pub commit_id: CommitId,
     pub file_data: ChangeRequestFileData,
 }

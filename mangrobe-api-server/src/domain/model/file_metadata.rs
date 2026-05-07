@@ -1,5 +1,5 @@
 #[derive(Clone, Debug)]
-pub struct FileMetadata {
+pub(crate) struct FileMetadata {
     pub parquet_metadata: Option<Vec<u8>>,
 }
 

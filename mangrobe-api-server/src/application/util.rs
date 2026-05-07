@@ -1,1 +1,1 @@
-pub mod user_table;
+pub(crate) mod user_table;

@@ -1,5 +1,5 @@
 #[derive(Debug, Clone)]
-pub struct FileColumnStatistics {
+pub(crate) struct FileColumnStatistics {
     pub column_name: String,
     pub min: Option<f64>,
     pub max: Option<f64>,

@@ -5,7 +5,7 @@ use crate::infrastructure::db::repository::commit_repository::CommitRepository;
 use crate::infrastructure::db::repository::current_file_repository::CurrentFileRepository;
 use sea_orm::{AccessMode, DatabaseConnection, IsolationLevel, TransactionTrait};
 
-pub struct SnapshotService {
+pub(crate) struct SnapshotService {
     connection: DatabaseConnection,
     current_file_repository: CurrentFileRepository,
     commit_repository: CommitRepository,

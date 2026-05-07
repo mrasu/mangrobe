@@ -1,4 +1,4 @@
-use crate::application::data_definition::CreateTableParam;
+use crate::application::data_definition::create_table_param::CreateTableParam;
 use crate::domain::model::user_table::UserTable;
 use crate::domain::service::user_table_service::UserTableService;
 use crate::infrastructure::db::repository::user_table_repository::UserTableRepositoryError;
@@ -6,7 +6,7 @@ use crate::util::error::UserError;
 use anyhow::bail;
 use sea_orm::DatabaseConnection;
 
-pub struct DataDefinitionUseCase {
+pub(crate) struct DataDefinitionUseCase {
     user_table_service: UserTableService,
 }
 

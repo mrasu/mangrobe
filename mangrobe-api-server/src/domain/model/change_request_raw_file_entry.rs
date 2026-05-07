@@ -2,7 +2,7 @@ use crate::domain::model::file::{FileEntry, FilePath};
 use chrono::{DateTime, Utc};
 
 #[derive(Debug)]
-pub struct ChangeRequestRawAddFileEntry {
+pub(crate) struct ChangeRequestRawAddFileEntry {
     pub partition_time: DateTime<Utc>,
     pub files_to_add: Vec<FileEntry>,
 }
@@ -17,7 +17,7 @@ impl ChangeRequestRawAddFileEntry {
 }
 
 #[derive(Debug)]
-pub struct ChangeRequestRawChangeFilesEntry {
+pub(crate) struct ChangeRequestRawChangeFilesEntry {
     pub partition_time: DateTime<Utc>,
     pub files_to_delete: Vec<FilePath>,
 }
@@ -32,7 +32,7 @@ impl ChangeRequestRawChangeFilesEntry {
 }
 
 #[derive(Debug)]
-pub struct ChangeRequestRawCompactFilesEntry {
+pub(crate) struct ChangeRequestRawCompactFilesEntry {
     pub partition_time: DateTime<Utc>,
     pub info_entries: Vec<ChangeRequestRawCompactFileInfoEntry>,
 }
@@ -50,7 +50,7 @@ impl ChangeRequestRawCompactFilesEntry {
 }
 
 #[derive(Debug)]
-pub struct ChangeRequestRawCompactFileInfoEntry {
+pub(crate) struct ChangeRequestRawCompactFileInfoEntry {
     pub src_file_paths: Vec<FilePath>,
     pub dst_file: FileEntry,
 }

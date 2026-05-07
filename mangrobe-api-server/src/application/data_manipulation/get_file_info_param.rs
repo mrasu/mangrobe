@@ -1,7 +1,7 @@
 use crate::domain::model::file_id::FileId;
 
 #[derive(Debug, Clone)]
-pub struct FileStatisticsSelection {
+pub(crate) struct FileStatisticsSelection {
     pub includes_min: bool,
     pub includes_max: bool,
 }
@@ -16,7 +16,7 @@ impl FileStatisticsSelection {
 }
 
 #[derive(Debug, Clone)]
-pub struct FileMetadataSelection {
+pub(crate) struct FileMetadataSelection {
     pub includes_parquet_metadata: bool,
 }
 
@@ -29,7 +29,7 @@ impl FileMetadataSelection {
 }
 
 #[derive(Clone)]
-pub struct GetFileInfoParam {
+pub(crate) struct GetFileInfoParam {
     pub file_ids: Vec<FileId>,
     pub stat_types: FileStatisticsSelection,
     pub metadata_types: FileMetadataSelection,

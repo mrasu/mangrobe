@@ -1,4 +1,3 @@
-pub mod connection;
-pub mod entity;
+pub(crate) mod entity;
 mod entity_ext;
-pub mod repository;
+pub(crate) mod repository;

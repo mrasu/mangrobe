@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, Hash, PartialEq)]
 #[serde(transparent)]
-pub struct UserTableName(String);
+pub(crate) struct UserTableName(String);
 
 impl TryFrom<String> for UserTableName {
     type Error = String;

@@ -8,29 +8,29 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct ChangeRequestAddFilesEntry {
+pub(crate) struct ChangeRequestAddFilesEntry {
     pub file_ids: Vec<FileId>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct ChangeRequestChangeFilesEntry {
+pub(crate) struct ChangeRequestChangeFilesEntry {
     pub delete_file_ids: Vec<FileId>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct ChangeRequestCompactFilesEntry {
+pub(crate) struct ChangeRequestCompactFilesEntry {
     pub entries: Vec<ChangeRequestCompactFileEntry>,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct ChangeRequestCompactFileEntry {
+pub(crate) struct ChangeRequestCompactFileEntry {
     pub src_file_ids: Vec<FileId>,
     pub dst_file_id: FileId,
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[serde(tag = "type", rename_all = "lowercase")]
-pub enum ChangeRequestFileEntry {
+pub(crate) enum ChangeRequestFileEntry {
     AddFiles {
         add_files: ChangeRequestAddFilesEntry,
     },
