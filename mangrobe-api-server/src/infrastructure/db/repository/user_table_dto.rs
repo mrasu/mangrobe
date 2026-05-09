@@ -24,7 +24,8 @@ pub(super) fn build_table_definition(
 ) -> Result<TableDefinition, anyhow::Error> {
     let location: LocationDto = serde_json::from_value(table.location.clone())?;
     let columns: Vec<ColumnDto> = serde_json::from_value(table.columns.clone())?;
-    let partition_fields: Vec<PartitionFieldDto> = serde_json::from_value(table.partitions.clone())?;
+    let partition_fields: Vec<PartitionFieldDto> =
+        serde_json::from_value(table.partitions.clone())?;
 
     Ok(TableDefinition::new(
         TableIdentifier::new(

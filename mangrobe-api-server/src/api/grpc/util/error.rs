@@ -13,6 +13,7 @@ pub fn to_grpc_error(error: anyhow::Error) -> Status {
                 build_invalid_argument_with_error_message(e.to_string())
             }
             UserError::AlreadyExistsMessage(_) => Status::new(Code::AlreadyExists, e.to_string()),
+            UserError::NotFoundMessage(_) => Status::new(Code::NotFound, e.to_string()),
         };
     }
 

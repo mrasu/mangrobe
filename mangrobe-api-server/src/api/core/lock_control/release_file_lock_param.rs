@@ -1,5 +1,5 @@
 use crate::api::core::util::error::ParameterError;
-use crate::api::core::util::param_util::to_file_lock_key;
+use crate::api::core::util::param::file_lock_key::to_file_lock_key;
 use crate::api::grpc::proto::ReleaseFileLockRequest;
 use crate::domain::model::file_lock_key::FileLockKey;
 use chrono::{DateTime, Utc};

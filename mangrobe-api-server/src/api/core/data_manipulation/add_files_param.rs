@@ -1,5 +1,7 @@
 use crate::api::core::util::error::ParameterError;
-use crate::api::core::util::param_util::{to_idempotency_key, to_partition_time, to_table_name};
+use crate::api::core::util::param::idempotency_key::to_idempotency_key;
+use crate::api::core::util::param::partition_time::to_partition_time;
+use crate::api::core::util::param::table_name::to_table_name;
 use crate::api::grpc::proto::AddFilesRequest;
 use crate::application::data_manipulation::add_files_param::AddFilesParam;
 use crate::domain::model::change_request_raw_file_entry::ChangeRequestRawAddFileEntry;

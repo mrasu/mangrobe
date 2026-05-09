@@ -16,6 +16,7 @@ service DataManipulationService {
 service DataDefinitionService {
   rpc CreateTable(CreateTableRequest) returns (CreateTableResponse);
   rpc CreateExternalTable(CreateExternalTableRequest) returns (CreateExternalTableResponse);
+  rpc GetTable(GetTableRequest) returns (GetTableResponse);
 }
 
 service LockControlService {
@@ -311,6 +312,14 @@ message CreateExternalTableRequest {
 }
 
 message CreateExternalTableResponse {
+  TableDefinition table = 1;
+}
+
+message GetTableRequest {
+  TableIdentifier identifier = 1;
+}
+
+message GetTableResponse {
   TableDefinition table = 1;
 }
 

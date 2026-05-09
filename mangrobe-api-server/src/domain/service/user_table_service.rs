@@ -1,4 +1,4 @@
-use crate::domain::model::table_definition::TableDefinition;
+use crate::domain::model::table_definition::{TableDefinition, TableIdentifier};
 use crate::domain::model::user_table::UserTable;
 use crate::domain::model::user_table_id::UserTableId;
 use crate::domain::model::user_table_name::UserTableName;
@@ -73,5 +73,14 @@ impl UserTableService {
         let Some(table) = table else { return Ok(None) };
 
         Ok(Some(table.id))
+    }
+
+    pub async fn find_by_identifier(
+        &self,
+        identifier: &TableIdentifier,
+    ) -> Result<Option<TableDefinition>, anyhow::Error> {
+        self.user_table_repository
+            .find_by_identifier(&self.connection, identifier)
+            .await
     }
 }

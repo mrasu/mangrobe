@@ -1,7 +1,7 @@
 use crate::api::core::information_schema::list_stream_page_token::ListStreamPageToken;
 use crate::api::core::util::error::ParameterError;
 use crate::api::core::util::page::build_page;
-use crate::api::core::util::param_util::to_table_name;
+use crate::api::core::util::param::table_name::to_table_name;
 use crate::api::grpc::proto::{ListStreamsRequest, PaginationRequest};
 use crate::application::information_schema::list_streams_param::ListStreamsParam;
 

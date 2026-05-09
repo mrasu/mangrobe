@@ -20,4 +20,7 @@ pub(crate) enum UserError {
 
     #[error("Already exists. {0}")]
     AlreadyExistsMessage(String),
+
+    #[error("Not found. {0}")]
+    NotFoundMessage(String),
 }

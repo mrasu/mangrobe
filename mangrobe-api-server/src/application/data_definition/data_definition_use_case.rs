@@ -1,5 +1,6 @@
 use crate::application::data_definition::create_external_table_param::CreateExternalTableParam;
 use crate::application::data_definition::create_table_param::CreateTableParam;
+use crate::application::data_definition::get_table_param::GetTableParam;
 use crate::domain::model::table_definition::TableDefinition;
 use crate::domain::model::user_table::UserTable;
 use crate::domain::service::user_table_service::UserTableService;
@@ -44,12 +45,7 @@ impl DataDefinitionUseCase {
         &self,
         param: CreateExternalTableParam,
     ) -> Result<TableDefinition, anyhow::Error> {
-        let table_name = format!(
-            "{}.{}.{}",
-            param.table.identifier.catalog_name.val(),
-            param.table.identifier.schema_name.val(),
-            param.table.identifier.table_name.val()
-        );
+        let table_name = param.table.identifier.full_name();
         let res = self
             .user_table_service
             .create_external_table(&param.table, param.skip_if_exists)
@@ -68,5 +64,18 @@ impl DataDefinitionUseCase {
                 bail!(err)
             }
         }
+    }
+
+    pub async fn get_table(&self, param: GetTableParam) -> Result<TableDefinition, anyhow::Error> {
+        let table = self
+            .user_table_service
+            .find_by_identifier(&param.identifier)
+            .await?;
+
+        let Some(table) = table else {
+            bail!(UserError::NotFoundMessage(param.identifier.full_name()));
+        };
+
+        Ok(table)
     }
 }

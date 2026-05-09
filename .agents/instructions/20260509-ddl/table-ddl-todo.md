@@ -10,7 +10,7 @@ editing each file.
 ## RPC Implementation Order
 
 - [x] `CreateExternalTable` with scalar types only.
-- [ ] `GetTable` with scalar types only.
+- [x] `GetTable` with scalar types only.
 - [ ] `ListTables` with scalar types only.
 - [ ] `EvolveTableSchema` with scalar types only.
 - [ ] `DropTableColumns` with scalar types only.

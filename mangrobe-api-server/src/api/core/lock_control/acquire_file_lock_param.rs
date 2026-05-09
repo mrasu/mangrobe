@@ -1,5 +1,7 @@
 use crate::api::core::util::error::ParameterError;
-use crate::api::core::util::param_util::{to_file_lock_key, to_partition_time, to_table_name};
+use crate::api::core::util::param::file_lock_key::to_file_lock_key;
+use crate::api::core::util::param::partition_time::to_partition_time;
+use crate::api::core::util::param::table_name::to_table_name;
 use crate::api::grpc::proto::AcquireFileLockRequest;
 use crate::application::lock_control::acquire_file_lock_param::AcquireFileLockParam;
 use crate::domain::model::lock_raw_file_entry::LockFileRawAcquireEntry;

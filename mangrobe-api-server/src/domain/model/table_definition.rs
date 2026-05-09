@@ -108,13 +108,12 @@ impl TableDefinition {
                     partition_field.src_column.val(),
                 ));
             }
-            if let Some(dst_column) = &partition_field.dst_column {
-                if !column_names.contains(&dst_column.val()) {
+            if let Some(dst_column) = &partition_field.dst_column
+                && !column_names.contains(&dst_column.val()) {
                     return Err(TableDefinitionError::UnknownPartitionDestinationColumn(
                         dst_column.val(),
                     ));
                 }
-            }
         }
 
         Ok(Self {
@@ -147,6 +146,15 @@ impl TableIdentifier {
             table_name,
         }
     }
+
+    pub fn full_name(&self) -> String {
+        format!(
+            "{}.{}.{}",
+            self.catalog_name.val(),
+            self.schema_name.val(),
+            self.table_name.val()
+        )
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -166,7 +174,8 @@ impl ExternalLocation {
         endpoint: Option<String>,
         region: Option<String>,
     ) -> Result<Self, TableDefinitionError> {
-        if matches!(storage_scheme, StorageScheme::S3) && bucket.as_ref().is_none_or(String::is_empty)
+        if matches!(storage_scheme, StorageScheme::S3)
+            && bucket.as_ref().is_none_or(String::is_empty)
         {
             return Err(TableDefinitionError::S3BucketRequired);
         }
