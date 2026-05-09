@@ -1,4 +1,7 @@
+use crate::api::core::util::error::ParameterError;
+use crate::api::core::util::param::table_identifier::to_db_object_identifier;
 use crate::api::core::util::param::table_identifier::to_proto_table_identifier;
+use crate::api::core::util::param_util::{invalid_enum, required};
 use crate::api::grpc::proto::{
     Column as ProtoColumn, DataType as ProtoDataType, ExternalLocation as ProtoExternalLocation,
     FileFormat as ProtoFileFormat, PartitionField as ProtoPartitionField,
@@ -7,9 +10,51 @@ use crate::api::grpc::proto::{
     TimeType as ProtoTimeType, TimeUnit as ProtoTimeUnit, data_type,
 };
 use crate::domain::model::table_definition::{
-    Column, DataType, ExternalLocation, FileFormat, PartitionField, PartitionTransform, ScalarType,
-    StorageScheme, TableDefinition, TimeType, TimeUnit,
+    Column, ColumnDataType, ExternalLocation, FileFormat, PartitionField, PartitionTransform,
+    ScalarType, StorageScheme, TableDefinition, TimeType, TimeUnit,
 };
+
+pub(crate) fn to_column(column: &ProtoColumn) -> Result<Column, ParameterError> {
+    Ok(Column::new(
+        to_db_object_identifier("columns.name", column.name.clone())?,
+        to_column_data_type(required("columns.data_type", column.data_type.as_ref())?)?,
+        column.nullable,
+        column.comment.clone(),
+    ))
+}
+
+pub(crate) fn to_column_data_type(
+    data_type: &ProtoDataType,
+) -> Result<ColumnDataType, ParameterError> {
+    match required("data_type.type", data_type.r#type.as_ref())? {
+        data_type::Type::Scalar(value) => Ok(ColumnDataType::Scalar(to_scalar_type(*value)?)),
+        data_type::Type::Time(time) => Ok(ColumnDataType::Time(TimeType::new(to_time_unit(
+            time.unit,
+            "data_type.time.unit",
+        )?))),
+    }
+}
+
+fn to_scalar_type(value: i32) -> Result<ScalarType, ParameterError> {
+    match ProtoScalarType::try_from(value) {
+        Ok(ProtoScalarType::Bool) => Ok(ScalarType::Bool),
+        Ok(ProtoScalarType::Int64) => Ok(ScalarType::Int64),
+        Ok(ProtoScalarType::Float64) => Ok(ScalarType::Float64),
+        Ok(ProtoScalarType::String) => Ok(ScalarType::String),
+        Ok(ProtoScalarType::Date) => Ok(ScalarType::Date),
+        Ok(ProtoScalarType::Unspecified) | Err(_) => invalid_enum("data_type.scalar"),
+    }
+}
+
+fn to_time_unit(value: i32, key: &str) -> Result<TimeUnit, ParameterError> {
+    match ProtoTimeUnit::try_from(value) {
+        Ok(ProtoTimeUnit::Second) => Ok(TimeUnit::Second),
+        Ok(ProtoTimeUnit::Millisecond) => Ok(TimeUnit::Millisecond),
+        Ok(ProtoTimeUnit::Microsecond) => Ok(TimeUnit::Microsecond),
+        Ok(ProtoTimeUnit::Nanosecond) => Ok(TimeUnit::Nanosecond),
+        Ok(ProtoTimeUnit::Unspecified) | Err(_) => invalid_enum(key),
+    }
+}
 
 pub(crate) fn to_proto_table_definition(table: TableDefinition) -> ProtoTableDefinition {
     ProtoTableDefinition {
@@ -54,13 +99,13 @@ fn to_proto_partition_field(field: PartitionField) -> ProtoPartitionField {
     }
 }
 
-fn to_proto_data_type(data_type: DataType) -> ProtoDataType {
+fn to_proto_data_type(data_type: ColumnDataType) -> ProtoDataType {
     ProtoDataType {
         r#type: Some(match data_type {
-            DataType::Scalar(scalar) => {
+            ColumnDataType::Scalar(scalar) => {
                 data_type::Type::Scalar(to_proto_scalar_type(scalar) as i32)
             }
-            DataType::Time(time) => data_type::Type::Time(to_proto_time_type(time)),
+            ColumnDataType::Time(time) => data_type::Type::Time(to_proto_time_type(time)),
         }),
     }
 }

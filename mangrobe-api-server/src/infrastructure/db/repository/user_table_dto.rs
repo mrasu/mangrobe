@@ -1,7 +1,7 @@
 use crate::domain::model::db_object_identifier::DbObjectIdentifier;
 use crate::domain::model::table_definition::{
-    Column, DataType, ExternalLocation, FileFormat, PartitionField, PartitionTransform, ScalarType,
-    StorageScheme, TableDefinition, TimeType, TimeUnit,
+    Column, ColumnDataType, ExternalLocation, FileFormat, PartitionField, PartitionTransform,
+    ScalarType, StorageScheme, TableDefinition, TimeType, TimeUnit,
 };
 use crate::domain::model::table_identifier::TableIdentifier;
 use crate::domain::model::table_summary::TableSummary;
@@ -74,14 +74,7 @@ pub(super) fn build_active_model(table: &TableDefinition) -> ActiveModel {
         location: Set(serde_json::to_value(LocationDto::from(&table.location))
             .expect("location DTO should serialize")),
         format: Set(file_format_to_i32(table.format)),
-        columns: Set(serde_json::to_value(
-            table
-                .columns
-                .iter()
-                .map(ColumnDto::from)
-                .collect::<Vec<_>>(),
-        )
-        .expect("column DTO should serialize")),
+        columns: Set(build_columns_value(&table.columns)),
         partitions: Set(serde_json::to_value(
             table
                 .partition_fields
@@ -94,6 +87,11 @@ pub(super) fn build_active_model(table: &TableDefinition) -> ActiveModel {
         created_at: Default::default(),
         updated_at: Default::default(),
     }
+}
+
+pub(super) fn build_columns_value(columns: &[Column]) -> serde_json::Value {
+    serde_json::to_value(columns.iter().map(ColumnDto::from).collect::<Vec<_>>())
+        .expect("column DTO should serialize")
 }
 
 fn to_db_object_identifier(value: String) -> Result<DbObjectIdentifier, anyhow::Error> {
@@ -211,20 +209,20 @@ enum DataTypeDto {
     Time { unit: TimeUnitDto },
 }
 
-impl From<&DataType> for DataTypeDto {
-    fn from(value: &DataType) -> Self {
+impl From<&ColumnDataType> for DataTypeDto {
+    fn from(value: &ColumnDataType) -> Self {
         match value {
-            DataType::Scalar(scalar) => Self::Scalar {
+            ColumnDataType::Scalar(scalar) => Self::Scalar {
                 scalar: ScalarTypeDto::from(*scalar),
             },
-            DataType::Time(time) => Self::Time {
+            ColumnDataType::Time(time) => Self::Time {
                 unit: TimeUnitDto::from(time.unit),
             },
         }
     }
 }
 
-impl TryFrom<DataTypeDto> for DataType {
+impl TryFrom<DataTypeDto> for ColumnDataType {
     type Error = anyhow::Error;
 
     fn try_from(value: DataTypeDto) -> Result<Self, Self::Error> {

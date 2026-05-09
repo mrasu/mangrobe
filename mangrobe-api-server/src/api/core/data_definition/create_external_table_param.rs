@@ -1,19 +1,18 @@
 use crate::api::core::util::error::ParameterError;
+use crate::api::core::util::param::table_definition::{to_column, to_column_data_type};
 use crate::api::core::util::param::table_identifier::{
     to_db_object_identifier, to_table_identifier,
 };
 use crate::api::core::util::param_util::{invalid_enum, required};
 use crate::api::grpc::proto::{
-    CreateExternalTableRequest, DataType as ProtoDataType,
-    ExternalLocation as ProtoExternalLocation, FileFormat as ProtoFileFormat,
-    PartitionTransform as ProtoPartitionTransform, ScalarType as ProtoScalarType,
+    CreateExternalTableRequest, ExternalLocation as ProtoExternalLocation,
+    FileFormat as ProtoFileFormat, PartitionTransform as ProtoPartitionTransform,
     StorageScheme as ProtoStorageScheme, TableDefinition as ProtoTableDefinition,
-    TimeUnit as ProtoTimeUnit, data_type,
 };
 use crate::application::data_definition::create_external_table_param::CreateExternalTableParam;
 use crate::domain::model::table_definition::{
-    Column, DataType, ExternalLocation, FileFormat, PartitionField, PartitionTransform, ScalarType,
-    StorageScheme, TableDefinition, TimeType, TimeUnit,
+    ExternalLocation, FileFormat, PartitionField, PartitionTransform, StorageScheme,
+    TableDefinition,
 };
 
 pub(crate) fn build_create_external_table_param(
@@ -58,15 +57,6 @@ fn to_external_location(
     .map_err(|err| ParameterError::Invalid("location".to_owned(), err.to_string()))
 }
 
-fn to_column(column: &crate::api::grpc::proto::Column) -> Result<Column, ParameterError> {
-    Ok(Column::new(
-        to_db_object_identifier("columns.name", column.name.clone())?,
-        to_data_type(required("columns.data_type", column.data_type.as_ref())?)?,
-        column.nullable,
-        column.comment.clone(),
-    ))
-}
-
 fn to_partition_field(
     field: &crate::api::grpc::proto::PartitionField,
 ) -> Result<PartitionField, ParameterError> {
@@ -78,22 +68,12 @@ fn to_partition_field(
             .map(|dst_column| to_db_object_identifier("partition_fields.dst_column", dst_column))
             .transpose()?,
         to_partition_transform(field.transform, "partition_fields.transform")?,
-        to_data_type(required(
+        to_column_data_type(required(
             "partition_fields.result_type",
             field.result_type.as_ref(),
         )?)?,
     )
     .map_err(|err| ParameterError::Invalid("partition_fields".to_owned(), err.to_string()))
-}
-
-fn to_data_type(data_type: &ProtoDataType) -> Result<DataType, ParameterError> {
-    match required("data_type.type", data_type.r#type.as_ref())? {
-        data_type::Type::Scalar(value) => Ok(DataType::Scalar(to_scalar_type(*value)?)),
-        data_type::Type::Time(time) => Ok(DataType::Time(TimeType::new(to_time_unit(
-            time.unit,
-            "data_type.time.unit",
-        )?))),
-    }
 }
 
 fn to_storage_scheme(value: i32, key: &str) -> Result<StorageScheme, ParameterError> {
@@ -108,27 +88,6 @@ fn to_file_format(value: i32, key: &str) -> Result<FileFormat, ParameterError> {
         Ok(ProtoFileFormat::Parquet) => Ok(FileFormat::Parquet),
         Ok(ProtoFileFormat::Vortex) => Ok(FileFormat::Vortex),
         Ok(ProtoFileFormat::Unspecified) | Err(_) => invalid_enum(key),
-    }
-}
-
-fn to_scalar_type(value: i32) -> Result<ScalarType, ParameterError> {
-    match ProtoScalarType::try_from(value) {
-        Ok(ProtoScalarType::Bool) => Ok(ScalarType::Bool),
-        Ok(ProtoScalarType::Int64) => Ok(ScalarType::Int64),
-        Ok(ProtoScalarType::Float64) => Ok(ScalarType::Float64),
-        Ok(ProtoScalarType::String) => Ok(ScalarType::String),
-        Ok(ProtoScalarType::Date) => Ok(ScalarType::Date),
-        Ok(ProtoScalarType::Unspecified) | Err(_) => invalid_enum("data_type.scalar"),
-    }
-}
-
-fn to_time_unit(value: i32, key: &str) -> Result<TimeUnit, ParameterError> {
-    match ProtoTimeUnit::try_from(value) {
-        Ok(ProtoTimeUnit::Second) => Ok(TimeUnit::Second),
-        Ok(ProtoTimeUnit::Millisecond) => Ok(TimeUnit::Millisecond),
-        Ok(ProtoTimeUnit::Microsecond) => Ok(TimeUnit::Microsecond),
-        Ok(ProtoTimeUnit::Nanosecond) => Ok(TimeUnit::Nanosecond),
-        Ok(ProtoTimeUnit::Unspecified) | Err(_) => invalid_enum(key),
     }
 }
 

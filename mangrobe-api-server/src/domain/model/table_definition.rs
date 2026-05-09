@@ -1,5 +1,6 @@
 use crate::domain::model::db_object_identifier::DbObjectIdentifier;
 use crate::domain::model::table_identifier::TableIdentifier;
+use std::collections::{HashMap, HashSet};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -18,6 +19,9 @@ pub(crate) enum TableDefinitionError {
 
     #[error("partition dst_column references unknown column: '{0}'")]
     UnknownPartitionDestinationColumn(String),
+
+    #[error("incompatible column definition: '{0}'")]
+    IncompatibleColumnDefinition(String),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -70,6 +74,75 @@ impl TableDefinition {
             comment,
         })
     }
+
+    pub fn evolve_schema_columns(
+        &self,
+        proposed_columns: Vec<Column>,
+    ) -> Result<(Vec<Column>, bool), TableDefinitionError> {
+        let mut proposed_column_names = HashSet::new();
+        for column in &proposed_columns {
+            if !proposed_column_names.insert(column.name.val()) {
+                return Err(TableDefinitionError::DuplicateColumnName(column.name.val()));
+            }
+        }
+
+        let mut changed = false;
+        let mut existing_columns = self.columns.clone();
+
+        let mut column_index_map: HashMap<_, _> = existing_columns
+            .iter()
+            .enumerate()
+            .map(|(idx, column)| (column.name.clone(), idx))
+            .collect();
+
+        for proposed_column in proposed_columns {
+            match column_index_map.get(&proposed_column.name).copied() {
+                Some(idx) => {
+                    let existing_column = &mut existing_columns[idx];
+                    let column_changed = merge_column(existing_column, proposed_column)?;
+                    changed |= column_changed;
+                }
+                None => {
+                    let idx = existing_columns.len();
+
+                    column_index_map.insert(proposed_column.name.clone(), idx);
+
+                    existing_columns.push(proposed_column);
+                    changed = true;
+                }
+            }
+        }
+
+        Ok((existing_columns, changed))
+    }
+}
+
+fn merge_column(
+    existing_column: &mut Column,
+    proposed_column: Column,
+) -> Result<bool, TableDefinitionError> {
+    if existing_column == &proposed_column {
+        return Ok(false);
+    }
+
+    if existing_column.data_type != proposed_column.data_type {
+        return Err(TableDefinitionError::IncompatibleColumnDefinition(format!(
+            "{} cannot change incompatible data_type",
+            proposed_column.name.val()
+        )));
+    }
+
+    if existing_column.nullable != proposed_column.nullable {
+        if existing_column.nullable {
+            return Err(TableDefinitionError::IncompatibleColumnDefinition(format!(
+                "{} cannot change to non-nullable column",
+                proposed_column.name.val()
+            )));
+        }
+        existing_column.nullable = true;
+    }
+
+    Ok(true)
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -119,7 +192,7 @@ pub(crate) enum FileFormat {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct Column {
     pub name: DbObjectIdentifier,
-    pub data_type: DataType,
+    pub data_type: ColumnDataType,
     pub nullable: bool,
     pub comment: Option<String>,
 }
@@ -127,7 +200,7 @@ pub(crate) struct Column {
 impl Column {
     pub fn new(
         name: DbObjectIdentifier,
-        data_type: DataType,
+        data_type: ColumnDataType,
         nullable: bool,
         comment: Option<String>,
     ) -> Self {
@@ -141,7 +214,7 @@ impl Column {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum DataType {
+pub(crate) enum ColumnDataType {
     Scalar(ScalarType),
     Time(TimeType),
 }
@@ -179,7 +252,7 @@ pub(crate) struct PartitionField {
     pub src_column: DbObjectIdentifier,
     pub dst_column: Option<DbObjectIdentifier>,
     pub transform: PartitionTransform,
-    pub result_type: DataType,
+    pub result_type: ColumnDataType,
 }
 
 impl PartitionField {
@@ -187,7 +260,7 @@ impl PartitionField {
         src_column: DbObjectIdentifier,
         dst_column: Option<DbObjectIdentifier>,
         transform: PartitionTransform,
-        result_type: DataType,
+        result_type: ColumnDataType,
     ) -> Result<Self, TableDefinitionError> {
         if dst_column.as_ref() == Some(&src_column) {
             return Err(TableDefinitionError::InvalidPartitionDestination);

@@ -18,6 +18,7 @@ service DataDefinitionService {
   rpc CreateExternalTable(CreateExternalTableRequest) returns (CreateExternalTableResponse);
   rpc GetTable(GetTableRequest) returns (GetTableResponse);
   rpc ListTables(ListTablesRequest) returns (ListTablesResponse);
+  rpc EvolveTableSchema(EvolveTableSchemaRequest) returns (EvolveTableSchemaResponse);
 }
 
 service LockControlService {
@@ -331,6 +332,15 @@ message ListTablesRequest {
 
 message ListTablesResponse {
   repeated TableSummary tables = 1;
+}
+
+message EvolveTableSchemaRequest {
+  TableIdentifier identifier = 1;
+  repeated Column proposed_columns = 2;
+}
+
+message EvolveTableSchemaResponse {
+  TableDefinition table = 1;
 }
 
 message TableSummary {

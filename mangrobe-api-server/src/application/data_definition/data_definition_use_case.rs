@@ -1,5 +1,6 @@
 use crate::application::data_definition::create_external_table_param::CreateExternalTableParam;
 use crate::application::data_definition::create_table_param::CreateTableParam;
+use crate::application::data_definition::evolve_table_schema_param::EvolveTableSchemaParam;
 use crate::application::data_definition::get_table_param::GetTableParam;
 use crate::application::data_definition::list_tables_param::ListTablesParam;
 use crate::domain::model::table_definition::TableDefinition;
@@ -36,6 +37,7 @@ impl DataDefinitionUseCase {
                         UserTableRepositoryError::AlreadyExists => {
                             bail!(UserError::AlreadyExistsMessage(param.table_name.val()));
                         }
+                        _ => bail!(err),
                     }
                 }
                 bail!(err)
@@ -61,6 +63,7 @@ impl DataDefinitionUseCase {
                         UserTableRepositoryError::AlreadyExists => {
                             bail!(UserError::AlreadyExistsMessage(table_name));
                         }
+                        _ => bail!(err),
                     }
                 }
                 bail!(err)
@@ -88,5 +91,21 @@ impl DataDefinitionUseCase {
         self.user_table_service
             .list_table_summaries(&param.catalog_name, &param.schema_name)
             .await
+    }
+
+    pub async fn evolve_table_schema(
+        &self,
+        param: EvolveTableSchemaParam,
+    ) -> Result<TableDefinition, anyhow::Error> {
+        let table = self
+            .user_table_service
+            .evolve_schema(&param.identifier, param.proposed_columns)
+            .await?;
+
+        let Some(table) = table else {
+            bail!(UserError::NotFoundMessage(param.identifier.full_name()));
+        };
+
+        Ok(table)
     }
 }

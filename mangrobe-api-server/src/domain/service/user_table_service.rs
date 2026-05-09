@@ -1,11 +1,13 @@
-use crate::domain::model::table_definition::TableDefinition;
+use crate::domain::model::table_definition::{Column, TableDefinition};
 use crate::domain::model::table_identifier::TableIdentifier;
 use crate::domain::model::table_summary::TableSummary;
 use crate::domain::model::user_table::UserTable;
 use crate::domain::model::user_table_id::UserTableId;
 use crate::domain::model::user_table_name::UserTableName;
 use crate::infrastructure::db::repository::user_table_repository::UserTableRepository;
-use sea_orm::DatabaseConnection;
+use crate::util::error::UserError;
+use anyhow::anyhow;
+use sea_orm::{DatabaseConnection, TransactionTrait};
 
 pub(crate) struct UserTableService {
     connection: DatabaseConnection,
@@ -94,5 +96,40 @@ impl UserTableService {
         self.user_table_repository
             .find_table_summaries(&self.connection, catalog_name, schema_name)
             .await
+    }
+
+    pub async fn evolve_schema(
+        &self,
+        identifier: &TableIdentifier,
+        proposed_columns: Vec<Column>,
+    ) -> Result<Option<TableDefinition>, anyhow::Error> {
+        let txn = self.connection.begin().await?;
+
+        let Some(table) = self
+            .user_table_repository
+            .find_by_identifier_for_update(&txn, identifier)
+            .await?
+        else {
+            txn.rollback().await?;
+            return Ok(None);
+        };
+
+        let (columns, changed) = table
+            .evolve_schema_columns(proposed_columns)
+            .map_err(|err| anyhow!(UserError::InvalidParameterMessage(err.to_string())))?;
+
+        if !changed {
+            txn.rollback().await?;
+            return Ok(Some(table));
+        }
+
+        let table = self
+            .user_table_repository
+            .update_columns(&txn, identifier, &columns)
+            .await?;
+
+        txn.commit().await?;
+
+        Ok(Some(table))
     }
 }

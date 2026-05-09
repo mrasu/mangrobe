@@ -1,4 +1,4 @@
-use crate::domain::model::table_definition::TableDefinition;
+use crate::domain::model::table_definition::{Column as DomainColumn, TableDefinition};
 use crate::domain::model::table_identifier::TableIdentifier;
 use crate::domain::model::table_summary::TableSummary;
 use crate::domain::model::user_table::UserTable;
@@ -6,13 +6,14 @@ use crate::domain::model::user_table_name::UserTableName;
 use crate::infrastructure::db::entity::prelude::UserTables;
 use crate::infrastructure::db::entity::user_tables::{ActiveModel, Column};
 use crate::infrastructure::db::repository::user_table_dto::{
-    build_active_model, build_domain_table_definition, build_domain_table_summary,
-    build_domain_user_table,
+    build_active_model, build_columns_value, build_domain_table_definition,
+    build_domain_table_summary, build_domain_user_table,
 };
 use anyhow::bail;
+use sea_orm::sea_query::LockType;
 use sea_orm::{
-    ActiveValue::Set, ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QueryOrder,
-    QuerySelect, SqlErr,
+    ActiveValue::Set, ColumnTrait, ConnectionTrait, DatabaseTransaction, EntityTrait, QueryFilter,
+    QueryOrder, QuerySelect, SqlErr,
 };
 use serde_json::json;
 use thiserror::Error;
@@ -24,6 +25,9 @@ pub(crate) struct UserTableRepository {}
 pub(crate) enum UserTableRepositoryError {
     #[error("Already exists.")]
     AlreadyExists,
+
+    #[error("Not found.")]
+    NotFound,
 }
 
 impl UserTableRepository {
@@ -108,6 +112,26 @@ impl UserTableRepository {
         Ok(Some(build_domain_table_definition(&table)?))
     }
 
+    pub async fn find_by_identifier_for_update(
+        &self,
+        txn: &DatabaseTransaction,
+        identifier: &TableIdentifier,
+    ) -> Result<Option<TableDefinition>, anyhow::Error> {
+        let table = UserTables::find()
+            .filter(Column::CatalogName.eq(identifier.catalog_name.val()))
+            .filter(Column::SchemaName.eq(identifier.schema_name.val()))
+            .filter(Column::Name.eq(identifier.table_name.val()))
+            .lock(LockType::Update)
+            .one(txn)
+            .await?;
+
+        let Some(table) = table else {
+            return Ok(None);
+        };
+
+        Ok(Some(build_domain_table_definition(&table)?))
+    }
+
     pub async fn find_table_summaries<C>(
         &self,
         conn: &C,
@@ -166,6 +190,34 @@ impl UserTableRepository {
                 Err(err.into())
             }
         }
+    }
+
+    pub async fn update_columns<C>(
+        &self,
+        conn: &C,
+        identifier: &TableIdentifier,
+        columns: &[DomainColumn],
+    ) -> Result<TableDefinition, anyhow::Error>
+    where
+        C: ConnectionTrait,
+    {
+        let result = UserTables::update_many()
+            .filter(Column::CatalogName.eq(identifier.catalog_name.val()))
+            .filter(Column::SchemaName.eq(identifier.schema_name.val()))
+            .filter(Column::Name.eq(identifier.table_name.val()))
+            .col_expr(Column::Columns, build_columns_value(columns).into())
+            .exec(conn)
+            .await?;
+
+        if result.rows_affected == 0 {
+            bail!(UserTableRepositoryError::NotFound);
+        }
+
+        let Some(table) = self.find_by_identifier(conn, identifier).await? else {
+            bail!(UserTableRepositoryError::NotFound);
+        };
+
+        Ok(table)
     }
 
     fn is_unique_constraint_violation(&self, err: &sea_orm::DbErr) -> bool {

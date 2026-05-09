@@ -2,13 +2,16 @@ use crate::api::core::data_definition::create_external_table_param::build_create
 use crate::api::core::data_definition::create_external_table_response::build_create_external_table_response;
 use crate::api::core::data_definition::create_table_param::build_create_table_param;
 use crate::api::core::data_definition::create_table_response::build_create_table_response;
+use crate::api::core::data_definition::evolve_table_schema_param::build_evolve_table_schema_param;
+use crate::api::core::data_definition::evolve_table_schema_response::build_evolve_table_schema_response;
 use crate::api::core::data_definition::get_table_param::build_get_table_param;
 use crate::api::core::data_definition::get_table_response::build_get_table_response;
 use crate::api::core::data_definition::list_tables_param::parse_list_tables_param;
 use crate::api::core::data_definition::list_tables_response::build_list_tables_response;
 use crate::api::grpc::proto::{
     CreateExternalTableRequest, CreateExternalTableResponse, CreateTableRequest,
-    CreateTableResponse, GetTableRequest, GetTableResponse, ListTablesRequest, ListTablesResponse,
+    CreateTableResponse, EvolveTableSchemaRequest, EvolveTableSchemaResponse, GetTableRequest,
+    GetTableResponse, ListTablesRequest, ListTablesResponse,
 };
 use crate::application::data_definition::data_definition_use_case::DataDefinitionUseCase;
 use sea_orm::DatabaseConnection;
@@ -69,5 +72,19 @@ impl DataDefinitionService {
         let tables = self.data_definition_use_case.list_tables(param).await?;
 
         Ok(build_list_tables_response(tables))
+    }
+
+    pub async fn evolve_table_schema(
+        &self,
+        param: EvolveTableSchemaRequest,
+    ) -> Result<EvolveTableSchemaResponse, anyhow::Error> {
+        let param = build_evolve_table_schema_param(&param)?;
+
+        let table = self
+            .data_definition_use_case
+            .evolve_table_schema(param)
+            .await?;
+
+        Ok(build_evolve_table_schema_response(table))
     }
 }

@@ -12,10 +12,9 @@ editing each file.
 - [x] `CreateExternalTable` with scalar types only.
 - [x] `GetTable` with scalar types only.
 - [x] `ListTables` with scalar types only.
-- [ ] `EvolveTableSchema` with scalar types only.
+- [x] `EvolveTableSchema` with scalar types only.
+- [ ] Remove the legacy `CreateTable` RPC and its legacy request/response messages.
 - [ ] `DropTableColumns` with scalar types only.
-- [ ] Remove the legacy `CreateTable` RPC and its legacy request/response
-      messages.
 - [ ] Add `struct`, `map`, and `list` type support.
 
 ## Per-RPC Steps
