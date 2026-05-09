@@ -4,6 +4,10 @@ use tonic::{Code, Status};
 use tracing::error;
 
 pub fn to_grpc_error(error: anyhow::Error) -> Status {
+    if let Some(e) = error.downcast_ref::<ParameterError>() {
+        return build_invalid_argument(e);
+    }
+
     if let Some(e) = error.downcast_ref::<UserError>() {
         return match e {
             UserError::InvalidParameterMessage(_) => {
@@ -25,10 +29,12 @@ fn to_internal_error(error: anyhow::Error) -> Status {
     Status::new(Code::Internal, "internal server error")
 }
 
-pub fn build_invalid_argument(err: ParameterError) -> Status {
+fn build_invalid_argument(err: &ParameterError) -> Status {
     match err {
-        ParameterError::Required(key) => build_argument_required(key),
-        ParameterError::Invalid(key, msg) => build_invalid_argument_with_message(key, msg),
+        ParameterError::Required(key) => build_argument_required(key.clone()),
+        ParameterError::Invalid(key, msg) => {
+            build_invalid_argument_with_message(key.clone(), msg.clone())
+        }
     }
 }
 

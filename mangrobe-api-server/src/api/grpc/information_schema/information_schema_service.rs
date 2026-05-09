@@ -1,21 +1,19 @@
-use crate::api::core::information_schema::list_streams_response::build_list_streams_response;
-use crate::api::grpc::information_schema::list_streams_param::parse_list_streams_param;
+use crate::api::core::information_schema::information_schema_service::InformationSchemaService as CoreInformationSchemaService;
 use crate::api::grpc::proto::{
     ListStreamsRequest, ListStreamsResponse, information_schema_service_server,
 };
-use crate::api::grpc::util::error::{build_invalid_argument, to_grpc_error};
-use crate::application::information_schema::information_schema_use_case::InformationSchemaUseCase;
+use crate::api::grpc::util::error::to_grpc_error;
 use sea_orm::DatabaseConnection;
 use tonic::{Request, Response, Status};
 
 pub(crate) struct InformationSchemaService {
-    information_schema_use_case: InformationSchemaUseCase,
+    core_service: CoreInformationSchemaService,
 }
 
 impl InformationSchemaService {
     pub fn new(db: &DatabaseConnection) -> Self {
         Self {
-            information_schema_use_case: InformationSchemaUseCase::new(db.clone()),
+            core_service: CoreInformationSchemaService::new(db.clone()),
         }
     }
 }
@@ -26,16 +24,13 @@ impl information_schema_service_server::InformationSchemaService for Information
         &self,
         request: Request<ListStreamsRequest>,
     ) -> Result<Response<ListStreamsResponse>, Status> {
-        let (param, page_size) =
-            parse_list_streams_param(request).map_err(build_invalid_argument)?;
-
-        let streams = self
-            .information_schema_use_case
-            .list_streams(&param, (page_size + 1) as u64)
+        let req = request.into_inner();
+        let res = self
+            .core_service
+            .list_streams(req)
             .await
             .map_err(to_grpc_error)?;
 
-        let response = build_list_streams_response(&param.table_name, page_size as usize, &streams);
-        Ok(Response::new(response))
+        Ok(Response::new(res))
     }
 }

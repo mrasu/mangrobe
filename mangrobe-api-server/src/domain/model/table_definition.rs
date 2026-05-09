@@ -53,11 +53,12 @@ impl TableDefinition {
                 ));
             }
             if let Some(dst_column) = &partition_field.dst_column
-                && !column_names.contains(&dst_column.val()) {
-                    return Err(TableDefinitionError::UnknownPartitionDestinationColumn(
-                        dst_column.val(),
-                    ));
-                }
+                && !column_names.contains(&dst_column.val())
+            {
+                return Err(TableDefinitionError::UnknownPartitionDestinationColumn(
+                    dst_column.val(),
+                ));
+            }
         }
 
         Ok(Self {

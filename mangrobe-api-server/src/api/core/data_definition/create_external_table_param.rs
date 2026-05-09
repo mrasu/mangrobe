@@ -12,8 +12,8 @@ use crate::api::grpc::proto::{
 };
 use crate::application::data_definition::create_external_table_param::CreateExternalTableParam;
 use crate::domain::model::table_definition::{
-    Column, DataType, ExternalLocation, FileFormat, PartitionField,
-    PartitionTransform, ScalarType, StorageScheme, TableDefinition, TimeType, TimeUnit,
+    Column, DataType, ExternalLocation, FileFormat, PartitionField, PartitionTransform, ScalarType,
+    StorageScheme, TableDefinition, TimeType, TimeUnit,
 };
 
 pub(crate) fn build_create_external_table_param(
