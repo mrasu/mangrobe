@@ -1,8 +1,10 @@
+use crate::domain::model::db_object_identifier::DbObjectIdentifier;
 use crate::domain::model::table_definition::{
-    Column, DataType, DbObjectIdentifier, ExternalLocation, FileFormat, PartitionField,
-    PartitionTransform, ScalarType, StorageScheme, TableDefinition, TableIdentifier, TimeType,
-    TimeUnit,
+    Column, DataType, ExternalLocation, FileFormat, PartitionField, PartitionTransform, ScalarType,
+    StorageScheme, TableDefinition, TimeType, TimeUnit,
 };
+use crate::domain::model::table_identifier::TableIdentifier;
+use crate::domain::model::table_summary::TableSummary;
 use crate::domain::model::user_table::UserTable;
 use crate::domain::model::user_table_name::UserTableName;
 use crate::infrastructure::db::entity::user_tables::{self, ActiveModel};
@@ -19,7 +21,7 @@ pub(super) fn build_domain_user_table(
     }
 }
 
-pub(super) fn build_table_definition(
+pub(super) fn build_domain_table_definition(
     table: &user_tables::Model,
 ) -> Result<TableDefinition, anyhow::Error> {
     let location: LocationDto = serde_json::from_value(table.location.clone())?;
@@ -45,6 +47,22 @@ pub(super) fn build_table_definition(
             .collect::<Result<Vec<_>, _>>()?,
         table.comment.clone(),
     )?)
+}
+
+pub(super) fn build_domain_table_summary(
+    catalog_name: String,
+    schema_name: String,
+    table_name: String,
+    comment: Option<String>,
+) -> Result<TableSummary, anyhow::Error> {
+    Ok(TableSummary {
+        identifier: TableIdentifier::new(
+            to_db_object_identifier(catalog_name)?,
+            to_db_object_identifier(schema_name)?,
+            to_db_object_identifier(table_name)?,
+        ),
+        comment,
+    })
 }
 
 pub(super) fn build_active_model(table: &TableDefinition) -> ActiveModel {

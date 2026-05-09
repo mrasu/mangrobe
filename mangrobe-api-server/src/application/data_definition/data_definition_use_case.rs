@@ -1,7 +1,9 @@
 use crate::application::data_definition::create_external_table_param::CreateExternalTableParam;
 use crate::application::data_definition::create_table_param::CreateTableParam;
 use crate::application::data_definition::get_table_param::GetTableParam;
+use crate::application::data_definition::list_tables_param::ListTablesParam;
 use crate::domain::model::table_definition::TableDefinition;
+use crate::domain::model::table_summary::TableSummary;
 use crate::domain::model::user_table::UserTable;
 use crate::domain::service::user_table_service::UserTableService;
 use crate::infrastructure::db::repository::user_table_repository::UserTableRepositoryError;
@@ -77,5 +79,14 @@ impl DataDefinitionUseCase {
         };
 
         Ok(table)
+    }
+
+    pub async fn list_tables(
+        &self,
+        param: ListTablesParam,
+    ) -> Result<Vec<TableSummary>, anyhow::Error> {
+        self.user_table_service
+            .list_table_summaries(&param.catalog_name, &param.schema_name)
+            .await
     }
 }

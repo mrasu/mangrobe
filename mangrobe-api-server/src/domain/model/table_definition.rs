@@ -1,54 +1,6 @@
+use crate::domain::model::db_object_identifier::DbObjectIdentifier;
+use crate::domain::model::table_identifier::TableIdentifier;
 use thiserror::Error;
-
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub(crate) struct DbObjectIdentifier(String);
-
-impl TryFrom<String> for DbObjectIdentifier {
-    type Error = DbObjectIdentifierError;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        let mut chars = value.chars();
-        let Some(first) = chars.next() else {
-            return Err(DbObjectIdentifierError::Empty);
-        };
-
-        if !is_identifier_start(first) {
-            return Err(DbObjectIdentifierError::InvalidFirstChar {
-                value,
-                invalid_char: first,
-            });
-        }
-
-        for c in chars {
-            if !is_identifier_part(c) {
-                return Err(DbObjectIdentifierError::InvalidChar {
-                    value,
-                    invalid_char: c,
-                });
-            }
-        }
-
-        Ok(Self(value))
-    }
-}
-
-impl DbObjectIdentifier {
-    pub fn val(&self) -> String {
-        self.0.clone()
-    }
-}
-
-#[derive(Error, Debug)]
-pub(crate) enum DbObjectIdentifierError {
-    #[error("identifier must not be empty")]
-    Empty,
-
-    #[error("identifier '{value}' first character must match [A-Za-z_], but got '{invalid_char}'")]
-    InvalidFirstChar { value: String, invalid_char: char },
-
-    #[error("identifier '{value}' character must match [A-Za-z0-9_], but got '{invalid_char}'")]
-    InvalidChar { value: String, invalid_char: char },
-}
 
 #[derive(Error, Debug)]
 pub(crate) enum TableDefinitionError {
@@ -66,14 +18,6 @@ pub(crate) enum TableDefinitionError {
 
     #[error("partition dst_column references unknown column: '{0}'")]
     UnknownPartitionDestinationColumn(String),
-}
-
-fn is_identifier_start(c: char) -> bool {
-    c == '_' || c.is_ascii_alphabetic()
-}
-
-fn is_identifier_part(c: char) -> bool {
-    c == '_' || c.is_ascii_alphanumeric()
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -124,36 +68,6 @@ impl TableDefinition {
             partition_fields,
             comment,
         })
-    }
-}
-
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub(crate) struct TableIdentifier {
-    pub catalog_name: DbObjectIdentifier,
-    pub schema_name: DbObjectIdentifier,
-    pub table_name: DbObjectIdentifier,
-}
-
-impl TableIdentifier {
-    pub fn new(
-        catalog_name: DbObjectIdentifier,
-        schema_name: DbObjectIdentifier,
-        table_name: DbObjectIdentifier,
-    ) -> Self {
-        Self {
-            catalog_name,
-            schema_name,
-            table_name,
-        }
-    }
-
-    pub fn full_name(&self) -> String {
-        format!(
-            "{}.{}.{}",
-            self.catalog_name.val(),
-            self.schema_name.val(),
-            self.table_name.val()
-        )
     }
 }
 

@@ -1,14 +1,14 @@
+use crate::api::core::util::param::table_identifier::to_proto_table_identifier;
 use crate::api::grpc::proto::{
     Column as ProtoColumn, DataType as ProtoDataType, ExternalLocation as ProtoExternalLocation,
     FileFormat as ProtoFileFormat, PartitionField as ProtoPartitionField,
     PartitionTransform as ProtoPartitionTransform, ScalarType as ProtoScalarType,
     StorageScheme as ProtoStorageScheme, TableDefinition as ProtoTableDefinition,
-    TableIdentifier as ProtoTableIdentifier, TimeType as ProtoTimeType, TimeUnit as ProtoTimeUnit,
-    data_type,
+    TimeType as ProtoTimeType, TimeUnit as ProtoTimeUnit, data_type,
 };
 use crate::domain::model::table_definition::{
     Column, DataType, ExternalLocation, FileFormat, PartitionField, PartitionTransform, ScalarType,
-    StorageScheme, TableDefinition, TableIdentifier, TimeType, TimeUnit,
+    StorageScheme, TableDefinition, TimeType, TimeUnit,
 };
 
 pub(crate) fn to_proto_table_definition(table: TableDefinition) -> ProtoTableDefinition {
@@ -23,14 +23,6 @@ pub(crate) fn to_proto_table_definition(table: TableDefinition) -> ProtoTableDef
             .map(to_proto_partition_field)
             .collect(),
         comment: table.comment,
-    }
-}
-
-fn to_proto_table_identifier(identifier: TableIdentifier) -> ProtoTableIdentifier {
-    ProtoTableIdentifier {
-        catalog_name: identifier.catalog_name.val(),
-        schema_name: identifier.schema_name.val(),
-        table_name: identifier.table_name.val(),
     }
 }
 

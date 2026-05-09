@@ -5,3 +5,5 @@ pub(crate) mod create_table_response;
 pub(crate) mod data_definition_service;
 pub(crate) mod get_table_param;
 pub(crate) mod get_table_response;
+pub(crate) mod list_tables_param;
+pub(crate) mod list_tables_response;

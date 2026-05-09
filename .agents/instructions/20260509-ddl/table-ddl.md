@@ -87,9 +87,11 @@ Lists table summaries.
 
 The request should support:
 
-- pagination
 - optional catalog filter
 - optional schema filter
+
+The request should not include pagination. Arrow Flight SQL table-list metadata
+does not use pagination, so `ListTables` returns all matching table summaries.
 
 The response should include table summaries, not full table definitions.
 

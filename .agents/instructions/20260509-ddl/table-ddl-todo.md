@@ -11,7 +11,7 @@ editing each file.
 
 - [x] `CreateExternalTable` with scalar types only.
 - [x] `GetTable` with scalar types only.
-- [ ] `ListTables` with scalar types only.
+- [x] `ListTables` with scalar types only.
 - [ ] `EvolveTableSchema` with scalar types only.
 - [ ] `DropTableColumns` with scalar types only.
 - [ ] Remove the legacy `CreateTable` RPC and its legacy request/response

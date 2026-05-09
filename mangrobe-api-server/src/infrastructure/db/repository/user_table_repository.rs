@@ -1,13 +1,19 @@
-use crate::domain::model::table_definition::{TableDefinition, TableIdentifier};
+use crate::domain::model::table_definition::TableDefinition;
+use crate::domain::model::table_identifier::TableIdentifier;
+use crate::domain::model::table_summary::TableSummary;
 use crate::domain::model::user_table::UserTable;
 use crate::domain::model::user_table_name::UserTableName;
 use crate::infrastructure::db::entity::prelude::UserTables;
 use crate::infrastructure::db::entity::user_tables::{ActiveModel, Column};
 use crate::infrastructure::db::repository::user_table_dto::{
-    build_active_model, build_domain_user_table, build_table_definition,
+    build_active_model, build_domain_table_definition, build_domain_table_summary,
+    build_domain_user_table,
 };
 use anyhow::bail;
-use sea_orm::{ActiveValue::Set, ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, SqlErr};
+use sea_orm::{
+    ActiveValue::Set, ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QueryOrder,
+    QuerySelect, SqlErr,
+};
 use serde_json::json;
 use thiserror::Error;
 
@@ -99,7 +105,45 @@ impl UserTableRepository {
             return Ok(None);
         };
 
-        Ok(Some(build_table_definition(&table)?))
+        Ok(Some(build_domain_table_definition(&table)?))
+    }
+
+    pub async fn find_table_summaries<C>(
+        &self,
+        conn: &C,
+        catalog_name: &Option<String>,
+        schema_name: &Option<String>,
+    ) -> Result<Vec<TableSummary>, anyhow::Error>
+    where
+        C: ConnectionTrait,
+    {
+        let mut query = UserTables::find()
+            .select_only()
+            .column(Column::CatalogName)
+            .column(Column::SchemaName)
+            .column(Column::Name)
+            .column(Column::Comment);
+
+        if let Some(catalog_name) = catalog_name {
+            query = query.filter(Column::CatalogName.eq(catalog_name));
+        }
+        if let Some(schema_name) = schema_name {
+            query = query.filter(Column::SchemaName.eq(schema_name));
+        }
+
+        let rows: Vec<(String, String, String, Option<String>)> = query
+            .order_by_asc(Column::CatalogName)
+            .order_by_asc(Column::SchemaName)
+            .order_by_asc(Column::Name)
+            .into_tuple::<(String, String, String, Option<String>)>()
+            .all(conn)
+            .await?;
+
+        rows.into_iter()
+            .map(|(catalog_name, schema_name, table_name, comment)| {
+                build_domain_table_summary(catalog_name, schema_name, table_name, comment)
+            })
+            .collect()
     }
 
     pub async fn insert_table_definition<C>(
@@ -114,7 +158,7 @@ impl UserTableRepository {
             .exec_with_returning(conn)
             .await;
         match inserted {
-            Ok(model) => build_table_definition(&model),
+            Ok(model) => build_domain_table_definition(&model),
             Err(err) => {
                 if self.is_unique_constraint_violation(&err) {
                     bail!(UserTableRepositoryError::AlreadyExists);

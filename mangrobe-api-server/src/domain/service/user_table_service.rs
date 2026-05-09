@@ -1,4 +1,6 @@
-use crate::domain::model::table_definition::{TableDefinition, TableIdentifier};
+use crate::domain::model::table_definition::TableDefinition;
+use crate::domain::model::table_identifier::TableIdentifier;
+use crate::domain::model::table_summary::TableSummary;
 use crate::domain::model::user_table::UserTable;
 use crate::domain::model::user_table_id::UserTableId;
 use crate::domain::model::user_table_name::UserTableName;
@@ -81,6 +83,16 @@ impl UserTableService {
     ) -> Result<Option<TableDefinition>, anyhow::Error> {
         self.user_table_repository
             .find_by_identifier(&self.connection, identifier)
+            .await
+    }
+
+    pub async fn list_table_summaries(
+        &self,
+        catalog_name: &Option<String>,
+        schema_name: &Option<String>,
+    ) -> Result<Vec<TableSummary>, anyhow::Error> {
+        self.user_table_repository
+            .find_table_summaries(&self.connection, catalog_name, schema_name)
             .await
     }
 }
