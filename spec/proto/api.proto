@@ -15,6 +15,7 @@ service DataManipulationService {
 
 service DataDefinitionService {
   rpc CreateTable(CreateTableRequest) returns (CreateTableResponse);
+  rpc CreateExternalTable(CreateExternalTableRequest) returns (CreateExternalTableResponse);
 }
 
 service LockControlService {
@@ -302,6 +303,123 @@ message CreateTableRequest {
 
 message CreateTableResponse {
   string table_name = 1;
+}
+
+message CreateExternalTableRequest {
+  TableDefinition table = 1;
+  bool skip_if_exists = 2;
+}
+
+message CreateExternalTableResponse {
+  TableDefinition table = 1;
+}
+
+message TableDefinition {
+  TableIdentifier identifier = 1;
+  ExternalLocation location = 2;
+  FileFormat format = 3;
+  repeated Column columns = 4;
+  repeated PartitionField partition_fields = 5;
+  optional string comment = 6;
+}
+
+message TableIdentifier {
+  string catalog_name = 1;
+  string schema_name = 2;
+  string table_name = 3;
+}
+
+message ExternalLocation {
+  StorageScheme storage_scheme = 1;
+  optional string bucket = 2;
+  optional string prefix = 3;
+  optional string endpoint = 4;
+  optional string region = 5;
+}
+
+enum StorageScheme {
+  // Unspecified. Invalid value.
+  STORAGE_SCHEME_UNSPECIFIED = 0;
+
+  STORAGE_SCHEME_S3 = 1;
+}
+
+enum FileFormat {
+  // Unspecified. Invalid value.
+  FILE_FORMAT_UNSPECIFIED = 0;
+
+  FILE_FORMAT_PARQUET = 1;
+  FILE_FORMAT_VORTEX = 2;
+}
+
+message Column {
+  string name = 1;
+  DataType data_type = 2;
+  bool nullable = 3;
+  optional string comment = 4;
+}
+
+message DataType {
+  oneof type {
+    ScalarType scalar = 1;
+    TimeType time = 2;
+  }
+}
+
+enum ScalarType {
+  // Unspecified. Invalid value.
+  SCALAR_TYPE_UNSPECIFIED = 0;
+
+  SCALAR_TYPE_BOOL = 1;
+  SCALAR_TYPE_INT64 = 2;
+  SCALAR_TYPE_FLOAT64 = 3;
+  SCALAR_TYPE_STRING = 4;
+  SCALAR_TYPE_DATE = 5;
+
+  // TODO: add INT8, INT16, INT32, unsigned integers, FLOAT32, BINARY, DECIMAL, TIMESTAMP, STRUCT, LIST, and MAP
+}
+
+message TimeType {
+  TimeUnit unit = 1;
+}
+
+enum TimeUnit {
+  // Unspecified. Invalid value.
+  TIME_UNIT_UNSPECIFIED = 0;
+
+  TIME_UNIT_SECOND = 1;
+  TIME_UNIT_MILLISECOND = 2;
+  TIME_UNIT_MICROSECOND = 3;
+  TIME_UNIT_NANOSECOND = 4;
+}
+
+message PartitionField {
+  // Source table column used to compute the partition value.
+  string src_column = 1;
+
+  // Destination table column for the computed partition value.
+  // If unset, the partition field is virtual: the value is tracked as partition metadata but has no physical table column.
+  // If set, dst_column must be different from src_column; writing the same column name is unnecessary, including for IDENTITY transforms.
+  optional string dst_column = 2;
+
+  PartitionTransform transform = 3;
+  DataType result_type = 4;
+}
+
+enum PartitionTransform {
+  // Unspecified. Invalid value.
+  PARTITION_TRANSFORM_UNSPECIFIED = 0;
+
+  // Uses the source value without modification.
+  PARTITION_TRANSFORM_IDENTITY = 1;
+  // Extracts the hour containing the source timestamp or time value.
+  PARTITION_TRANSFORM_HOUR = 2;
+  // Extracts the calendar day containing the source date or timestamp value.
+  PARTITION_TRANSFORM_DAY = 3;
+  // Extracts the calendar month containing the source date or timestamp value.
+  PARTITION_TRANSFORM_MONTH = 4;
+  // Extracts the calendar year containing the source date or timestamp value.
+  PARTITION_TRANSFORM_YEAR = 5;
 }
 
 message AcquireFileLockRequest {

@@ -7,8 +7,21 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
-    #[sea_orm(column_type = "Text", unique)]
+    #[sea_orm(column_type = "Text")]
+    pub catalog_name: String,
+    #[sea_orm(column_type = "Text")]
+    pub schema_name: String,
+    #[sea_orm(column_type = "Text")]
     pub name: String,
+    #[sea_orm(column_type = "JsonBinary")]
+    pub location: Json,
+    pub format: i32,
+    #[sea_orm(column_type = "JsonBinary")]
+    pub columns: Json,
+    #[sea_orm(column_type = "JsonBinary")]
+    pub partitions: Json,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub comment: Option<String>,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }

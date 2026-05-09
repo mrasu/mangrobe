@@ -1,3 +1,4 @@
+use crate::domain::model::table_definition::TableDefinition;
 use crate::domain::model::user_table::UserTable;
 use crate::domain::model::user_table_id::UserTableId;
 use crate::domain::model::user_table_name::UserTableName;
@@ -38,6 +39,26 @@ impl UserTableService {
             .await?;
 
         Ok(table)
+    }
+
+    pub async fn create_external_table(
+        &self,
+        table: &TableDefinition,
+        skip_if_exists: bool,
+    ) -> Result<TableDefinition, anyhow::Error> {
+        if skip_if_exists {
+            let existing = self
+                .user_table_repository
+                .find_by_identifier(&self.connection, &table.identifier)
+                .await?;
+            if let Some(existing) = existing {
+                return Ok(existing);
+            }
+        }
+
+        self.user_table_repository
+            .insert_table_definition(&self.connection, table)
+            .await
     }
 
     pub async fn find_id_by_name(

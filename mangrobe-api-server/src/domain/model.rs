@@ -20,6 +20,7 @@ pub(crate) mod partition_time_filter;
 pub(crate) mod snapshot;
 pub(crate) mod stream;
 pub(crate) mod stream_id;
+pub(crate) mod table_definition;
 pub(crate) mod user_table;
 pub(crate) mod user_table_id;
 pub(crate) mod user_table_name;

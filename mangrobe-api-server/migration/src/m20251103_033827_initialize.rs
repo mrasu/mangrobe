@@ -35,7 +35,14 @@ impl MigrationTrait for Migration {
                             .primary_key()
                             .take(),
                     )
-                    .col(text(UserTable::Name).unique_key())
+                    .col(text(UserTable::CatalogName))
+                    .col(text(UserTable::SchemaName))
+                    .col(text(UserTable::Name))
+                    .col(json_binary(UserTable::Location))
+                    .col(integer(UserTable::Format))
+                    .col(json_binary(UserTable::Columns))
+                    .col(json_binary(UserTable::Partitions))
+                    .col(text_null(UserTable::Comment))
                     .col(
                         timestamp_with_time_zone(UserTable::CreatedAt)
                             .default(Expr::current_timestamp()),
@@ -44,6 +51,25 @@ impl MigrationTrait for Migration {
                         timestamp_with_time_zone(UserTable::UpdatedAt)
                             .default(Expr::current_timestamp()),
                     )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name(format!(
+                        "idx_{}_{}_{}_{}",
+                        UserTable::Table.to_string(),
+                        UserTable::CatalogName.to_string(),
+                        UserTable::SchemaName.to_string(),
+                        UserTable::Name.to_string(),
+                    ))
+                    .table(UserTable::Table)
+                    .col(UserTable::CatalogName)
+                    .col(UserTable::SchemaName)
+                    .col(UserTable::Name)
+                    .unique()
                     .to_owned(),
             )
             .await?;
@@ -743,8 +769,14 @@ enum UserTable {
     #[sea_orm(iden = "user_tables")]
     Table,
     Id,
+    CatalogName,
+    SchemaName,
     Name,
-    // TODO: add definition's info
+    Location,
+    Format,
+    Columns,
+    Partitions,
+    Comment,
     CreatedAt,
     UpdatedAt,
 }
