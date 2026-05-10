@@ -226,6 +226,7 @@ impl TryFrom<DataTypeDto> for ColumnDataType {
 #[serde(rename_all = "snake_case")]
 enum ScalarTypeDto {
     Bool,
+    Int32,
     Int64,
     Float64,
     String,
@@ -236,6 +237,7 @@ impl From<ScalarType> for ScalarTypeDto {
     fn from(value: ScalarType) -> Self {
         match value {
             ScalarType::Bool => Self::Bool,
+            ScalarType::Int32 => Self::Int32,
             ScalarType::Int64 => Self::Int64,
             ScalarType::Float64 => Self::Float64,
             ScalarType::String => Self::String,
@@ -248,6 +250,7 @@ impl From<ScalarTypeDto> for ScalarType {
     fn from(value: ScalarTypeDto) -> Self {
         match value {
             ScalarTypeDto::Bool => Self::Bool,
+            ScalarTypeDto::Int32 => Self::Int32,
             ScalarTypeDto::Int64 => Self::Int64,
             ScalarTypeDto::Float64 => Self::Float64,
             ScalarTypeDto::String => Self::String,

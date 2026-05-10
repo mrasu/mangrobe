@@ -222,6 +222,7 @@ pub(crate) enum ColumnDataType {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum ScalarType {
     Bool,
+    Int32,
     Int64,
     Float64,
     String,

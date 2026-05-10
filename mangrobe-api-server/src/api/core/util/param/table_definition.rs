@@ -38,6 +38,7 @@ pub(crate) fn to_column_data_type(
 fn to_scalar_type(value: i32) -> Result<ScalarType, ParameterError> {
     match ProtoScalarType::try_from(value) {
         Ok(ProtoScalarType::Bool) => Ok(ScalarType::Bool),
+        Ok(ProtoScalarType::Int32) => Ok(ScalarType::Int32),
         Ok(ProtoScalarType::Int64) => Ok(ScalarType::Int64),
         Ok(ProtoScalarType::Float64) => Ok(ScalarType::Float64),
         Ok(ProtoScalarType::String) => Ok(ScalarType::String),
@@ -132,6 +133,7 @@ fn to_proto_file_format(format: FileFormat) -> ProtoFileFormat {
 fn to_proto_scalar_type(scalar: ScalarType) -> ProtoScalarType {
     match scalar {
         ScalarType::Bool => ProtoScalarType::Bool,
+        ScalarType::Int32 => ProtoScalarType::Int32,
         ScalarType::Int64 => ProtoScalarType::Int64,
         ScalarType::Float64 => ProtoScalarType::Float64,
         ScalarType::String => ProtoScalarType::String,
