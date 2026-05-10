@@ -1,7 +1,5 @@
 use crate::api::core::data_definition::create_external_table_param::build_create_external_table_param;
 use crate::api::core::data_definition::create_external_table_response::build_create_external_table_response;
-use crate::api::core::data_definition::create_table_param::build_create_table_param;
-use crate::api::core::data_definition::create_table_response::build_create_table_response;
 use crate::api::core::data_definition::evolve_table_schema_param::build_evolve_table_schema_param;
 use crate::api::core::data_definition::evolve_table_schema_response::build_evolve_table_schema_response;
 use crate::api::core::data_definition::get_table_param::build_get_table_param;
@@ -9,9 +7,9 @@ use crate::api::core::data_definition::get_table_response::build_get_table_respo
 use crate::api::core::data_definition::list_tables_param::parse_list_tables_param;
 use crate::api::core::data_definition::list_tables_response::build_list_tables_response;
 use crate::api::grpc::proto::{
-    CreateExternalTableRequest, CreateExternalTableResponse, CreateTableRequest,
-    CreateTableResponse, EvolveTableSchemaRequest, EvolveTableSchemaResponse, GetTableRequest,
-    GetTableResponse, ListTablesRequest, ListTablesResponse,
+    CreateExternalTableRequest, CreateExternalTableResponse, EvolveTableSchemaRequest,
+    EvolveTableSchemaResponse, GetTableRequest, GetTableResponse, ListTablesRequest,
+    ListTablesResponse,
 };
 use crate::application::data_definition::data_definition_use_case::DataDefinitionUseCase;
 use sea_orm::DatabaseConnection;
@@ -25,17 +23,6 @@ impl DataDefinitionService {
         Self {
             data_definition_use_case: DataDefinitionUseCase::new(db),
         }
-    }
-
-    pub async fn create_table(
-        &self,
-        param: CreateTableRequest,
-    ) -> Result<CreateTableResponse, anyhow::Error> {
-        let param = build_create_table_param(&param)?;
-
-        let table = self.data_definition_use_case.create_table(param).await?;
-
-        Ok(build_create_table_response(table))
     }
 
     pub async fn create_external_table(

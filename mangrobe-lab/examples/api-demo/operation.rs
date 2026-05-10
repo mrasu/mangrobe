@@ -18,7 +18,7 @@ pub async fn print_current_files(
     stream: &Stream,
 ) -> Result<(), anyhow::Error> {
     let current_state = api_client
-        .fetch_current_state(stream.table_name.clone(), stream.stream_id)
+        .fetch_current_state(stream.table_identifier.clone(), stream.stream_id)
         .await?;
 
     let mut files = current_state
@@ -39,10 +39,23 @@ pub async fn create_table_if_not_exists(
     stream: &Stream,
 ) -> Result<(), anyhow::Error> {
     let response = api_client
-        .create_table(stream.table_name.clone(), true)
+        .create_table(
+            stream.table_identifier.clone(),
+            stream.location.clone(),
+            true,
+        )
         .await?;
 
-    println!("Table created! name={}", response.get_ref().table_name);
+    println!(
+        "Table created! name={}",
+        response
+            .into_inner()
+            .table
+            .unwrap()
+            .identifier
+            .unwrap()
+            .table_name
+    );
 
     Ok(())
 }
@@ -69,7 +82,7 @@ pub async fn add_files(
     }];
     let response = api_client
         .add_files(
-            stream.table_name.clone(),
+            stream.table_identifier.clone(),
             stream.stream_id,
             file_add_entries,
         )
@@ -112,7 +125,7 @@ pub async fn compact_files(
     let response = api_client
         .compact_files(
             lock_key,
-            stream.table_name.clone(),
+            stream.table_identifier.clone(),
             stream.stream_id,
             compact_file_entries,
         )
@@ -146,7 +159,7 @@ pub async fn change_files(
     let response = api_client
         .change_files(
             lock_key,
-            stream.table_name.clone(),
+            stream.table_identifier.clone(),
             stream.stream_id,
             change_file_entries,
         )
@@ -180,7 +193,7 @@ pub async fn lock(
     let response = api_client
         .acquire_lock(
             lock_key,
-            stream.table_name.clone(),
+            stream.table_identifier.clone(),
             stream.stream_id,
             acquire_file_lock_entries,
         )

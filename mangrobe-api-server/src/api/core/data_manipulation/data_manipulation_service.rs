@@ -57,7 +57,7 @@ impl DataManipulationService {
             .get_commits(&param, CHANGES_LIMIT_PER_STREAM)
             .await?;
 
-        Ok(build_get_commits_response(&param.table_name, changes))
+        Ok(build_get_commits_response(param.table_identifier, changes))
     }
 
     pub async fn get_file_info(

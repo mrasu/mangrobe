@@ -23,7 +23,7 @@ impl InformationSchemaUseCase {
         param: &ListStreamsParam,
         limit: u64,
     ) -> Result<Vec<Stream>, anyhow::Error> {
-        let table_id = find_table_id(&self.user_table_service, &param.table_name).await?;
+        let table_id = find_table_id(&self.user_table_service, &param.table_identifier).await?;
         self.stream_service
             .find_streams_after(&table_id, &param.stream_id_after, limit)
             .await

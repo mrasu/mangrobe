@@ -1,21 +1,19 @@
 use crate::domain::model::table_definition::{Column as DomainColumn, TableDefinition};
 use crate::domain::model::table_identifier::TableIdentifier;
 use crate::domain::model::table_summary::TableSummary;
-use crate::domain::model::user_table::UserTable;
-use crate::domain::model::user_table_name::UserTableName;
+use crate::domain::model::user_table_id::UserTableId;
 use crate::infrastructure::db::entity::prelude::UserTables;
-use crate::infrastructure::db::entity::user_tables::{ActiveModel, Column};
+use crate::infrastructure::db::entity::user_tables::Column;
 use crate::infrastructure::db::repository::user_table_dto::{
     build_active_model, build_columns_value, build_domain_table_definition,
-    build_domain_table_summary, build_domain_user_table,
+    build_domain_table_summary,
 };
 use anyhow::bail;
 use sea_orm::sea_query::LockType;
 use sea_orm::{
-    ActiveValue::Set, ColumnTrait, ConnectionTrait, DatabaseTransaction, EntityTrait, QueryFilter,
-    QueryOrder, QuerySelect, SqlErr,
+    ColumnTrait, ConnectionTrait, DatabaseTransaction, EntityTrait, QueryFilter, QueryOrder,
+    QuerySelect, SqlErr,
 };
-use serde_json::json;
 use thiserror::Error;
 
 #[derive(Clone, Copy)]
@@ -35,59 +33,28 @@ impl UserTableRepository {
         Self {}
     }
 
-    pub async fn find_by_name<C>(
+    pub async fn find_id_by_identifier<C>(
         &self,
         conn: &C,
-        name: &UserTableName,
-    ) -> Result<Option<UserTable>, anyhow::Error>
+        identifier: &TableIdentifier,
+    ) -> Result<Option<UserTableId>, anyhow::Error>
     where
         C: ConnectionTrait,
     {
         let table = UserTables::find()
-            .filter(Column::Name.eq(name.val()))
+            .filter(Column::CatalogName.eq(identifier.catalog_name.val()))
+            .filter(Column::SchemaName.eq(identifier.schema_name.val()))
+            .filter(Column::Name.eq(identifier.table_name.val()))
+            .column(Column::Id)
+            .into_tuple::<i64>()
             .one(conn)
             .await?;
 
-        let Some(table) = table else {
+        let Some(id) = table else {
             return Ok(None);
         };
 
-        let table_dto = build_domain_user_table(&table)?;
-        Ok(Some(table_dto))
-    }
-
-    pub async fn insert<C>(
-        &self,
-        conn: &C,
-        name: &UserTableName,
-    ) -> Result<UserTable, anyhow::Error>
-    where
-        C: ConnectionTrait,
-    {
-        let table = ActiveModel {
-            id: Default::default(),
-            catalog_name: Set("default".to_owned()),
-            schema_name: Set("default".to_owned()),
-            name: Set(name.val()),
-            location: Set(json!({})),
-            format: Set(0),
-            columns: Set(json!([])),
-            partitions: Set(json!([])),
-            comment: Set(None),
-            created_at: Default::default(),
-            updated_at: Default::default(),
-        };
-
-        let inserted = UserTables::insert(table).exec_with_returning(conn).await;
-        match inserted {
-            Ok(model) => Ok(UserTable::new(model.id.into(), name.clone())),
-            Err(err) => {
-                if self.is_unique_constraint_violation(&err) {
-                    bail!(UserTableRepositoryError::AlreadyExists);
-                }
-                Err(err.into())
-            }
-        }
+        Ok(Some(id.into()))
     }
 
     pub async fn find_by_identifier<C>(

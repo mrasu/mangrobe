@@ -74,15 +74,21 @@ public class MangrobeSplitEnumerator implements SplitEnumerator<MangrobeSplit, S
     private List<MangrobeSplit> fetchNewSplits() {
         var newSplits = new ArrayList<MangrobeSplit>();
 
+        var tableIdentifier = Api.TableIdentifier.newBuilder()
+                .setTableName(this.tableName)
+                .setSchemaName("default")
+                .setCatalogName("mangrobe_lab").build();
         var nextToken = "";
         do {
-            var request = Api.ListStreamsRequest.newBuilder()
-                    .setPagination(
-                            Api.PaginationRequest.newBuilder().setToken(nextToken).build())
-                    .setTableName(this.tableName)
-                    .build();
+            var requestBuilder = Api.ListStreamsRequest.newBuilder()
+                    .setTableIdentifier(tableIdentifier);
+            if (!nextToken.isEmpty()) {
+                requestBuilder.setPagination(Api.PaginationRequest.newBuilder().setToken(nextToken).build());
+            }
 
-        var stub = InformationSchemaServiceGrpc.newBlockingStub(channel);
+            var request = requestBuilder.build();
+
+            var stub = InformationSchemaServiceGrpc.newBlockingStub(channel);
             var response = stub.listStreams(request);
             nextToken = response.getPagination().getNextToken();
 
@@ -101,7 +107,7 @@ public class MangrobeSplitEnumerator implements SplitEnumerator<MangrobeSplit, S
 
     private void handleNewSplits(List<MangrobeSplit> splits, Throwable error) {
         if (error != null) {
-            System.out.println("fetchNewSplits failed: " + error.getMessage());
+            System.out.println("fetchNewSplits failed: " + error.getMessage() + "\nCAUSE: "+error.getCause());
             return;
         }
         this.pendingSplits.addAll(splits);

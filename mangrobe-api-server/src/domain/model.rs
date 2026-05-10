@@ -24,7 +24,5 @@ pub(crate) mod stream_id;
 pub(crate) mod table_definition;
 pub(crate) mod table_identifier;
 pub(crate) mod table_summary;
-pub(crate) mod user_table;
 pub(crate) mod user_table_id;
-pub(crate) mod user_table_name;
 pub(crate) mod user_table_stream;

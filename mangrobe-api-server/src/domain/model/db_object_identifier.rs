@@ -1,6 +1,7 @@
 use thiserror::Error;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
+// String = [A-Za-z_][A-Za-z0-9_]*
 pub(crate) struct DbObjectIdentifier(String);
 
 impl TryFrom<String> for DbObjectIdentifier {
@@ -13,7 +14,7 @@ impl TryFrom<String> for DbObjectIdentifier {
         };
 
         if !is_identifier_start(first) {
-            return Err(DbObjectIdentifierError::InvalidFirstChar {
+            return Err(DbObjectIdentifierError::ContainsInvalidChar {
                 value,
                 invalid_char: first,
             });
@@ -21,7 +22,7 @@ impl TryFrom<String> for DbObjectIdentifier {
 
         for c in chars {
             if !is_identifier_part(c) {
-                return Err(DbObjectIdentifierError::InvalidChar {
+                return Err(DbObjectIdentifierError::ContainsInvalidChar {
                     value,
                     invalid_char: c,
                 });
@@ -43,11 +44,10 @@ pub(crate) enum DbObjectIdentifierError {
     #[error("identifier must not be empty")]
     Empty,
 
-    #[error("identifier '{value}' first character must match [A-Za-z_], but got '{invalid_char}'")]
-    InvalidFirstChar { value: String, invalid_char: char },
-
-    #[error("identifier '{value}' character must match [A-Za-z0-9_], but got '{invalid_char}'")]
-    InvalidChar { value: String, invalid_char: char },
+    #[error(
+        "identifier '{value}' character must match [A-Za-z_][A-Za-z0-9_]*, but got '{invalid_char}'"
+    )]
+    ContainsInvalidChar { value: String, invalid_char: char },
 }
 
 fn is_identifier_start(c: char) -> bool {

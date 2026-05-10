@@ -9,7 +9,8 @@ use std::env;
 use std::string::ToString;
 
 const DEFAULT_MANGROBE_API_ADDR: &str = "http://[::1]:50051";
-const QUERY_TABLE_NAME: &str = "examples-api-demo";
+const QUERY_TABLE_NAME: &str = "examples_api_demo";
+const BUCKET_NAME: &str = "mangrobe-lab-datafusion-reader";
 
 #[tokio::main]
 async fn main() {
@@ -25,7 +26,7 @@ async fn run(api_server_addr: String) -> Result<(), anyhow::Error> {
         .await?;
     let mut api_client = ApiClient::new(conn);
 
-    let stream = Stream::new_with_random_stream_id(QUERY_TABLE_NAME.to_string())?;
+    let stream = Stream::new_with_random_stream_id(QUERY_TABLE_NAME.into(), BUCKET_NAME.into())?;
 
     create_table_if_not_exists(&api_client, &stream).await?;
 

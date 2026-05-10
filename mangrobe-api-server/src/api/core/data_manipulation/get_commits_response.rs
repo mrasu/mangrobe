@@ -1,3 +1,4 @@
+use crate::api::core::util::param::table_identifier::to_proto_table_identifier;
 use crate::api::grpc::proto::commit::Changes;
 use crate::api::grpc::proto::{
     AddedFiles, ChangedFiles, Commit, CommittedFile, CompactedFile, CompactedFiles,
@@ -7,14 +8,14 @@ use crate::domain::model::change_request_file_data::FileData;
 use crate::domain::model::committed_change_request::{
     ChangeRequestFileData, CommittedStreamChange,
 };
-use crate::domain::model::user_table_name::UserTableName;
+use crate::domain::model::table_identifier::TableIdentifier;
 
 pub(crate) fn build_get_commits_response(
-    table_name: &UserTableName,
+    table_identifier: TableIdentifier,
     stream_changes: CommittedStreamChange,
 ) -> GetCommitsResponse {
     GetCommitsResponse {
-        table_name: table_name.val(),
+        table_identifier: Some(to_proto_table_identifier(table_identifier)),
         stream_id: stream_changes.stream_id.val(),
         commits: stream_changes
             .committed_changes

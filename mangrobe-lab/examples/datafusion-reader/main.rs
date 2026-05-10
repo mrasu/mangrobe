@@ -12,7 +12,7 @@ use tonic::transport::Endpoint;
 
 const DEFAULT_MANGROBE_API_ADDR: &str = "http://[::1]:50051";
 const BUCKET_NAME: &str = "mangrobe-lab-datafusion-reader";
-const QUERY_TABLE_NAME: &str = "examples-datafusion-reader";
+const QUERY_TABLE_NAME: &str = "examples_datafusion_reader";
 
 #[tokio::main]
 async fn main() {

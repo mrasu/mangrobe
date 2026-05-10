@@ -18,7 +18,7 @@ import java.util.Set;
 
 
 public class Main {
-    private static final String PROM_TABLE_NAME = "examples-prometheus-flink";
+    private static final String PROM_TABLE_NAME = "examples_prometheus_flink";
     private static final Set<String> TARGET_LABELS = Set.of(
             "prometheus_tsdb_wal_storage_size_bytes", "prometheus_tsdb_wal_segment_current",
             "prometheus_remote_storage_samples_in_total", "scrape_duration_seconds"

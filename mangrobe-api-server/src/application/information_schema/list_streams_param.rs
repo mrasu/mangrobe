@@ -1,7 +1,7 @@
 use crate::domain::model::stream_id::StreamId;
-use crate::domain::model::user_table_name::UserTableName;
+use crate::domain::model::table_identifier::TableIdentifier;
 
 pub(crate) struct ListStreamsParam {
-    pub table_name: UserTableName,
+    pub table_identifier: TableIdentifier,
     pub stream_id_after: Option<StreamId>,
 }

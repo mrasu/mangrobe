@@ -1,12 +1,14 @@
 use crate::api::core::util::error::ParameterError;
-use crate::api::core::util::param::table_name::to_table_name;
+use crate::api::core::util::param::table_identifier::to_table_identifier;
+use crate::api::core::util::param_util::required;
 use crate::api::grpc::proto::GetCommitsRequest;
 use crate::application::data_manipulation::get_commits_param::GetCommitsParam;
 
 pub(crate) fn build_get_commits_param(
     req: &GetCommitsRequest,
 ) -> Result<GetCommitsParam, ParameterError> {
-    let table_name = to_table_name(req.table_name.clone())?;
+    let table_identifier =
+        to_table_identifier(required("table_identifier", req.table_identifier.as_ref())?)?;
 
     let commit_id_after = if let Some(commit_id_after) = &req.commit_id_after {
         let commit_id_after = commit_id_after.parse::<i64>().map_err(|_| {
@@ -24,7 +26,7 @@ pub(crate) fn build_get_commits_param(
     };
 
     Ok(GetCommitsParam {
-        table_name,
+        table_identifier,
         stream_id: req.stream_id.into(),
         commit_id_after: commit_id_after.into(),
     })

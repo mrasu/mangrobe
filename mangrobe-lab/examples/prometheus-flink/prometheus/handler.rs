@@ -2,9 +2,9 @@ use crate::prometheus::model::create_parquet_from_write_request;
 use crate::{DEFAULT_PARTITION_TIME, PROM_STREAM_ID, PROM_TABLE_NAME};
 use hyper::body::to_bytes;
 use hyper::{Body, Request, Response, StatusCode};
-use mangrobe_lab::ApiClient;
 use mangrobe_lab::prometheus_proto::WriteRequest;
 use mangrobe_lab::proto::{AddFileEntry, AddFileInfoEntry};
+use mangrobe_lab::{ApiClient, Stream};
 use object_store::aws::AmazonS3;
 use object_store::path::Path;
 use object_store::{ObjectStore, PutPayload};
@@ -24,6 +24,7 @@ impl Handler {
     pub async fn handle_remote_write(
         &self,
         req: Request<Body>,
+        stream: Stream,
     ) -> Result<Response<Body>, anyhow::Error> {
         let (parts, body) = req.into_parts();
         let content_encoding = parts
@@ -70,7 +71,7 @@ impl Handler {
 
         self.api_client
             .add_files(
-                PROM_TABLE_NAME.to_string(),
+                stream.table_identifier.clone(),
                 PROM_STREAM_ID,
                 vec![add_file_entry],
             )

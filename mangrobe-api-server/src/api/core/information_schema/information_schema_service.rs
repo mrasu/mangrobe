@@ -27,7 +27,7 @@ impl InformationSchemaService {
             .await?;
 
         Ok(build_list_streams_response(
-            &param.table_name,
+            &param.table_identifier,
             page_size as usize,
             &streams,
         ))

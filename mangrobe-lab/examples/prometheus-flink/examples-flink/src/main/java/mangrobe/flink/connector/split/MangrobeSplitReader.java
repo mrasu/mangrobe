@@ -36,8 +36,12 @@ public class MangrobeSplitReader implements SplitReader<MangrobeRecord, Mangrobe
                 continue;
             }
 
-            var request = Api.GetCommitsRequest.newBuilder()
+            var tableIdentifier = Api.TableIdentifier.newBuilder()
                     .setTableName(state.getTableName())
+                    .setSchemaName("default")
+                    .setCatalogName("mangrobe_lab").build();
+            var request = Api.GetCommitsRequest.newBuilder()
+                    .setTableIdentifier(tableIdentifier)
                     .setStreamId(state.getStreamId())
                     .setCommitIdAfter(state.getCurrentCommitId().orElse(""))
                     .build();

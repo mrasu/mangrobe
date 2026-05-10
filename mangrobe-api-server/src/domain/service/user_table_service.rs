@@ -1,9 +1,7 @@
 use crate::domain::model::table_definition::{Column, TableDefinition};
 use crate::domain::model::table_identifier::TableIdentifier;
 use crate::domain::model::table_summary::TableSummary;
-use crate::domain::model::user_table::UserTable;
 use crate::domain::model::user_table_id::UserTableId;
-use crate::domain::model::user_table_name::UserTableName;
 use crate::infrastructure::db::repository::user_table_repository::UserTableRepository;
 use crate::util::error::UserError;
 use anyhow::anyhow;
@@ -20,29 +18,6 @@ impl UserTableService {
             connection: connection.clone(),
             user_table_repository: UserTableRepository::new(),
         }
-    }
-
-    pub async fn create(
-        &self,
-        name: &UserTableName,
-        skip_if_exists: bool,
-    ) -> Result<UserTable, anyhow::Error> {
-        if skip_if_exists {
-            let table = self
-                .user_table_repository
-                .find_by_name(&self.connection, name)
-                .await?;
-            if let Some(table) = table {
-                return Ok(table);
-            }
-        }
-
-        let table = self
-            .user_table_repository
-            .insert(&self.connection, name)
-            .await?;
-
-        Ok(table)
     }
 
     pub async fn create_external_table(
@@ -65,18 +40,18 @@ impl UserTableService {
             .await
     }
 
-    pub async fn find_id_by_name(
+    pub async fn find_id_by_identifier(
         &self,
-        name: &UserTableName,
+        identifier: &TableIdentifier,
     ) -> Result<Option<UserTableId>, anyhow::Error> {
-        let table = self
+        let id = self
             .user_table_repository
-            .find_by_name(&self.connection, name)
+            .find_id_by_identifier(&self.connection, identifier)
             .await?;
 
-        let Some(table) = table else { return Ok(None) };
+        let Some(id) = id else { return Ok(None) };
 
-        Ok(Some(table.id))
+        Ok(Some(id))
     }
 
     pub async fn find_by_identifier(

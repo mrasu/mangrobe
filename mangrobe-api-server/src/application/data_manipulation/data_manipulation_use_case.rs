@@ -46,7 +46,7 @@ impl DataManipulationUseCase {
         &self,
         param: GetCurrentStateParam,
     ) -> Result<Snapshot, anyhow::Error> {
-        let table_id = find_table_id(&self.user_table_service, &param.table_name).await?;
+        let table_id = find_table_id(&self.user_table_service, &param.table_identifier).await?;
 
         let stream = UserTablStream::new(table_id, param.stream_id);
         self.snapshot_service
@@ -59,7 +59,7 @@ impl DataManipulationUseCase {
         param: &GetCommitsParam,
         limit_per_stream: u64,
     ) -> Result<CommittedStreamChange, anyhow::Error> {
-        let table_id = find_table_id(&self.user_table_service, &param.table_name).await?;
+        let table_id = find_table_id(&self.user_table_service, &param.table_identifier).await?;
 
         let changes = self
             .committed_change_request_service
@@ -89,7 +89,7 @@ impl DataManipulationUseCase {
     }
 
     pub async fn add_files(&self, param: AddFilesParam) -> Result<CommitId, anyhow::Error> {
-        let table_id = find_table_id(&self.user_table_service, &param.table_name).await?;
+        let table_id = find_table_id(&self.user_table_service, &param.table_identifier).await?;
         let stream = UserTablStream::new(table_id, param.stream_id);
         let change_request = self
             .change_request_service
@@ -115,7 +115,7 @@ impl DataManipulationUseCase {
             bail!(UserError::InvalidLockMessage("not acquired".into()))
         }
 
-        let table_id = find_table_id(&self.user_table_service, &param.table_name).await?;
+        let table_id = find_table_id(&self.user_table_service, &param.table_identifier).await?;
         let stream = UserTablStream::new(table_id, param.stream_id);
         let change_request = self
             .change_request_service
@@ -146,7 +146,7 @@ impl DataManipulationUseCase {
             bail!(UserError::InvalidLockMessage("not acquired".into()))
         }
 
-        let table_id = find_table_id(&self.user_table_service, &param.table_name).await?;
+        let table_id = find_table_id(&self.user_table_service, &param.table_identifier).await?;
         let stream = UserTablStream::new(table_id, param.stream_id);
         let change_request = self
             .change_request_service

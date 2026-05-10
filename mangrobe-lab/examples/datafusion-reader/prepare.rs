@@ -28,12 +28,16 @@ pub async fn prepare_table(
     api_client: &ApiClient,
     bucket_name: String,
 ) -> Result<Stream, anyhow::Error> {
-    let stream = Stream::new_with_random_stream_id(QUERY_TABLE_NAME.to_string())?;
+    let stream = Stream::new_with_random_stream_id(QUERY_TABLE_NAME.into(), bucket_name.clone())?;
 
     create_bucket_if_not_exists(bucket_name).await?;
 
     api_client
-        .create_table(stream.table_name.clone(), true)
+        .create_table(
+            stream.table_identifier.clone(),
+            stream.location.clone(),
+            true,
+        )
         .await?;
 
     Ok(stream)
@@ -73,7 +77,7 @@ pub async fn register_files(
 
     api_client
         .add_files(
-            stream.table_name.clone(),
+            stream.table_identifier.clone(),
             stream.stream_id,
             vec![add_file_entry],
         )

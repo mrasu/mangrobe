@@ -11,6 +11,7 @@ pub(crate) enum MangrobeError {
 }
 
 #[derive(Error, Debug)]
+#[allow(clippy::enum_variant_names)]
 pub(crate) enum UserError {
     #[error("Invalid parameter. {0}")]
     InvalidParameterMessage(String),

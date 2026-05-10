@@ -1,5 +1,6 @@
 use crate::api::core::util::error::ParameterError;
-use crate::api::core::util::param::table_name::to_table_name;
+use crate::api::core::util::param::table_identifier::to_table_identifier;
+use crate::api::core::util::param_util::required;
 use crate::api::grpc::proto::partition_time_predicate::Predicate;
 use crate::api::grpc::proto::{
     BoundInclusivity as BoundInclusivityParam, GetCurrentStateRequest,
@@ -18,10 +19,11 @@ use prost_types::Timestamp;
 pub(crate) fn build_get_current_state_param(
     req: &GetCurrentStateRequest,
 ) -> Result<GetCurrentStateParam, ParameterError> {
-    let table_name = to_table_name(req.table_name.clone())?;
+    let table_identifier =
+        to_table_identifier(required("table_identifier", req.table_identifier.as_ref())?)?;
 
     let param = GetCurrentStateParam {
-        table_name,
+        table_identifier,
         stream_id: req.stream_id.into(),
         partition_time_filter: to_partition_time_filter(req.partition_time_filter.as_ref())?,
     };

@@ -24,7 +24,7 @@ impl LockControlUseCase {
         &self,
         param: AcquireFileLockParam,
     ) -> Result<Vec<FileWithId>, anyhow::Error> {
-        let table_id = find_table_id(&self.user_table_service, &param.table_name).await?;
+        let table_id = find_table_id(&self.user_table_service, &param.table_identifier).await?;
         let stream = UserTablStream::new(table_id, param.stream_id);
         let locked_files = self
             .file_lock_service

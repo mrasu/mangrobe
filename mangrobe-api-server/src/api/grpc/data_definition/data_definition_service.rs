@@ -1,8 +1,8 @@
 use crate::api::core::data_definition::data_definition_service::DataDefinitionService as CoreDataDefinitionService;
 use crate::api::grpc::proto::{
-    CreateExternalTableRequest, CreateExternalTableResponse, CreateTableRequest,
-    CreateTableResponse, EvolveTableSchemaRequest, EvolveTableSchemaResponse, GetTableRequest,
-    GetTableResponse, ListTablesRequest, ListTablesResponse, data_definition_service_server,
+    CreateExternalTableRequest, CreateExternalTableResponse, EvolveTableSchemaRequest,
+    EvolveTableSchemaResponse, GetTableRequest, GetTableResponse, ListTablesRequest,
+    ListTablesResponse, data_definition_service_server,
 };
 use crate::api::grpc::util::error::to_grpc_error;
 use sea_orm::DatabaseConnection;
@@ -22,20 +22,6 @@ impl DataDefinitionService {
 
 #[tonic::async_trait]
 impl data_definition_service_server::DataDefinitionService for DataDefinitionService {
-    async fn create_table(
-        &self,
-        request: Request<CreateTableRequest>,
-    ) -> Result<Response<CreateTableResponse>, Status> {
-        let req = request.into_inner();
-        let res = self
-            .core_service
-            .create_table(req)
-            .await
-            .map_err(to_grpc_error)?;
-
-        Ok(Response::new(res))
-    }
-
     async fn create_external_table(
         &self,
         request: Request<CreateExternalTableRequest>,

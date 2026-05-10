@@ -3,14 +3,15 @@ mod prometheus;
 use crate::prometheus::handler::Handler;
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Method, Request, Response, StatusCode};
-use mangrobe_lab::{ApiClient, create_bucket_if_not_exists, create_rustfs};
+use mangrobe_lab::{ApiClient, Stream, create_bucket_if_not_exists, create_rustfs};
 use prost_types::Timestamp;
 use std::convert::Infallible;
 use std::env;
 
 const DEFAULT_MANGROBE_API_ADDR: &str = "http://[::1]:50051";
 
-pub const PROM_TABLE_NAME: &str = "examples-prometheus-flink";
+pub const PROM_TABLE_NAME: &str = "examples_prometheus_flink";
+const BUCKET_NAME: &str = "mangrobe-development";
 pub const PROM_STREAM_ID: i64 = 1;
 const HTTP_SERVER_PORT: u16 = 8888;
 
@@ -18,7 +19,7 @@ const HTTP_SERVER_PORT: u16 = 8888;
 async fn main() {
     let api_server_addr = env::var("MANGROBE_API_ADDR").unwrap_or(DEFAULT_MANGROBE_API_ADDR.into());
 
-    create_bucket_if_not_exists("mangrobe-development".into())
+    create_bucket_if_not_exists(BUCKET_NAME.into())
         .await
         .unwrap();
     serve_writer(api_server_addr).await.unwrap();
@@ -30,17 +31,24 @@ async fn serve_writer(api_server_addr: String) -> Result<(), anyhow::Error> {
         .await?;
     let api_client = ApiClient::new(conn);
 
+    let stream = Stream::new_with_random_stream_id(PROM_TABLE_NAME.into(), BUCKET_NAME.into())?;
     api_client
-        .create_table(PROM_TABLE_NAME.to_string(), true)
+        .create_table(
+            stream.table_identifier.clone(),
+            stream.location.clone(),
+            true,
+        )
         .await?;
 
     let make_svc = make_service_fn(move |_conn| {
         let api_client = api_client.clone();
+        let stream = stream.clone();
         async move {
             Ok::<_, Infallible>(service_fn(move |req| {
                 let api_client = api_client.clone();
+                let stream = stream.clone();
                 async move {
-                    match handle_remote_write(req, api_client).await {
+                    match handle_remote_write(req, api_client, stream).await {
                         Ok(resp) => Ok::<_, Infallible>(resp),
                         Err(err) => {
                             eprintln!("remote write handler error: {err:?}");
@@ -69,6 +77,7 @@ const DEFAULT_PARTITION_TIME: Timestamp = Timestamp {
 async fn handle_remote_write(
     req: Request<Body>,
     api_client: ApiClient,
+    stream: Stream,
 ) -> Result<Response<Body>, anyhow::Error> {
     if req.method() != Method::POST || req.uri().path() != "/api/v1/write" {
         let mut resp = Response::new(Body::from("not found"));
@@ -79,5 +88,5 @@ async fn handle_remote_write(
     let rustfs = create_rustfs("mangrobe-development".into())?;
 
     let handler = Handler::new(rustfs, api_client);
-    handler.handle_remote_write(req).await
+    handler.handle_remote_write(req, stream).await
 }

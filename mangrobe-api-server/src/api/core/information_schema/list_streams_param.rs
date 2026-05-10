@@ -1,7 +1,8 @@
 use crate::api::core::information_schema::list_stream_page_token::ListStreamPageToken;
 use crate::api::core::util::error::ParameterError;
 use crate::api::core::util::page::build_page;
-use crate::api::core::util::param::table_name::to_table_name;
+use crate::api::core::util::param::table_identifier::to_table_identifier;
+use crate::api::core::util::param_util::required;
 use crate::api::grpc::proto::{ListStreamsRequest, PaginationRequest};
 use crate::application::information_schema::list_streams_param::ListStreamsParam;
 
@@ -10,7 +11,8 @@ const DEFAULT_PAGE_SIZE: i32 = 1000;
 pub(crate) fn parse_list_streams_param(
     req: &ListStreamsRequest,
 ) -> Result<(ListStreamsParam, i32), ParameterError> {
-    let table_name = to_table_name(req.table_name.clone())?;
+    let table_identifier =
+        to_table_identifier(required("table_identifier", req.table_identifier.as_ref())?)?;
 
     let pagination = req.pagination.clone().unwrap_or(PaginationRequest {
         size: 0,
@@ -21,7 +23,7 @@ pub(crate) fn parse_list_streams_param(
     let stream_id_after = match page.token {
         Some(token) => {
             let token = ListStreamPageToken::parse(token).ok_or(invalid_page_token())?;
-            if token.table_name != table_name {
+            if token.table_identifier != table_identifier {
                 return Err(invalid_page_token());
             }
             Some(token.stream_id)
@@ -31,7 +33,7 @@ pub(crate) fn parse_list_streams_param(
 
     Ok((
         ListStreamsParam {
-            table_name,
+            table_identifier,
             stream_id_after,
         },
         page.size,
