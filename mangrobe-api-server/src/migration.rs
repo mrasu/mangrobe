@@ -10,3 +10,7 @@ impl MigratorTrait for Migrator {
         vec![Box::new(m20251103_033827_initialize::Migration)]
     }
 }
+
+pub async fn run_cli() {
+    cli::run_cli(Migrator).await;
+}

@@ -4,6 +4,8 @@ fn main() {
     let out_dir = Path::new("./src/generated");
     let proto_path = Path::new("../spec/proto/api.proto");
 
+    std::fs::create_dir_all(out_dir).unwrap();
+
     println!(
         "cargo:rerun-if-changed=proto/{}",
         proto_path.to_string_lossy()

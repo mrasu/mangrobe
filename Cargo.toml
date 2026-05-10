@@ -2,6 +2,5 @@
 
 members = [
   "mangrobe-api-server",
-  "mangrobe-api-server/migration",
   "mangrobe-lab",
 ]
