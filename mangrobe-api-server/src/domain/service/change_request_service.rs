@@ -18,6 +18,8 @@ use crate::domain::model::file::{FileEntry, FilePath};
 use crate::domain::model::file_id::FileId;
 use crate::domain::model::file_lock_key::FileLockKey;
 use crate::domain::model::idempotency_key::IdempotencyKey;
+use crate::domain::model::partition::Partition;
+use crate::domain::model::user_table_info::UserTableInfo;
 use crate::domain::model::user_table_stream::UserTablStream;
 use crate::infrastructure::db::repository::change_request_repository::ChangeRequestRepository;
 use crate::infrastructure::db::repository::commit_lock_repository::CommitLockRepository;
@@ -30,7 +32,6 @@ use crate::infrastructure::db::repository::file_repository::FileRepository;
 use crate::util::error::MangrobeError::UnexpectedState;
 use crate::util::error::{MangrobeError, UserError};
 use anyhow::bail;
-use sea_orm::sqlx::types::chrono::{DateTime, Utc};
 use sea_orm::{DatabaseConnection, DatabaseTransaction, TransactionTrait};
 
 pub(crate) struct ChangeRequestService {
@@ -88,6 +89,7 @@ impl ChangeRequestService {
 
     pub async fn apply_add_entries(
         &self,
+        table_info: &UserTableInfo,
         change_request: &ChangeRequest,
         entries: &[ChangeRequestRawAddFileEntry],
     ) -> Result<ChangeRequestForAdd, anyhow::Error> {
@@ -116,14 +118,10 @@ impl ChangeRequestService {
 
         let mut file_ids = vec![];
         for entry in entries {
+            let partition = entry.partition.validate(&table_info.partition_data_type)?;
             file_ids.extend(
-                self.insert_files(
-                    &txn,
-                    change_request,
-                    entry.partition_time,
-                    &entry.files_to_add,
-                )
-                .await?,
+                self.insert_files(&txn, change_request, &partition, &entry.files_to_add)
+                    .await?,
             );
         }
 
@@ -157,6 +155,7 @@ impl ChangeRequestService {
 
     pub async fn apply_change_entry(
         &self,
+        table_info: &UserTableInfo,
         change_request: &ChangeRequest,
         entries: &[ChangeRequestRawChangeFilesEntry],
     ) -> Result<ChangeRequestForChange, anyhow::Error> {
@@ -185,14 +184,11 @@ impl ChangeRequestService {
 
         let mut file_ids_to_delete = vec![];
         for entry in entries {
+            let partition = entry.partition.validate(&table_info.partition_data_type)?;
+
             file_ids_to_delete.extend(
-                self.find_file_ids(
-                    &txn,
-                    change_request,
-                    entry.partition_time,
-                    &entry.files_to_delete,
-                )
-                .await?,
+                self.find_file_ids(&txn, change_request, &partition, &entry.files_to_delete)
+                    .await?,
             );
         }
 
@@ -217,7 +213,7 @@ impl ChangeRequestService {
         &self,
         txn: &DatabaseTransaction,
         change_request: &ChangeRequest,
-        partition_time: DateTime<Utc>,
+        partition: &Partition,
         files_to_add: &[FileEntry],
     ) -> Result<Vec<FileId>, anyhow::Error> {
         if files_to_add.is_empty() {
@@ -226,7 +222,7 @@ impl ChangeRequestService {
 
         let files: Vec<_> = files_to_add
             .iter()
-            .map(|f| f.to_file(change_request.base.stream.clone(), partition_time))
+            .map(|f| f.to_file(change_request.base.stream.clone(), partition.clone()))
             .collect();
         let file_ids = self.file_repository.insert_many(txn, &files).await?;
 
@@ -280,6 +276,7 @@ impl ChangeRequestService {
 
     pub async fn apply_compaction_entry(
         &self,
+        table_info: &UserTableInfo,
         change_request: &ChangeRequest,
         entries: &[ChangeRequestRawCompactFilesEntry],
     ) -> Result<ChangeRequestForCompact, anyhow::Error> {
@@ -308,24 +305,16 @@ impl ChangeRequestService {
 
         let mut compact_entries = vec![];
         for entry in entries {
+            let partition = entry.partition.validate(&table_info.partition_data_type)?;
+
             for info_entry in entry.info_entries.iter() {
                 // TODO: accelerate by batch
                 let src_file_ids = self
-                    .find_file_ids(
-                        &txn,
-                        change_request,
-                        entry.partition_time,
-                        &info_entry.src_file_paths,
-                    )
+                    .find_file_ids(&txn, change_request, &partition, &info_entry.src_file_paths)
                     .await?;
 
                 let dst_file_id = self
-                    .insert_file(
-                        &txn,
-                        change_request,
-                        entry.partition_time,
-                        &info_entry.dst_file,
-                    )
+                    .insert_file(&txn, change_request, &partition, &info_entry.dst_file)
                     .await?;
                 compact_entries.push(ChangeRequestCompactFileEntry {
                     src_file_ids,
@@ -386,10 +375,10 @@ impl ChangeRequestService {
         &self,
         txn: &DatabaseTransaction,
         change_request: &ChangeRequest,
-        partition_time: DateTime<Utc>,
+        partition: &Partition,
         file_entry: &FileEntry,
     ) -> Result<FileId, anyhow::Error> {
-        let file = file_entry.to_file(change_request.base.stream.clone(), partition_time);
+        let file = file_entry.to_file(change_request.base.stream.clone(), partition.clone());
 
         let file_id = self.file_repository.insert(txn, &file).await?;
 
@@ -418,11 +407,11 @@ impl ChangeRequestService {
         &self,
         txn: &DatabaseTransaction,
         change_request: &ChangeRequest,
-        partition_time: DateTime<Utc>,
+        partition: &Partition,
         file_paths: &[FilePath],
     ) -> Result<Vec<FileId>, anyhow::Error> {
         self.file_repository
-            .find_all_ids_by_paths(txn, &change_request.base.stream, partition_time, file_paths)
+            .find_all_ids_by_paths(txn, &change_request.base.stream, partition, file_paths)
             .await
     }
 

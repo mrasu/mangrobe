@@ -15,7 +15,7 @@ Run the gRPC API directly.
     ```shell
     cd mangrobe-api-server
     make migrate/fresh
-    cargo run
+    cargo run --bin mangrobe-api-server
     ```
 3. Run Object Storage(RustFS)
     ```shell

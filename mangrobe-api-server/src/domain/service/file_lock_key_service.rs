@@ -1,6 +1,7 @@
 use crate::domain::model::file::FileWithId;
 use crate::domain::model::file_lock_key::FileLockKey;
 use crate::domain::model::lock_raw_file_entry::LockFileRawAcquireEntry;
+use crate::domain::model::user_table_info::UserTableInfo;
 use crate::domain::model::user_table_stream::UserTablStream;
 use crate::infrastructure::db::repository::current_file_repository::CurrentFileRepository;
 use crate::infrastructure::db::repository::file_lock_repository::FileLockRepository;
@@ -38,6 +39,7 @@ impl FileLockService {
 
     pub async fn acquire(
         &self,
+        table_info: &UserTableInfo,
         file_lock_key: &FileLockKey,
         stream: &UserTablStream,
         ttl: Duration,
@@ -58,14 +60,10 @@ impl FileLockService {
 
         let mut file_ids = vec![];
         for entry in entries {
+            let partition = entry.partition.validate(&table_info.partition_data_type)?;
             let locked_files = self
                 .current_file_repository
-                .select_files_by_paths_for_update(
-                    &txn,
-                    stream,
-                    entry.partition_time,
-                    &entry.file_paths,
-                )
+                .select_files_by_paths_for_update(&txn, stream, &partition, &entry.file_paths)
                 .await?;
 
             if locked_files.len() != entry.file_paths.len() {

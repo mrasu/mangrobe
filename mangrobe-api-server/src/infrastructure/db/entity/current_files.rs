@@ -8,8 +8,8 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i64,
     pub user_table_id: i64,
-    pub stream_id: i64,
-    pub partition_time: DateTimeWithTimeZone,
+    pub stream: i64,
+    pub partition: i64,
     pub file_id: i64,
     #[sea_orm(column_type = "VarBinary(StringLen::None)")]
     pub file_path_xxh3: Vec<u8>,

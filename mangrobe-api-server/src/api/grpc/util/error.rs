@@ -1,4 +1,5 @@
 use crate::api::core::util::error::ParameterError;
+use crate::domain::model::partition::PartitionError;
 use crate::util::error::UserError;
 use tonic::{Code, Status};
 use tracing::error;
@@ -6,6 +7,13 @@ use tracing::error;
 pub fn to_grpc_error(error: anyhow::Error) -> Status {
     if let Some(e) = error.downcast_ref::<ParameterError>() {
         return build_invalid_argument(e);
+    }
+    if let Some(e) = error.downcast_ref::<PartitionError>() {
+        return match e {
+            PartitionError::IncorrectDataType(_, _) => {
+                build_invalid_argument_with_error_message(e.to_string())
+            }
+        };
     }
 
     if let Some(e) = error.downcast_ref::<UserError>() {

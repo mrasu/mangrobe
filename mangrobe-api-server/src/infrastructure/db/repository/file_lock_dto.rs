@@ -12,7 +12,7 @@ pub(super) fn build_entity_file_lock(
     ActiveModel {
         key: Set(key.key.clone()),
         user_table_id: Set(stream.user_table_id.val()),
-        stream_id: Set(stream.stream_id.val()),
+        stream: Set(stream.stream.val()),
         expire_at: Set(expire_at.into()),
         created_at: Default::default(),
         updated_at: Default::default(),

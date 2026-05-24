@@ -2,8 +2,9 @@ use crate::domain::model::current_file::CurrentFile;
 use crate::domain::model::file::{FilePath, FileWithId};
 use crate::domain::model::file_id::FileId;
 use crate::domain::model::file_lock_key::FileLockKey;
-use crate::domain::model::partition_time_filter::{
-    BoundInclusivity, PartitionTimeFilter, PartitionTimePredicate, PartitionTimeRange,
+use crate::domain::model::partition::Partition;
+use crate::domain::model::partition_filter::{
+    BoundInclusivity, PartitionFilter, PartitionPredicate, PartitionRange,
 };
 use crate::domain::model::user_table_stream::UserTablStream;
 use crate::infrastructure::db::entity::current_files::{Column, Entity};
@@ -15,7 +16,7 @@ use crate::infrastructure::db::repository::current_file_dto::{
 use crate::infrastructure::db::repository::file_dto::build_domain_file;
 use crate::infrastructure::db::repository::file_repository::FileRepository;
 use anyhow::bail;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use sea_orm::prelude::Expr;
 use sea_orm::sea_query::{LockType, Query};
 use sea_orm::{ColumnTrait, QuerySelect, Value};
@@ -38,7 +39,7 @@ impl CurrentFileRepository {
         &self,
         conn: &C,
         stream: &UserTablStream,
-        partition_time_filter: &PartitionTimeFilter,
+        partition_filter: &PartitionFilter,
     ) -> Result<Vec<FileWithId>, anyhow::Error>
     where
         C: ConnectionTrait,
@@ -46,10 +47,10 @@ impl CurrentFileRepository {
         let mut query = CurrentFiles::find()
             .find_also_related(Files)
             .filter(Column::UserTableId.eq(stream.user_table_id.val()))
-            .filter(Column::StreamId.eq(stream.stream_id.val()));
+            .filter(Column::Stream.eq(stream.stream.val()));
 
-        if partition_time_filter.should_filter() {
-            let condition = build_partition_time_filter_condition(partition_time_filter);
+        if partition_filter.should_filter() {
+            let condition = build_partition_filter_condition(partition_filter);
             query = query.filter(condition);
         }
 
@@ -81,7 +82,7 @@ impl CurrentFileRepository {
             .lock(LockType::Update)
             .filter(Column::FileLockKey.eq(file_lock_key.key.clone()))
             .filter(Column::UserTableId.eq(stream.user_table_id.val()))
-            .filter(Column::StreamId.eq(stream.stream_id.val()))
+            .filter(Column::Stream.eq(stream.stream.val()))
             .filter(Column::FileId.is_in(file_ids.iter().map(|v| v.val())))
             .all(conn)
             .await?;
@@ -95,7 +96,7 @@ impl CurrentFileRepository {
         &self,
         conn: &C,
         stream: &UserTablStream,
-        partition_time: DateTime<Utc>,
+        partition: &Partition,
         file_paths: &[FilePath],
     ) -> Result<Vec<CurrentFile>, anyhow::Error>
     where
@@ -106,8 +107,8 @@ impl CurrentFileRepository {
         let current_files = CurrentFiles::find()
             .lock(LockType::Update)
             .filter(Column::UserTableId.eq(stream.user_table_id.val()))
-            .filter(Column::StreamId.eq(stream.stream_id.val()))
-            .filter(Column::PartitionTime.eq(partition_time))
+            .filter(Column::Stream.eq(stream.stream.val()))
+            .filter(Column::Partition.eq(partition.val()))
             .filter(Column::FilePathXxh3.is_in(hashed_file_paths))
             .all(conn)
             .await?;
@@ -133,7 +134,7 @@ impl CurrentFileRepository {
         let locked_files = CurrentFiles::update_many()
             .col_expr(Column::FileLockKey, Expr::value(file_lock_key.key.clone()))
             .filter(Column::UserTableId.eq(stream.user_table_id.val()))
-            .filter(Column::StreamId.eq(stream.stream_id.val()))
+            .filter(Column::Stream.eq(stream.stream.val()))
             .filter(Column::FileId.is_in(file_ids.iter().map(|id| id.val())))
             .filter(
                 // ... AND ((key IS NULL) OR (key NOT IN (select key from locks where expired_at > now()))
@@ -177,7 +178,7 @@ impl CurrentFileRepository {
 
                 Ok(build_entity_current_file(
                     stream,
-                    model.partition_time.into(),
+                    &Partition::build_from_validated(model.partition),
                     file_id,
                     &model.path.clone().into(),
                 ))
@@ -202,7 +203,7 @@ impl CurrentFileRepository {
     {
         Entity::delete_many()
             .filter(Column::UserTableId.eq(stream.user_table_id.val()))
-            .filter(Column::StreamId.eq(stream.stream_id.val()))
+            .filter(Column::Stream.eq(stream.stream.val()))
             .filter(Column::FileId.is_in(file_ids.iter().map(|v| v.val())))
             .exec(conn)
             .await?;
@@ -228,40 +229,44 @@ impl CurrentFileRepository {
     }
 }
 
-fn build_partition_time_filter_condition(partition_time_filter: &PartitionTimeFilter) -> Condition {
-    partition_time_filter
+fn build_partition_filter_condition(partition_filter: &PartitionFilter) -> Condition {
+    partition_filter
         .predicates
         .iter()
         .fold(Condition::any(), |condition, predicate| {
-            condition.add(build_partition_time_predicate_condition(predicate))
+            condition.add(build_partition_predicate_condition(predicate))
         })
 }
 
-fn build_partition_time_predicate_condition(
-    partition_time_predicate: &PartitionTimePredicate,
-) -> Condition {
-    match partition_time_predicate {
-        PartitionTimePredicate::In(param) => {
-            Condition::all().add(Column::PartitionTime.is_in(param.times.clone()))
-        }
-        PartitionTimePredicate::Range(param) => build_partition_time_range_condition(param),
+fn build_partition_predicate_condition(partition_predicate: &PartitionPredicate) -> Condition {
+    match partition_predicate {
+        PartitionPredicate::In(param) => Condition::all().add(
+            Column::Partition.is_in(
+                param
+                    .partitions
+                    .iter()
+                    .map(|v| v.val())
+                    .collect::<Vec<i64>>(),
+            ),
+        ),
+        PartitionPredicate::Range(param) => build_partition_range_condition(param),
     }
 }
 
-fn build_partition_time_range_condition(partition_time_range: &PartitionTimeRange) -> Condition {
+fn build_partition_range_condition(partition_range: &PartitionRange) -> Condition {
     let mut condition = Condition::all();
 
-    if let Some(lower) = &partition_time_range.lower {
+    if let Some(lower) = &partition_range.lower {
         condition = condition.add(match lower.inclusivity {
-            BoundInclusivity::Inclusive => Column::PartitionTime.gte(lower.time),
-            BoundInclusivity::Exclusive => Column::PartitionTime.gt(lower.time),
+            BoundInclusivity::Inclusive => Column::Partition.gte(lower.partition.val()),
+            BoundInclusivity::Exclusive => Column::Partition.gt(lower.partition.val()),
         });
     }
 
-    if let Some(upper) = &partition_time_range.upper {
+    if let Some(upper) = &partition_range.upper {
         condition = condition.add(match upper.inclusivity {
-            BoundInclusivity::Inclusive => Column::PartitionTime.lte(upper.time),
-            BoundInclusivity::Exclusive => Column::PartitionTime.lt(upper.time),
+            BoundInclusivity::Inclusive => Column::Partition.lte(upper.partition.val()),
+            BoundInclusivity::Exclusive => Column::Partition.lt(upper.partition.val()),
         });
     }
 

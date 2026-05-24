@@ -1,7 +1,29 @@
-use crate::domain::model::commit_id::CommitId;
-use crate::domain::model::stream_id::StreamId;
+use serde::{Deserialize, Serialize};
 
-pub(crate) struct Stream {
-    pub id: StreamId,
-    pub last_commit_id: CommitId,
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, Hash, PartialEq)]
+#[serde(transparent)]
+pub(crate) struct Stream(i64);
+
+impl From<Stream> for i64 {
+    fn from(stream: Stream) -> Self {
+        stream.0
+    }
+}
+
+impl From<i64> for Stream {
+    fn from(stream: i64) -> Self {
+        Self(stream)
+    }
+}
+
+impl From<&i64> for Stream {
+    fn from(stream: &i64) -> Self {
+        Self(*stream)
+    }
+}
+
+impl Stream {
+    pub fn val(&self) -> i64 {
+        self.0
+    }
 }

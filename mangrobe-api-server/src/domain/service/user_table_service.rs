@@ -2,6 +2,7 @@ use crate::domain::model::table_definition::{Column, TableDefinition};
 use crate::domain::model::table_identifier::TableIdentifier;
 use crate::domain::model::table_summary::TableSummary;
 use crate::domain::model::user_table_id::UserTableId;
+use crate::domain::model::user_table_info::UserTableInfo;
 use crate::infrastructure::db::repository::user_table_repository::UserTableRepository;
 use crate::util::error::UserError;
 use anyhow::anyhow;
@@ -20,7 +21,7 @@ impl UserTableService {
         }
     }
 
-    pub async fn create_external_table(
+    pub async fn create_table(
         &self,
         table: &TableDefinition,
         skip_if_exists: bool,
@@ -36,7 +37,7 @@ impl UserTableService {
         }
 
         self.user_table_repository
-            .insert_table_definition(&self.connection, table)
+            .insert(&self.connection, table)
             .await
     }
 
@@ -60,6 +61,15 @@ impl UserTableService {
     ) -> Result<Option<TableDefinition>, anyhow::Error> {
         self.user_table_repository
             .find_by_identifier(&self.connection, identifier)
+            .await
+    }
+
+    pub async fn find_info_by_identifier(
+        &self,
+        identifier: &TableIdentifier,
+    ) -> Result<Option<UserTableInfo>, anyhow::Error> {
+        self.user_table_repository
+            .find_info_by_identifier(&self.connection, identifier)
             .await
     }
 

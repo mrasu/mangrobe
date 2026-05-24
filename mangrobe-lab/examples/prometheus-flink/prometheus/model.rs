@@ -4,71 +4,11 @@ use arrow_array::builder::{
     ArrayBuilder, Float64Builder, Int64Builder, ListBuilder, StringBuilder, StructBuilder,
 };
 use arrow_schema::{DataType, Field, Fields};
-use mangrobe_lab::prometheus_proto;
 use mangrobe_lab::prometheus_proto::WriteRequest;
 use parquet::arrow::ArrowWriter;
 use parquet::file::properties::WriterProperties;
-use serde::Serialize;
 use std::io::Cursor;
 use std::sync::Arc;
-
-#[derive(Serialize)]
-pub struct WriteRequestView {
-    timeseries: Vec<TimeSeriesView>,
-}
-
-#[derive(Serialize)]
-struct TimeSeriesView {
-    labels: Vec<LabelView>,
-    samples: Vec<SampleView>,
-}
-
-#[derive(Serialize)]
-struct LabelView {
-    name: String,
-    value: String,
-}
-
-#[derive(Serialize)]
-struct SampleView {
-    value: f64,
-    timestamp: i64,
-}
-
-impl From<&WriteRequest> for WriteRequestView {
-    fn from(req: &WriteRequest) -> Self {
-        Self {
-            timeseries: req.timeseries.iter().map(TimeSeriesView::from).collect(),
-        }
-    }
-}
-
-impl From<&prometheus_proto::TimeSeries> for TimeSeriesView {
-    fn from(ts: &prometheus_proto::TimeSeries) -> Self {
-        Self {
-            labels: ts.labels.iter().map(LabelView::from).collect(),
-            samples: ts.samples.iter().map(SampleView::from).collect(),
-        }
-    }
-}
-
-impl From<&prometheus_proto::Label> for LabelView {
-    fn from(label: &prometheus_proto::Label) -> Self {
-        Self {
-            name: label.name.clone(),
-            value: label.value.clone(),
-        }
-    }
-}
-
-impl From<&prometheus_proto::Sample> for SampleView {
-    fn from(sample: &prometheus_proto::Sample) -> Self {
-        Self {
-            value: sample.value,
-            timestamp: sample.timestamp,
-        }
-    }
-}
 
 pub async fn create_parquet_from_write_request(
     buffer: &mut Vec<u8>,

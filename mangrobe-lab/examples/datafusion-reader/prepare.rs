@@ -1,7 +1,7 @@
 use crate::QUERY_TABLE_NAME;
 use arrow_array::array::ArrayRef as ArrowArrayRef;
 use arrow_array::{Int32Array, RecordBatch, StringArray};
-use mangrobe_lab::proto::{AddFileEntry, AddFileInfoEntry};
+use mangrobe_lab::proto::{AddFileEntry, AddFileInfoEntry, PartitionValue, partition_value};
 use mangrobe_lab::{ApiClient, Stream, create_bucket_if_not_exists, create_rustfs};
 use object_store::path::Path;
 use object_store::{ObjectStore, PutPayload};
@@ -28,7 +28,7 @@ pub async fn prepare_table(
     api_client: &ApiClient,
     bucket_name: String,
 ) -> Result<Stream, anyhow::Error> {
-    let stream = Stream::new_with_random_stream_id(QUERY_TABLE_NAME.into(), bucket_name.clone())?;
+    let stream = Stream::new_with_random_stream(QUERY_TABLE_NAME.into(), bucket_name.clone())?;
 
     create_bucket_if_not_exists(bucket_name).await?;
 
@@ -56,7 +56,9 @@ pub async fn register_files(
     let files = create_vortex_files(&temp_dir).await?;
 
     let mut add_file_entry = AddFileEntry {
-        partition_time: Some(QUERY_PARTITION_TIME),
+        partition: Some(PartitionValue {
+            value: Some(partition_value::Value::Time(QUERY_PARTITION_TIME)),
+        }),
         file_info_entries: vec![],
     };
     for filename in files.iter() {
@@ -78,7 +80,7 @@ pub async fn register_files(
     api_client
         .add_files(
             stream.table_identifier.clone(),
-            stream.stream_id,
+            stream.stream,
             vec![add_file_entry],
         )
         .await?;

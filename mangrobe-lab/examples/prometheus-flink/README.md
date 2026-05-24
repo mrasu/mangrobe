@@ -15,7 +15,7 @@ Receive Prometheus metrics and consume them with Flink.
     ```shell
     cd mangrobe-api-server
     make migrate/fresh
-    MANGROBE_API_ADDR=[::]:50051 cargo run
+    MANGROBE_API_ADDR=[::]:50051 cargo run --bin mangrobe-api-server
     ```
 3. Run Object Storage(RustFS)
     ```shell

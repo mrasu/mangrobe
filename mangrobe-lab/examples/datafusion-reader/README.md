@@ -15,7 +15,7 @@ Execute SQL with DataFusion.
     ```shell
     cd mangrobe-api-server
     make migrate/fresh
-    cargo run
+    cargo run --bin mangrobe-api-server
     ```
 3. Run Object Storage(RustFS)
     ```shell

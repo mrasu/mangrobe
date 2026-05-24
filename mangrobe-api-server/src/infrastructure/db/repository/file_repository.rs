@@ -1,11 +1,11 @@
 use crate::domain::model::file::{File, FilePath, FileWithId};
 use crate::domain::model::file_id::FileId;
+use crate::domain::model::partition::Partition;
 use crate::domain::model::user_table_stream::UserTablStream;
 use crate::infrastructure::db::entity::files;
 use crate::infrastructure::db::entity::files::Column;
 use crate::infrastructure::db::entity::prelude::Files;
 use crate::infrastructure::db::repository::file_dto::{build_domain_file, build_entity_file};
-use chrono::{DateTime, Utc};
 use sea_orm::{ColumnTrait, ConnectionTrait, EntityTrait, QueryFilter, QuerySelect};
 
 #[derive(Clone, Copy)]
@@ -36,7 +36,7 @@ impl FileRepository {
         &self,
         conn: &C,
         stream: &UserTablStream,
-        partition_time: DateTime<Utc>,
+        partition: &Partition,
         file_paths: &[FilePath],
     ) -> Result<Vec<FileId>, anyhow::Error>
     where
@@ -48,8 +48,8 @@ impl FileRepository {
             .select_only()
             .column(Column::Id)
             .filter(Column::UserTableId.eq(stream.user_table_id.val()))
-            .filter(Column::StreamId.eq(stream.stream_id.val()))
-            .filter(Column::PartitionTime.eq(partition_time))
+            .filter(Column::Stream.eq(stream.stream.val()))
+            .filter(Column::Partition.eq(partition.val()))
             .filter(Column::PathXxh3.is_in(hashed_file_paths))
             .into_tuple::<i64>()
             .all(conn)
@@ -72,7 +72,7 @@ impl FileRepository {
     {
         let files = Files::find()
             .filter(Column::UserTableId.eq(stream.user_table_id.val()))
-            .filter(Column::StreamId.eq(stream.stream_id.val()))
+            .filter(Column::Stream.eq(stream.stream.val()))
             .filter(Column::Id.is_in(ids.iter().map(|f| f.val())))
             .all(conn)
             .await?;

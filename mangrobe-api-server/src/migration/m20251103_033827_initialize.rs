@@ -41,7 +41,8 @@ impl MigrationTrait for Migration {
                     .col(json_binary(UserTable::Location))
                     .col(integer(UserTable::Format))
                     .col(json_binary(UserTable::Columns))
-                    .col(json_binary(UserTable::Partitions))
+                    .col(json_binary(UserTable::Partition))
+                    .col(json_binary(UserTable::StreamField))
                     .col(text_null(UserTable::Comment))
                     .col(
                         timestamp_with_time_zone(UserTable::CreatedAt)
@@ -103,7 +104,7 @@ impl MigrationTrait for Migration {
                             .take(),
                     )
                     .col(big_integer(ChangeRequest::UserTableId))
-                    .col(big_integer(ChangeRequest::StreamId))
+                    .col(big_integer(ChangeRequest::Stream))
                     .col(integer(ChangeRequest::Status))
                     .col(integer(ChangeRequest::ChangeType))
                     .col(json_binary_null(ChangeRequest::FileEntry))
@@ -248,7 +249,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(big_integer(Commit::ChangeRequestId))
                     .col(big_integer(Commit::UserTableId))
-                    .col(big_integer(Commit::StreamId))
+                    .col(big_integer(Commit::Stream))
                     .col(
                         timestamp_with_time_zone(Commit::CommittedAt)
                             .default(Expr::current_timestamp()),
@@ -306,11 +307,11 @@ impl MigrationTrait for Migration {
                         "idx_{}_{}_{}",
                         Commit::Table.to_string(),
                         Commit::UserTableId.to_string(),
-                        Commit::StreamId.to_string()
+                        Commit::Stream.to_string()
                     ))
                     .table(Commit::Table)
                     .col(Commit::UserTableId)
-                    .col(Commit::StreamId)
+                    .col(Commit::Stream)
                     .to_owned(),
             )
             .await?;
@@ -322,8 +323,8 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(big_integer(File::Id).auto_increment().primary_key().take())
                     .col(big_integer(File::UserTableId))
-                    .col(big_integer(File::StreamId))
-                    .col(timestamp_with_time_zone(File::PartitionTime))
+                    .col(big_integer(File::Stream))
+                    .col(big_integer(File::Partition))
                     .col(string_len(File::Path, 255))
                     .col(binary_len(File::PathXxh3, 16))
                     .col(big_integer(File::Size))
@@ -377,14 +378,14 @@ impl MigrationTrait for Migration {
                         "idx_{}_{}_{}_{}_{}",
                         File::Table.to_string(),
                         File::UserTableId.to_string(),
-                        File::StreamId.to_string(),
-                        File::PartitionTime.to_string(),
+                        File::Stream.to_string(),
+                        File::Partition.to_string(),
                         File::PathXxh3.to_string(),
                     ))
                     .table(File::Table)
                     .col(File::UserTableId)
-                    .col(File::StreamId)
-                    .col(File::PartitionTime)
+                    .col(File::Stream)
+                    .col(File::Partition)
                     .col(File::PathXxh3)
                     .to_owned(),
             )
@@ -522,7 +523,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(binary_len(FileLock::Key, 16).primary_key())
                     .col(big_integer(FileLock::UserTableId))
-                    .col(big_integer(FileLock::StreamId))
+                    .col(big_integer(FileLock::Stream))
                     .col(timestamp_with_time_zone(FileLock::ExpireAt))
                     .col(
                         timestamp_with_time_zone(FileLock::CreatedAt)
@@ -593,8 +594,8 @@ impl MigrationTrait for Migration {
                             .take(),
                     )
                     .col(big_integer(CurrentFile::UserTableId))
-                    .col(big_integer(CurrentFile::StreamId))
-                    .col(timestamp_with_time_zone(CurrentFile::PartitionTime))
+                    .col(big_integer(CurrentFile::Stream))
+                    .col(big_integer(CurrentFile::Partition))
                     .col(big_integer(CurrentFile::FileId))
                     .col(binary_len(CurrentFile::FilePathXxh3, 16))
                     .col(binary_len_null(CurrentFile::FileLockKey, 16))
@@ -704,15 +705,15 @@ impl MigrationTrait for Migration {
                         "idx_{}_{}_{}_{}_{}",
                         CurrentFile::Table.to_string(),
                         CurrentFile::UserTableId.to_string(),
-                        CurrentFile::StreamId.to_string(),
-                        CurrentFile::PartitionTime.to_string(),
+                        CurrentFile::Stream.to_string(),
+                        CurrentFile::Partition.to_string(),
                         CurrentFile::FilePathXxh3.to_string()
                     ))
                     .unique()
                     .table(CurrentFile::Table)
                     .col(CurrentFile::UserTableId)
-                    .col(CurrentFile::StreamId)
-                    .col(CurrentFile::PartitionTime)
+                    .col(CurrentFile::Stream)
+                    .col(CurrentFile::Partition)
                     .col(CurrentFile::FilePathXxh3)
                     .to_owned(),
             )
@@ -775,7 +776,8 @@ enum UserTable {
     Location,
     Format,
     Columns,
-    Partitions,
+    Partition,
+    StreamField,
     Comment,
     CreatedAt,
     UpdatedAt,
@@ -787,7 +789,7 @@ enum ChangeRequest {
     Table,
     Id,
     UserTableId,
-    StreamId,
+    Stream,
     Status,
     ChangeType,
     FileEntry,
@@ -813,7 +815,7 @@ enum Commit {
     Id,
     ChangeRequestId,
     UserTableId,
-    StreamId,
+    Stream,
     CommittedAt,
 }
 
@@ -823,8 +825,8 @@ enum File {
     Table,
     Id,
     UserTableId,
-    StreamId,
-    PartitionTime,
+    Stream,
+    Partition,
     Path,
     PathXxh3,
     Size,
@@ -861,8 +863,8 @@ enum CurrentFile {
     Table,
     Id,
     UserTableId,
-    StreamId,
-    PartitionTime,
+    Stream,
+    Partition,
     FileId,
     FilePathXxh3,
     FileLockKey,
@@ -876,7 +878,7 @@ enum FileLock {
     Table,
     Key,
     UserTableId,
-    StreamId,
+    Stream,
     ExpireAt,
     CreatedAt,
     UpdatedAt,

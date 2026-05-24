@@ -1,6 +1,6 @@
 use crate::application::information_schema::list_streams_param::ListStreamsParam;
 use crate::application::util::user_table::find_table_id;
-use crate::domain::model::stream::Stream;
+use crate::domain::model::stream_info::StreamInfo;
 use crate::domain::service::stream_service::StreamService;
 use crate::domain::service::user_table_service::UserTableService;
 use sea_orm::DatabaseConnection;
@@ -22,10 +22,10 @@ impl InformationSchemaUseCase {
         &self,
         param: &ListStreamsParam,
         limit: u64,
-    ) -> Result<Vec<Stream>, anyhow::Error> {
+    ) -> Result<Vec<StreamInfo>, anyhow::Error> {
         let table_id = find_table_id(&self.user_table_service, &param.table_identifier).await?;
         self.stream_service
-            .find_streams_after(&table_id, &param.stream_id_after, limit)
+            .find_streams_after(&table_id, &param.stream_after, limit)
             .await
     }
 }

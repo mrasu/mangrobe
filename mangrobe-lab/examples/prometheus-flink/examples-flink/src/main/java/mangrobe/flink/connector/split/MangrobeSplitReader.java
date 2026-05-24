@@ -42,7 +42,7 @@ public class MangrobeSplitReader implements SplitReader<MangrobeRecord, Mangrobe
                     .setCatalogName("mangrobe_lab").build();
             var request = Api.GetCommitsRequest.newBuilder()
                     .setTableIdentifier(tableIdentifier)
-                    .setStreamId(state.getStreamId())
+                    .setStream(state.getStreamId())
                     .setCommitIdAfter(state.getCurrentCommitId().orElse(""))
                     .build();
             var stub = DataManipulationServiceGrpc.newBlockingStub(this.channel);

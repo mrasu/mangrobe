@@ -1,16 +1,16 @@
 use crate::domain::model::file::FilePath;
-use chrono::{DateTime, Utc};
+use crate::domain::model::partition::UnvalidatedPartition;
 
 #[derive(Debug)]
 pub(crate) struct LockFileRawAcquireEntry {
-    pub partition_time: DateTime<Utc>,
+    pub partition: UnvalidatedPartition,
     pub file_paths: Vec<FilePath>,
 }
 
 impl LockFileRawAcquireEntry {
-    pub fn new(partition_time: DateTime<Utc>, file_paths: Vec<FilePath>) -> Self {
+    pub fn new(partition: UnvalidatedPartition, file_paths: Vec<FilePath>) -> Self {
         Self {
-            partition_time,
+            partition,
             file_paths,
         }
     }

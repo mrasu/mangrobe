@@ -12,7 +12,7 @@ pub struct Model {
     )]
     pub key: Vec<u8>,
     pub user_table_id: i64,
-    pub stream_id: i64,
+    pub stream: i64,
     pub expire_at: DateTimeWithTimeZone,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,

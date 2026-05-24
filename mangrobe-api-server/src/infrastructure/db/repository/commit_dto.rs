@@ -12,7 +12,7 @@ pub(super) fn build_entity_commit(
         id: Default::default(),
         change_request_id: Set(change_request_id.into()),
         user_table_id: Set(stream.user_table_id.val()),
-        stream_id: Set(stream.stream_id.val()),
+        stream: Set(stream.stream.val()),
         committed_at: Default::default(),
     }
 }
@@ -21,7 +21,7 @@ pub(super) fn build_domain_commit(commit: &Model) -> Commit {
     Commit {
         id: commit.id.into(),
         change_request_id: commit.change_request_id.into(),
-        stream: UserTablStream::new(commit.user_table_id.into(), commit.stream_id.into()),
+        stream: UserTablStream::new(commit.user_table_id.into(), commit.stream.into()),
         committed_at: commit.committed_at.into(),
     }
 }

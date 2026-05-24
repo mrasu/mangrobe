@@ -93,7 +93,7 @@ public class MangrobeSplitEnumerator implements SplitEnumerator<MangrobeSplit, S
             nextToken = response.getPagination().getNextToken();
 
             for (var stream : response.getStreamsList()) {
-                var streamId = stream.getStreamId();
+                var streamId = stream.getStream();
                 if (knownStreamIds.add(streamId)) {
                     var commitId = isFirstFetch ? stream.getLastCommitId() : null;
                     newSplits.add(new MangrobeSplit(this.tableName, streamId, commitId));

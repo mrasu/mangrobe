@@ -1,7 +1,7 @@
 pub(crate) use crate::domain::model::change_request_file_data::ChangeRequestFileData;
 use crate::domain::model::change_request_file_entry::ChangeRequestFileEntry;
 use crate::domain::model::commit_id::CommitId;
-use crate::domain::model::stream_id::StreamId;
+use crate::domain::model::stream::Stream;
 
 pub(crate) struct CommittedChangeRequest {
     pub commit_id: CommitId,
@@ -9,14 +9,14 @@ pub(crate) struct CommittedChangeRequest {
 }
 
 pub(crate) struct CommittedStreamChange {
-    pub stream_id: StreamId,
+    pub stream: Stream,
     pub committed_changes: Vec<CommittedChangeRequestData>,
 }
 
 impl CommittedStreamChange {
-    pub fn new(stream_id: StreamId, committed_changes: Vec<CommittedChangeRequestData>) -> Self {
+    pub fn new(stream: Stream, committed_changes: Vec<CommittedChangeRequestData>) -> Self {
         Self {
-            stream_id,
+            stream,
             committed_changes,
         }
     }

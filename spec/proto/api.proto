@@ -14,7 +14,7 @@ service DataManipulationService {
 }
 
 service DataDefinitionService {
-  rpc CreateExternalTable(CreateExternalTableRequest) returns (CreateExternalTableResponse);
+  rpc CreateTable(CreateTableRequest) returns (CreateTableResponse);
   rpc GetTable(GetTableRequest) returns (GetTableResponse);
   rpc ListTables(ListTablesRequest) returns (ListTablesResponse);
   rpc EvolveTableSchema(EvolveTableSchemaRequest) returns (EvolveTableSchemaResponse);
@@ -43,38 +43,45 @@ message FileLockKey {
 
 message GetCurrentStateRequest {
   TableIdentifier table_identifier = 1;
-  int64 stream_id = 2;
+  int64 stream = 2;
 
   // Optional filter. If empty, returns all partition's states.
-  PartitionTimeFilter partition_time_filter = 3;
+  PartitionFilter partition_filter = 3;
 }
 
-message PartitionTimeFilter {
+message PartitionFilter {
   // Predicates are OR-ed.
-  repeated PartitionTimePredicate predicates = 1;
+  repeated PartitionPredicate predicates = 1;
 }
 
-message PartitionTimePredicate {
+message PartitionPredicate {
   oneof predicate {
-    PartitionTimeIn in = 1;
-    PartitionTimeRange range = 2;
+    PartitionIn in = 1;
+    PartitionRange range = 2;
   }
 }
 
-message PartitionTimeIn {
-  // Times are OR-ed.
-  repeated google.protobuf.Timestamp times = 1;
+message PartitionIn {
+  // Partitions are OR-ed.
+  repeated PartitionValue partitions = 1;
 }
 
-message PartitionTimeRange {
+message PartitionRange {
   // Bounds are AND-ed.
-  optional PartitionTimeBound lower = 1;
-  optional PartitionTimeBound upper = 2;
+  optional PartitionBound lower = 1;
+  optional PartitionBound upper = 2;
 }
 
-message PartitionTimeBound {
-  google.protobuf.Timestamp time = 1;
+message PartitionBound {
+  PartitionValue partition = 1;
   BoundInclusivity inclusivity = 2;
+}
+
+message PartitionValue {
+  oneof value {
+    int64 int64_value = 1;
+    google.protobuf.Timestamp time = 2;
+  }
 }
 
 enum BoundInclusivity {
@@ -92,7 +99,7 @@ message GetCurrentStateResponse {
 }
 
 message CurrentStatePartition {
-  google.protobuf.Timestamp partition_time = 1;
+  PartitionValue partition = 1;
   repeated File files = 2;
 }
 
@@ -106,7 +113,7 @@ message File {
 
 message GetCommitsRequest {
   TableIdentifier table_identifier = 1;
-  int64 stream_id = 2;
+  int64 stream = 2;
 
   // Optional. Starts at the beginning if not set.
   optional string commit_id_after = 3;
@@ -114,7 +121,7 @@ message GetCommitsRequest {
 
 message GetCommitsResponse {
   TableIdentifier table_identifier = 1;
-  int64 stream_id = 2;
+  int64 stream = 2;
 
   // Commits are ordered in the order they were applied.
   repeated Commit commits = 3;
@@ -206,13 +213,13 @@ message FileMetadata {
 message AddFilesRequest {
   IdempotencyKey idempotency_key = 1;
   TableIdentifier table_identifier = 2;
-  int64 stream_id = 3;
+  int64 stream = 3;
 
   repeated AddFileEntry add_file_entries = 4;
 }
 
 message AddFileEntry {
-  google.protobuf.Timestamp partition_time = 1;
+  PartitionValue partition = 1;
 
   repeated AddFileInfoEntry file_info_entries = 2;
 }
@@ -244,13 +251,13 @@ message AddFilesResponse {
 message ChangeFilesRequest {
   FileLockKey file_lock_key = 1;
   TableIdentifier table_identifier = 2;
-  int64 stream_id = 3;
+  int64 stream = 3;
 
   repeated ChangeFileEntry change_file_entries = 4;
 }
 
 message ChangeFileEntry {
-  google.protobuf.Timestamp partition_time = 1;
+  PartitionValue partition = 1;
 
   repeated ChangeFileDeleteEntry delete_entries = 2;
 }
@@ -266,13 +273,13 @@ message ChangeFilesResponse {
 message CompactFilesRequest {
   FileLockKey file_lock_key = 1;
   TableIdentifier table_identifier = 2;
-  int64 stream_id = 3;
+  int64 stream = 3;
 
   repeated CompactFileEntry compact_file_entries = 4;
 }
 
 message CompactFileEntry {
-  google.protobuf.Timestamp partition_time = 1;
+  PartitionValue partition = 1;
 
   repeated CompactFileInfoEntry file_info_entries = 2;
 }
@@ -298,12 +305,12 @@ message CompactFilesResponse {
   string commit_id = 1;
 }
 
-message CreateExternalTableRequest {
+message CreateTableRequest {
   TableDefinition table = 1;
   bool skip_if_exists = 2;
 }
 
-message CreateExternalTableResponse {
+message CreateTableResponse {
   TableDefinition table = 1;
 }
 
@@ -343,8 +350,9 @@ message TableDefinition {
   ExternalLocation location = 2;
   FileFormat format = 3;
   repeated Column columns = 4;
-  repeated PartitionField partition_fields = 5;
-  optional string comment = 6;
+  PartitionField partition_field = 5;
+  StreamField stream_field = 6;
+  optional string comment = 7;
 }
 
 message TableIdentifier {
@@ -386,7 +394,7 @@ message Column {
 message DataType {
   oneof type {
     ScalarType scalar = 1;
-    TimeType time = 2;
+    TimestampType time = 2;
   }
 }
 
@@ -404,7 +412,7 @@ enum ScalarType {
   // TODO: add INT8, INT16, unsigned integers, FLOAT32, BINARY, DECIMAL, TIMESTAMP, STRUCT, LIST, and MAP
 }
 
-message TimeType {
+message TimestampType {
   TimeUnit unit = 1;
 }
 
@@ -428,7 +436,33 @@ message PartitionField {
   optional string dst_column = 2;
 
   PartitionTransform transform = 3;
-  DataType result_type = 4;
+  PartitionDataType result_type = 4;
+}
+
+enum PartitionDataType {
+  PARTITION_DATA_TYPE_UNSPECIFIED = 0;
+
+  PARTITION_DATA_TYPE_TIME_MICROSECOND = 1;
+  PARTITION_DATA_TYPE_INT64 = 2;
+}
+
+message StreamField {
+  // Source table column used to compute the partition value.
+  string src_column = 1;
+
+  // Destination table column for the computed partition value.
+  // If unset, the partition field is virtual: the value is tracked as partition metadata but has no physical table column.
+  // If set, dst_column must be different from src_column; writing the same column name is unnecessary, including for IDENTITY transforms.
+  optional string dst_column = 2;
+
+  PartitionTransform transform = 3;
+  StreamDataType result_type = 4;
+}
+
+enum StreamDataType {
+  STREAM_DATA_TYPE_UNSPECIFIED = 0;
+
+  STREAM_DATA_TYPE_INT64 = 1;
 }
 
 enum PartitionTransform {
@@ -437,21 +471,23 @@ enum PartitionTransform {
 
   // Uses the source value without modification.
   PARTITION_TRANSFORM_IDENTITY = 1;
-  // Extracts the hour containing the source timestamp or time value.
-  PARTITION_TRANSFORM_HOUR = 2;
-  // Extracts the calendar day containing the source date or timestamp value.
-  PARTITION_TRANSFORM_DAY = 3;
-  // Extracts the calendar month containing the source date or timestamp value.
-  PARTITION_TRANSFORM_MONTH = 4;
-  // Extracts the calendar year containing the source date or timestamp value.
-  PARTITION_TRANSFORM_YEAR = 5;
+
+  // TODO: support other transformation
+  //  // Extracts the hour containing the source timestamp or time value.
+  //  PARTITION_TRANSFORM_HOUR = 2;
+  //  // Extracts the calendar day containing the source date or timestamp value.
+  //  PARTITION_TRANSFORM_DAY = 3;
+  //  // Extracts the calendar month containing the source date or timestamp value.
+  //  PARTITION_TRANSFORM_MONTH = 4;
+  //  // Extracts the calendar year containing the source date or timestamp value.
+  //  PARTITION_TRANSFORM_YEAR = 5;
 }
 
 message AcquireFileLockRequest {
   FileLockKey file_lock_key = 1;
 
   TableIdentifier table_identifier = 2;
-  int64 stream_id = 3;
+  int64 stream = 3;
 
   int64 ttl_sec = 4;
 
@@ -459,7 +495,7 @@ message AcquireFileLockRequest {
 }
 
 message AcquireFileLockEntry {
-  google.protobuf.Timestamp partition_time = 1;
+  PartitionValue partition = 1;
 
   repeated AcquireFileLockFileInfoEntry acquire_file_info_entries =2;
 }
@@ -494,7 +530,7 @@ message ListStreamsResponse {
 }
 
 message StreamInfo {
-  int64 stream_id = 1;
+  int64 stream = 1;
   string last_commit_id = 2;
 }
 

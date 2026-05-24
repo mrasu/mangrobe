@@ -12,7 +12,7 @@ pub(super) fn build_entity_change_request(
 ) -> ActiveModel {
     ActiveModel {
         id: Default::default(),
-        stream_id: Set(stream.stream_id.val()),
+        stream: Set(stream.stream.val()),
         user_table_id: Set(stream.user_table_id.val()),
         status: Set(ChangeRequestExt::build_model_status(
             ChangeRequestStatus::New,
@@ -32,7 +32,7 @@ pub(super) fn build_domain_change_request(
             id: change_request.id.into(),
             stream: UserTablStream::new(
                 change_request.user_table_id.into(),
-                change_request.stream_id.into(),
+                change_request.stream.into(),
             ),
             status: ChangeRequestExt::build_domain_status(change_request)?,
             change_type: ChangeRequestExt::build_domain_change_type(change_request)?,

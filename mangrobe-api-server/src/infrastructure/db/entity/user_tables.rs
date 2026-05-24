@@ -19,7 +19,9 @@ pub struct Model {
     #[sea_orm(column_type = "JsonBinary")]
     pub columns: Json,
     #[sea_orm(column_type = "JsonBinary")]
-    pub partitions: Json,
+    pub partition: Json,
+    #[sea_orm(column_type = "JsonBinary")]
+    pub stream_field: Json,
     #[sea_orm(column_type = "Text", nullable)]
     pub comment: Option<String>,
     pub created_at: DateTimeWithTimeZone,

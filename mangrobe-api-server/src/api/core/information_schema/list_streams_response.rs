@@ -1,13 +1,13 @@
 use crate::api::core::information_schema::list_stream_page_token::ListStreamPageToken;
 use crate::api::core::util::param::table_identifier::to_proto_table_identifier;
 use crate::api::grpc::proto::{ListStreamsResponse, PaginationResponse, StreamInfo};
-use crate::domain::model::stream::Stream;
+use crate::domain::model::stream_info::StreamInfo as DomainStreamInfo;
 use crate::domain::model::table_identifier::TableIdentifier;
 
 pub(crate) fn build_list_streams_response(
     table_identifier: &TableIdentifier,
     page_size: usize,
-    streams: &[Stream],
+    streams: &[DomainStreamInfo],
 ) -> ListStreamsResponse {
     let pagination = if streams.len() > page_size {
         let last_stream = &streams[page_size - 1];
@@ -26,7 +26,7 @@ pub(crate) fn build_list_streams_response(
             .iter()
             .take(page_size)
             .map(|stream| StreamInfo {
-                stream_id: stream.id.val(),
+                stream: stream.id.val(),
                 last_commit_id: stream.last_commit_id.to_string(),
             })
             .collect(),

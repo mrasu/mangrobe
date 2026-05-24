@@ -1,4 +1,4 @@
-use crate::application::data_definition::create_external_table_param::CreateExternalTableParam;
+use crate::application::data_definition::create_table_param::CreateTableParam;
 use crate::application::data_definition::evolve_table_schema_param::EvolveTableSchemaParam;
 use crate::application::data_definition::get_table_param::GetTableParam;
 use crate::application::data_definition::list_tables_param::ListTablesParam;
@@ -21,14 +21,14 @@ impl DataDefinitionUseCase {
         }
     }
 
-    pub async fn create_external_table(
+    pub async fn create_table(
         &self,
-        param: CreateExternalTableParam,
+        param: CreateTableParam,
     ) -> Result<TableDefinition, anyhow::Error> {
         let table_name = param.table.identifier.full_name();
         let res = self
             .user_table_service
-            .create_external_table(&param.table, param.skip_if_exists)
+            .create_table(&param.table, param.skip_if_exists)
             .await;
 
         match res {

@@ -1,6 +1,7 @@
 use crate::domain::model::db_object_identifier::DbObjectIdentifier;
 use crate::domain::model::table_identifier::TableIdentifier;
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -17,6 +18,9 @@ pub(crate) enum TableDefinitionError {
     #[error("partition src_column references unknown column: '{0}'")]
     UnknownPartitionSourceColumn(String),
 
+    #[error("stream references unknown column: '{0}'")]
+    UnknownStreamSourceColumn(String),
+
     #[error("partition dst_column references unknown column: '{0}'")]
     UnknownPartitionDestinationColumn(String),
 
@@ -30,7 +34,8 @@ pub(crate) struct TableDefinition {
     pub location: ExternalLocation,
     pub format: FileFormat,
     pub columns: Vec<Column>,
-    pub partition_fields: Vec<PartitionField>,
+    pub partition_field: PartitionField,
+    pub stream_field: StreamField,
     pub comment: Option<String>,
 }
 
@@ -40,7 +45,8 @@ impl TableDefinition {
         location: ExternalLocation,
         format: FileFormat,
         columns: Vec<Column>,
-        partition_fields: Vec<PartitionField>,
+        partition_field: PartitionField,
+        stream_field: StreamField,
         comment: Option<String>,
     ) -> Result<Self, TableDefinitionError> {
         let mut column_names = std::collections::HashSet::new();
@@ -50,19 +56,23 @@ impl TableDefinition {
             }
         }
 
-        for partition_field in &partition_fields {
-            if !column_names.contains(&partition_field.src_column.val()) {
-                return Err(TableDefinitionError::UnknownPartitionSourceColumn(
-                    partition_field.src_column.val(),
-                ));
-            }
-            if let Some(dst_column) = &partition_field.dst_column
-                && !column_names.contains(&dst_column.val())
-            {
-                return Err(TableDefinitionError::UnknownPartitionDestinationColumn(
-                    dst_column.val(),
-                ));
-            }
+        if !column_names.contains(&partition_field.src_column.val()) {
+            return Err(TableDefinitionError::UnknownPartitionSourceColumn(
+                partition_field.src_column.val(),
+            ));
+        }
+        if let Some(dst_column) = &partition_field.dst_column
+            && !column_names.contains(&dst_column.val())
+        {
+            return Err(TableDefinitionError::UnknownPartitionDestinationColumn(
+                dst_column.val(),
+            ));
+        }
+
+        if !column_names.contains(&stream_field.src_column.val()) {
+            return Err(TableDefinitionError::UnknownStreamSourceColumn(
+                stream_field.src_column.val(),
+            ));
         }
 
         Ok(Self {
@@ -70,7 +80,8 @@ impl TableDefinition {
             location,
             format,
             columns,
-            partition_fields,
+            partition_field,
+            stream_field,
             comment,
         })
     }
@@ -253,7 +264,7 @@ pub(crate) struct PartitionField {
     pub src_column: DbObjectIdentifier,
     pub dst_column: Option<DbObjectIdentifier>,
     pub transform: PartitionTransform,
-    pub result_type: ColumnDataType,
+    pub result_type: PartitionDataType,
 }
 
 impl PartitionField {
@@ -261,7 +272,50 @@ impl PartitionField {
         src_column: DbObjectIdentifier,
         dst_column: Option<DbObjectIdentifier>,
         transform: PartitionTransform,
-        result_type: ColumnDataType,
+        result_type: PartitionDataType,
+    ) -> Result<Self, TableDefinitionError> {
+        if dst_column.as_ref() == Some(&src_column) {
+            return Err(TableDefinitionError::InvalidPartitionDestination);
+        }
+
+        Ok(Self {
+            src_column,
+            dst_column,
+            transform,
+            result_type,
+        })
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum PartitionDataType {
+    TimeMicrosecond,
+    Int64,
+}
+
+impl fmt::Display for PartitionDataType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PartitionDataType::TimeMicrosecond => write!(f, "time_microsecond"),
+            PartitionDataType::Int64 => write!(f, "int64"),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct StreamField {
+    pub src_column: DbObjectIdentifier,
+    pub dst_column: Option<DbObjectIdentifier>,
+    pub transform: PartitionTransform,
+    pub result_type: StreamDataType,
+}
+
+impl StreamField {
+    pub fn new(
+        src_column: DbObjectIdentifier,
+        dst_column: Option<DbObjectIdentifier>,
+        transform: PartitionTransform,
+        result_type: StreamDataType,
     ) -> Result<Self, TableDefinitionError> {
         if dst_column.as_ref() == Some(&src_column) {
             return Err(TableDefinitionError::InvalidPartitionDestination);
@@ -279,8 +333,9 @@ impl PartitionField {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum PartitionTransform {
     Identity,
-    Hour,
-    Day,
-    Month,
-    Year,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) enum StreamDataType {
+    Int64,
 }

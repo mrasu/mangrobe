@@ -2,11 +2,12 @@ use crate::domain::model::table_definition::{Column as DomainColumn, TableDefini
 use crate::domain::model::table_identifier::TableIdentifier;
 use crate::domain::model::table_summary::TableSummary;
 use crate::domain::model::user_table_id::UserTableId;
+use crate::domain::model::user_table_info::UserTableInfo;
 use crate::infrastructure::db::entity::prelude::UserTables;
 use crate::infrastructure::db::entity::user_tables::Column;
 use crate::infrastructure::db::repository::user_table_dto::{
     build_active_model, build_columns_value, build_domain_table_definition,
-    build_domain_table_summary,
+    build_domain_table_summary, build_partition_data_type,
 };
 use anyhow::bail;
 use sea_orm::sea_query::LockType;
@@ -79,6 +80,35 @@ impl UserTableRepository {
         Ok(Some(build_domain_table_definition(&table)?))
     }
 
+    pub async fn find_info_by_identifier<C>(
+        &self,
+        conn: &C,
+        identifier: &TableIdentifier,
+    ) -> Result<Option<UserTableInfo>, anyhow::Error>
+    where
+        C: ConnectionTrait,
+    {
+        let table = UserTables::find()
+            .filter(Column::CatalogName.eq(identifier.catalog_name.val()))
+            .filter(Column::SchemaName.eq(identifier.schema_name.val()))
+            .filter(Column::Name.eq(identifier.table_name.val()))
+            .select_only()
+            .column(Column::Id)
+            .column(Column::Partition)
+            .into_tuple::<(i64, serde_json::Value)>()
+            .one(conn)
+            .await?;
+
+        let Some((id, partition)) = table else {
+            return Ok(None);
+        };
+
+        Ok(Some(UserTableInfo {
+            id: id.into(),
+            partition_data_type: build_partition_data_type(partition)?,
+        }))
+    }
+
     pub async fn find_by_identifier_for_update(
         &self,
         txn: &DatabaseTransaction,
@@ -137,7 +167,7 @@ impl UserTableRepository {
             .collect()
     }
 
-    pub async fn insert_table_definition<C>(
+    pub async fn insert<C>(
         &self,
         conn: &C,
         table: &TableDefinition,

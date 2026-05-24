@@ -4,14 +4,17 @@ use crate::api::core::util::param::table_identifier::to_proto_table_identifier;
 use crate::api::core::util::param_util::{invalid_enum, required};
 use crate::api::grpc::proto::{
     Column as ProtoColumn, DataType as ProtoDataType, ExternalLocation as ProtoExternalLocation,
-    FileFormat as ProtoFileFormat, PartitionField as ProtoPartitionField,
-    PartitionTransform as ProtoPartitionTransform, ScalarType as ProtoScalarType,
-    StorageScheme as ProtoStorageScheme, TableDefinition as ProtoTableDefinition,
-    TimeType as ProtoTimeType, TimeUnit as ProtoTimeUnit, data_type,
+    FileFormat as ProtoFileFormat, PartitionDataType as ProtoPartitionDataType,
+    PartitionField as ProtoPartitionField, PartitionTransform as ProtoPartitionTransform,
+    ScalarType as ProtoScalarType, StorageScheme as ProtoStorageScheme,
+    StreamDataType as ProtoStreamDataType, StreamField as ProtoStreamField,
+    TableDefinition as ProtoTableDefinition, TimeUnit as ProtoTimeUnit,
+    TimestampType as ProtoTimestampType, data_type,
 };
 use crate::domain::model::table_definition::{
-    Column, ColumnDataType, ExternalLocation, FileFormat, PartitionField, PartitionTransform,
-    ScalarType, StorageScheme, TableDefinition, TimeType, TimeUnit,
+    Column, ColumnDataType, ExternalLocation, FileFormat, PartitionDataType, PartitionField,
+    PartitionTransform, ScalarType, StorageScheme, StreamDataType, StreamField, TableDefinition,
+    TimeType, TimeUnit,
 };
 
 pub(crate) fn to_column(column: &ProtoColumn) -> Result<Column, ParameterError> {
@@ -63,11 +66,8 @@ pub(crate) fn to_proto_table_definition(table: TableDefinition) -> ProtoTableDef
         location: Some(to_proto_external_location(table.location)),
         format: to_proto_file_format(table.format) as i32,
         columns: table.columns.into_iter().map(to_proto_column).collect(),
-        partition_fields: table
-            .partition_fields
-            .into_iter()
-            .map(to_proto_partition_field)
-            .collect(),
+        partition_field: Some(to_proto_partition_field(table.partition_field)),
+        stream_field: Some(to_proto_stream_field(table.stream_field)),
         comment: table.comment,
     }
 }
@@ -96,7 +96,29 @@ fn to_proto_partition_field(field: PartitionField) -> ProtoPartitionField {
         src_column: field.src_column.val(),
         dst_column: field.dst_column.map(|dst_column| dst_column.val()),
         transform: to_proto_partition_transform(field.transform) as i32,
-        result_type: Some(to_proto_data_type(field.result_type)),
+        result_type: to_proto_partition_data_type(field.result_type) as i32,
+    }
+}
+
+fn to_proto_partition_data_type(data_type: PartitionDataType) -> ProtoPartitionDataType {
+    match data_type {
+        PartitionDataType::TimeMicrosecond => ProtoPartitionDataType::TimeMicrosecond,
+        PartitionDataType::Int64 => ProtoPartitionDataType::Int64,
+    }
+}
+
+fn to_proto_stream_field(field: StreamField) -> ProtoStreamField {
+    ProtoStreamField {
+        src_column: field.src_column.val(),
+        dst_column: field.dst_column.map(|dst_column| dst_column.val()),
+        transform: to_proto_partition_transform(field.transform) as i32,
+        result_type: to_proto_stream_data_type(field.result_type) as i32,
+    }
+}
+
+fn to_proto_stream_data_type(data_type: StreamDataType) -> ProtoStreamDataType {
+    match data_type {
+        StreamDataType::Int64 => ProtoStreamDataType::Int64,
     }
 }
 
@@ -111,8 +133,8 @@ fn to_proto_data_type(data_type: ColumnDataType) -> ProtoDataType {
     }
 }
 
-fn to_proto_time_type(time: TimeType) -> ProtoTimeType {
-    ProtoTimeType {
+fn to_proto_time_type(time: TimeType) -> ProtoTimestampType {
+    ProtoTimestampType {
         unit: to_proto_time_unit(time.unit) as i32,
     }
 }
@@ -153,9 +175,5 @@ fn to_proto_time_unit(unit: TimeUnit) -> ProtoTimeUnit {
 fn to_proto_partition_transform(transform: PartitionTransform) -> ProtoPartitionTransform {
     match transform {
         PartitionTransform::Identity => ProtoPartitionTransform::Identity,
-        PartitionTransform::Hour => ProtoPartitionTransform::Hour,
-        PartitionTransform::Day => ProtoPartitionTransform::Day,
-        PartitionTransform::Month => ProtoPartitionTransform::Month,
-        PartitionTransform::Year => ProtoPartitionTransform::Year,
     }
 }

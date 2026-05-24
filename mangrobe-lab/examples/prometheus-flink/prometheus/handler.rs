@@ -1,9 +1,9 @@
 use crate::prometheus::model::create_parquet_from_write_request;
-use crate::{DEFAULT_PARTITION_TIME, PROM_STREAM_ID, PROM_TABLE_NAME};
+use crate::{DEFAULT_PARTITION_TIME, PROM_STREAM};
 use hyper::body::to_bytes;
 use hyper::{Body, Request, Response, StatusCode};
 use mangrobe_lab::prometheus_proto::WriteRequest;
-use mangrobe_lab::proto::{AddFileEntry, AddFileInfoEntry};
+use mangrobe_lab::proto::{AddFileEntry, AddFileInfoEntry, PartitionValue, partition_value};
 use mangrobe_lab::{ApiClient, Stream};
 use object_store::aws::AmazonS3;
 use object_store::path::Path;
@@ -60,7 +60,9 @@ impl Handler {
             .await?;
 
         let add_file_entry = AddFileEntry {
-            partition_time: Some(DEFAULT_PARTITION_TIME),
+            partition: Some(PartitionValue {
+                value: Some(partition_value::Value::Time(DEFAULT_PARTITION_TIME)),
+            }),
             file_info_entries: vec![AddFileInfoEntry {
                 path: parquet_path.to_string(),
                 size: buffer_len as i64,
@@ -72,7 +74,7 @@ impl Handler {
         self.api_client
             .add_files(
                 stream.table_identifier.clone(),
-                PROM_STREAM_ID,
+                PROM_STREAM,
                 vec![add_file_entry],
             )
             .await?;

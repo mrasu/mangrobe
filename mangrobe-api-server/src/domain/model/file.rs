@@ -1,29 +1,24 @@
 use crate::domain::model::file_column_statistics::FileColumnStatistics;
 use crate::domain::model::file_id::FileId;
 use crate::domain::model::file_metadata::FileMetadata;
+use crate::domain::model::partition::Partition;
 use crate::domain::model::user_table_stream::UserTablStream;
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use xxhash_rust::xxh3::xxh3_128;
 
 #[derive(Clone, Debug)]
 pub(crate) struct File {
     pub stream: UserTablStream,
-    pub partition_time: DateTime<Utc>,
+    pub partition: Partition,
     pub path: FilePath,
     pub size: i64,
 }
 
 impl File {
-    pub fn new(
-        stream: UserTablStream,
-        partition_time: DateTime<Utc>,
-        path: FilePath,
-        size: i64,
-    ) -> Self {
+    pub fn new(stream: UserTablStream, partition: Partition, path: FilePath, size: i64) -> Self {
         Self {
             stream,
-            partition_time,
+            partition,
             path,
             size,
         }
@@ -40,13 +35,13 @@ impl FileWithId {
     pub fn new(
         id: FileId,
         stream: UserTablStream,
-        partition_time: DateTime<Utc>,
+        partition: Partition,
         path: FilePath,
         size: i64,
     ) -> Self {
         Self {
             id,
-            file: File::new(stream, partition_time, path, size),
+            file: File::new(stream, partition, path, size),
         }
     }
 }
@@ -100,7 +95,7 @@ impl FileEntry {
         }
     }
 
-    pub fn to_file(&self, stream: UserTablStream, partition_time: DateTime<Utc>) -> File {
-        File::new(stream, partition_time, self.path.clone(), self.size)
+    pub fn to_file(&self, stream: UserTablStream, partition: Partition) -> File {
+        File::new(stream, partition, self.path.clone(), self.size)
     }
 }

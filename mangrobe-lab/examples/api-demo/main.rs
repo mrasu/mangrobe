@@ -6,7 +6,6 @@ use crate::operation::{
 };
 use mangrobe_lab::{ApiClient, Stream};
 use std::env;
-use std::string::ToString;
 
 const DEFAULT_MANGROBE_API_ADDR: &str = "http://[::1]:50051";
 const QUERY_TABLE_NAME: &str = "examples_api_demo";
@@ -26,7 +25,7 @@ async fn run(api_server_addr: String) -> Result<(), anyhow::Error> {
         .await?;
     let mut api_client = ApiClient::new(conn);
 
-    let stream = Stream::new_with_random_stream_id(QUERY_TABLE_NAME.into(), BUCKET_NAME.into())?;
+    let stream = Stream::new_with_random_stream(QUERY_TABLE_NAME.into(), BUCKET_NAME.into())?;
 
     create_table_if_not_exists(&api_client, &stream).await?;
 
@@ -50,13 +49,13 @@ async fn run(api_server_addr: String) -> Result<(), anyhow::Error> {
     print_current_files(&api_client, &stream).await?;
 
     println!("\nDeleting files...");
-    let delete_target_files = vec!["file3.txt".into()];
+    let delete_target_files = vec!["file3.txt"];
     let lock_key = lock(&mut api_client, &stream, &delete_target_files).await?;
     change_files(&mut api_client, &stream, lock_key, delete_target_files).await?;
     print_current_files(&api_client, &stream).await?;
 
     println!("\nLocking files with no modification...");
-    let nop_target_files = vec!["file4.txt".into()];
+    let nop_target_files = vec!["file4.txt"];
     let lock_key = lock(&mut api_client, &stream, &nop_target_files).await?;
     release_lock(&mut api_client, lock_key).await?;
     print_current_files(&api_client, &stream).await?;

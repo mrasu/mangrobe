@@ -8,11 +8,11 @@ const DEFAULT_SCHEMA_NAME: &str = "default";
 pub struct Stream {
     pub table_identifier: TableIdentifier,
     pub location: ExternalLocation,
-    pub stream_id: i64,
+    pub stream: i64,
 }
 
 impl Stream {
-    pub fn new_with_random_stream_id(
+    pub fn new_with_random_stream(
         table_name: String,
         bucket: String,
     ) -> Result<Self, anyhow::Error> {
@@ -29,7 +29,7 @@ impl Stream {
                 endpoint: None,
                 region: None,
             },
-            stream_id: SystemTime::now()
+            stream: SystemTime::now()
                 .duration_since(SystemTime::UNIX_EPOCH)?
                 .as_secs() as i64,
         };

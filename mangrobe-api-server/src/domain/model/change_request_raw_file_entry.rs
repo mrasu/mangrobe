@@ -1,16 +1,16 @@
 use crate::domain::model::file::{FileEntry, FilePath};
-use chrono::{DateTime, Utc};
+use crate::domain::model::partition::UnvalidatedPartition;
 
 #[derive(Debug)]
 pub(crate) struct ChangeRequestRawAddFileEntry {
-    pub partition_time: DateTime<Utc>,
+    pub partition: UnvalidatedPartition,
     pub files_to_add: Vec<FileEntry>,
 }
 
 impl ChangeRequestRawAddFileEntry {
-    pub fn new(partition_time: DateTime<Utc>, files_to_add: Vec<FileEntry>) -> Self {
+    pub fn new(partition: UnvalidatedPartition, files_to_add: Vec<FileEntry>) -> Self {
         Self {
-            partition_time,
+            partition,
             files_to_add,
         }
     }
@@ -18,14 +18,14 @@ impl ChangeRequestRawAddFileEntry {
 
 #[derive(Debug)]
 pub(crate) struct ChangeRequestRawChangeFilesEntry {
-    pub partition_time: DateTime<Utc>,
+    pub partition: UnvalidatedPartition,
     pub files_to_delete: Vec<FilePath>,
 }
 
 impl ChangeRequestRawChangeFilesEntry {
-    pub fn new(partition_time: DateTime<Utc>, files_to_delete: Vec<FilePath>) -> Self {
+    pub fn new(partition: UnvalidatedPartition, files_to_delete: Vec<FilePath>) -> Self {
         Self {
-            partition_time,
+            partition,
             files_to_delete,
         }
     }
@@ -33,17 +33,17 @@ impl ChangeRequestRawChangeFilesEntry {
 
 #[derive(Debug)]
 pub(crate) struct ChangeRequestRawCompactFilesEntry {
-    pub partition_time: DateTime<Utc>,
+    pub partition: UnvalidatedPartition,
     pub info_entries: Vec<ChangeRequestRawCompactFileInfoEntry>,
 }
 
 impl ChangeRequestRawCompactFilesEntry {
     pub fn new(
-        partition_time: DateTime<Utc>,
+        partition: UnvalidatedPartition,
         info_entries: Vec<ChangeRequestRawCompactFileInfoEntry>,
     ) -> Self {
         Self {
-            partition_time,
+            partition,
             info_entries,
         }
     }

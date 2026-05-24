@@ -27,7 +27,7 @@ pub(crate) fn build_get_commits_param(
 
     Ok(GetCommitsParam {
         table_identifier,
-        stream_id: req.stream_id.into(),
+        stream: req.stream.into(),
         commit_id_after: commit_id_after.into(),
     })
 }

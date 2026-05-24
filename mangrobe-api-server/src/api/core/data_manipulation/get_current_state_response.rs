@@ -1,22 +1,26 @@
+use crate::api::core::util::param::partition::to_proto_partition_value;
 use crate::api::grpc::proto::{CurrentStatePartition, File, GetCurrentStateResponse};
 use crate::domain::model::file::FileWithId;
+use crate::domain::model::partition::Partition;
 use crate::domain::model::snapshot::Snapshot;
-use chrono::{DateTime, Utc};
-use prost_types::Timestamp;
+use crate::domain::model::table_definition::PartitionDataType;
 use std::collections::BTreeMap;
 
 pub(crate) fn build_get_current_state_response(snapshot: Snapshot) -> GetCurrentStateResponse {
     GetCurrentStateResponse {
         commit_id: snapshot.commit_id.map(|id| id.to_string()),
-        partitions: build_current_state_partitions(&snapshot.files),
+        partitions: build_current_state_partitions(&snapshot.partition_data_type, &snapshot.files),
     }
 }
 
-fn build_current_state_partitions(files: &[FileWithId]) -> Vec<CurrentStatePartition> {
-    let mut partitions: BTreeMap<DateTime<Utc>, Vec<File>> = BTreeMap::new();
+fn build_current_state_partitions(
+    partition_data_type: &PartitionDataType,
+    files: &[FileWithId],
+) -> Vec<CurrentStatePartition> {
+    let mut partitions: BTreeMap<Partition, Vec<File>> = BTreeMap::new();
     for file in files {
         partitions
-            .entry(file.file.partition_time)
+            .entry(file.file.partition.clone())
             .or_default()
             .push(File {
                 file_id: file.id.val().to_string(),
@@ -27,16 +31,9 @@ fn build_current_state_partitions(files: &[FileWithId]) -> Vec<CurrentStateParti
 
     partitions
         .into_iter()
-        .map(|(partition_time, files)| CurrentStatePartition {
-            partition_time: Some(to_timestamp(partition_time)),
+        .map(|(partition, files)| CurrentStatePartition {
+            partition: Some(to_proto_partition_value(partition_data_type, partition)),
             files,
         })
         .collect()
-}
-
-fn to_timestamp(datetime: DateTime<Utc>) -> Timestamp {
-    Timestamp {
-        seconds: datetime.timestamp(),
-        nanos: datetime.timestamp_subsec_nanos() as i32,
-    }
 }

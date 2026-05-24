@@ -8,8 +8,11 @@ use crate::grpc::proto::{
     ReleaseFileLockResponse,
 };
 use crate::proto::data_definition_service_client::DataDefinitionServiceClient;
+use crate::proto::data_type::Type;
 use crate::proto::{
-    CreateExternalTableRequest, CreateExternalTableResponse, ExternalLocation, FileFormat, TableDefinition, TableIdentifier,
+    Column, CreateTableRequest, CreateTableResponse, DataType, ExternalLocation, FileFormat,
+    PartitionDataType, PartitionField, PartitionTransform, StreamDataType, StreamField,
+    TableDefinition, TableIdentifier, TimeUnit, TimestampType,
 };
 use tonic::Response;
 use tonic::transport::Channel;
@@ -40,32 +43,66 @@ impl ApiClient {
         table_identifier: TableIdentifier,
         location: ExternalLocation,
         skip_if_exists: bool,
-    ) -> Result<Response<CreateExternalTableResponse>, tonic::Status> {
-        let request = tonic::Request::new(CreateExternalTableRequest {
+    ) -> Result<Response<CreateTableResponse>, tonic::Status> {
+        let request = tonic::Request::new(CreateTableRequest {
             table: Some(TableDefinition {
                 identifier: Some(table_identifier),
                 location: Some(location),
                 format: FileFormat::Vortex.into(),
-                ..Default::default()
+                columns: vec![
+                    Column {
+                        name: "partition_src".into(),
+                        data_type: Some(DataType {
+                            r#type: Some(Type::Time(TimestampType {
+                                unit: TimeUnit::Microsecond.into(),
+                            })),
+                        }),
+                        nullable: false,
+                        comment: None,
+                    },
+                    Column {
+                        name: "stream".into(),
+                        data_type: Some(DataType {
+                            r#type: Some(Type::Time(TimestampType {
+                                unit: TimeUnit::Microsecond.into(),
+                            })),
+                        }),
+                        nullable: false,
+                        comment: None,
+                    },
+                ],
+                partition_field: Some(PartitionField {
+                    src_column: "partition_src".into(),
+                    dst_column: None,
+                    transform: PartitionTransform::Identity.into(),
+                    result_type: PartitionDataType::TimeMicrosecond.into(),
+                }),
+                stream_field: Some(StreamField {
+                    src_column: "stream".into(),
+                    dst_column: None,
+                    transform: PartitionTransform::Identity.into(),
+                    result_type: StreamDataType::Int64.into(),
+                }),
+                comment: None,
             }),
             skip_if_exists,
         });
 
         self.data_definition_service_client
             .clone()
-            .create_external_table(request)
+            .create_table(request)
             .await
     }
 
     pub async fn fetch_current_state(
         &self,
         table_identifier: TableIdentifier,
-        stream_id: i64,
+        stream: i64,
     ) -> Result<Response<GetCurrentStateResponse>, tonic::Status> {
         let request = tonic::Request::new(GetCurrentStateRequest {
             table_identifier: Some(table_identifier),
-            stream_id,
-            partition_time_filter: None,
+            stream,
+            partition_filter: None,
         });
 
         self.data_manipulation_service_client
@@ -77,7 +114,7 @@ impl ApiClient {
     pub async fn add_files(
         &self,
         table_identifier: TableIdentifier,
-        stream_id: i64,
+        stream: i64,
         add_file_entries: Vec<AddFileEntry>,
     ) -> Result<Response<AddFilesResponse>, tonic::Status> {
         let request = tonic::Request::new(AddFilesRequest {
@@ -85,7 +122,7 @@ impl ApiClient {
                 key: Uuid::now_v7().into(),
             }),
             table_identifier: Some(table_identifier),
-            stream_id,
+            stream,
             add_file_entries,
         });
 
@@ -99,7 +136,7 @@ impl ApiClient {
         &mut self,
         txn_key: Uuid,
         table_identifier: TableIdentifier,
-        stream_id: i64,
+        stream: i64,
         change_file_entries: Vec<ChangeFileEntry>,
     ) -> Result<Response<ChangeFilesResponse>, tonic::Status> {
         let request = tonic::Request::new(ChangeFilesRequest {
@@ -107,7 +144,7 @@ impl ApiClient {
                 key: txn_key.into(),
             }),
             table_identifier: Some(table_identifier),
-            stream_id,
+            stream,
             change_file_entries,
         });
 
@@ -120,7 +157,7 @@ impl ApiClient {
         &mut self,
         txn_key: Uuid,
         table_identifier: TableIdentifier,
-        stream_id: i64,
+        stream: i64,
         compact_file_entries: Vec<CompactFileEntry>,
     ) -> Result<Response<CompactFilesResponse>, tonic::Status> {
         let request = tonic::Request::new(CompactFilesRequest {
@@ -128,7 +165,7 @@ impl ApiClient {
                 key: txn_key.into(),
             }),
             table_identifier: Some(table_identifier),
-            stream_id,
+            stream,
             compact_file_entries,
         });
 
@@ -141,7 +178,7 @@ impl ApiClient {
         &mut self,
         txn_key: Uuid,
         table_identifier: TableIdentifier,
-        stream_id: i64,
+        stream: i64,
         acquire_file_lock_entries: Vec<AcquireFileLockEntry>,
     ) -> Result<Response<AcquireFileLockResponse>, tonic::Status> {
         let request = tonic::Request::new(AcquireFileLockRequest {
@@ -150,7 +187,7 @@ impl ApiClient {
             }),
             ttl_sec: 10,
             table_identifier: Some(table_identifier),
-            stream_id,
+            stream,
             acquire_file_lock_entries,
         });
 

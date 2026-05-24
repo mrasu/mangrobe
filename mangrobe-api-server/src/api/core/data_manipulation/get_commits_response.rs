@@ -16,7 +16,7 @@ pub(crate) fn build_get_commits_response(
 ) -> GetCommitsResponse {
     GetCommitsResponse {
         table_identifier: Some(to_proto_table_identifier(table_identifier)),
-        stream_id: stream_changes.stream_id.val(),
+        stream: stream_changes.stream.val(),
         commits: stream_changes
             .committed_changes
             .iter()

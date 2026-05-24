@@ -1,7 +1,8 @@
 use crate::domain::model::db_object_identifier::DbObjectIdentifier;
 use crate::domain::model::table_definition::{
-    Column, ColumnDataType, ExternalLocation, FileFormat, PartitionField, PartitionTransform,
-    ScalarType, StorageScheme, TableDefinition, TimeType, TimeUnit,
+    Column, ColumnDataType, ExternalLocation, FileFormat, PartitionDataType, PartitionField,
+    PartitionTransform, ScalarType, StorageScheme, StreamDataType, StreamField, TableDefinition,
+    TimeType, TimeUnit,
 };
 use crate::domain::model::table_identifier::TableIdentifier;
 use crate::domain::model::table_summary::TableSummary;
@@ -15,8 +16,8 @@ pub(super) fn build_domain_table_definition(
 ) -> Result<TableDefinition, anyhow::Error> {
     let location: LocationDto = serde_json::from_value(table.location.clone())?;
     let columns: Vec<ColumnDto> = serde_json::from_value(table.columns.clone())?;
-    let partition_fields: Vec<PartitionFieldDto> =
-        serde_json::from_value(table.partitions.clone())?;
+    let partition_field: PartitionFieldDto = serde_json::from_value(table.partition.clone())?;
+    let stream_field: StreamFieldDto = serde_json::from_value(table.stream_field.clone())?;
 
     Ok(TableDefinition::new(
         TableIdentifier::new(
@@ -30,10 +31,24 @@ pub(super) fn build_domain_table_definition(
             .into_iter()
             .map(TryInto::try_into)
             .collect::<Result<Vec<_>, _>>()?,
-        partition_fields
-            .into_iter()
-            .map(TryInto::try_into)
-            .collect::<Result<Vec<_>, _>>()?,
+        PartitionField::new(
+            to_db_object_identifier(partition_field.src_column)?,
+            partition_field
+                .dst_column
+                .map(to_db_object_identifier)
+                .transpose()?,
+            partition_field.transform.into(),
+            partition_field.result_type.into(),
+        )?,
+        StreamField::new(
+            to_db_object_identifier(stream_field.src_column)?,
+            stream_field
+                .dst_column
+                .map(to_db_object_identifier)
+                .transpose()?,
+            stream_field.transform.into(),
+            stream_field.result_type.into(),
+        )?,
         table.comment.clone(),
     )?)
 }
@@ -54,6 +69,14 @@ pub(super) fn build_domain_table_summary(
     })
 }
 
+pub(super) fn build_partition_data_type(
+    partition: serde_json::Value,
+) -> Result<PartitionDataType, anyhow::Error> {
+    let partition_field: PartitionFieldDto = serde_json::from_value(partition)?;
+
+    Ok(partition_field.result_type.into())
+}
+
 pub(super) fn build_active_model(table: &TableDefinition) -> ActiveModel {
     ActiveModel {
         id: Default::default(),
@@ -64,14 +87,14 @@ pub(super) fn build_active_model(table: &TableDefinition) -> ActiveModel {
             .expect("location DTO should serialize")),
         format: Set(file_format_to_i32(table.format)),
         columns: Set(build_columns_value(&table.columns)),
-        partitions: Set(serde_json::to_value(
-            table
-                .partition_fields
-                .iter()
-                .map(PartitionFieldDto::from)
-                .collect::<Vec<_>>(),
-        )
-        .expect("partition field DTO should serialize")),
+        partition: Set(
+            serde_json::to_value(PartitionFieldDto::from(&table.partition_field))
+                .expect("partition field DTO should serialize"),
+        ),
+        stream_field: Set(
+            serde_json::to_value(StreamFieldDto::from(&table.stream_field))
+                .expect("stream field DTO should serialize"),
+        ),
         comment: Set(table.comment.clone()),
         created_at: Default::default(),
         updated_at: Default::default(),
@@ -295,7 +318,7 @@ struct PartitionFieldDto {
     src_column: String,
     dst_column: Option<String>,
     transform: PartitionTransformDto,
-    result_type: DataTypeDto,
+    result_type: PartitionDataTypeDto,
 }
 
 impl From<&PartitionField> for PartitionFieldDto {
@@ -304,7 +327,7 @@ impl From<&PartitionField> for PartitionFieldDto {
             src_column: field.src_column.val(),
             dst_column: field.dst_column.as_ref().map(DbObjectIdentifier::val),
             transform: PartitionTransformDto::from(field.transform),
-            result_type: DataTypeDto::from(&field.result_type),
+            result_type: PartitionDataTypeDto::from(field.result_type.clone()),
         }
     }
 }
@@ -317,7 +340,7 @@ impl TryFrom<PartitionFieldDto> for PartitionField {
             to_db_object_identifier(value.src_column)?,
             value.dst_column.map(to_db_object_identifier).transpose()?,
             value.transform.into(),
-            value.result_type.try_into()?,
+            value.result_type.into(),
         )?)
     }
 }
@@ -326,20 +349,12 @@ impl TryFrom<PartitionFieldDto> for PartitionField {
 #[serde(rename_all = "snake_case")]
 enum PartitionTransformDto {
     Identity,
-    Hour,
-    Day,
-    Month,
-    Year,
 }
 
 impl From<PartitionTransform> for PartitionTransformDto {
     fn from(value: PartitionTransform) -> Self {
         match value {
             PartitionTransform::Identity => Self::Identity,
-            PartitionTransform::Hour => Self::Hour,
-            PartitionTransform::Day => Self::Day,
-            PartitionTransform::Month => Self::Month,
-            PartitionTransform::Year => Self::Year,
         }
     }
 }
@@ -348,10 +363,85 @@ impl From<PartitionTransformDto> for PartitionTransform {
     fn from(value: PartitionTransformDto) -> Self {
         match value {
             PartitionTransformDto::Identity => Self::Identity,
-            PartitionTransformDto::Hour => Self::Hour,
-            PartitionTransformDto::Day => Self::Day,
-            PartitionTransformDto::Month => Self::Month,
-            PartitionTransformDto::Year => Self::Year,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum PartitionDataTypeDto {
+    TimeMicrosecond,
+    Int64,
+}
+
+impl From<PartitionDataType> for PartitionDataTypeDto {
+    fn from(value: PartitionDataType) -> Self {
+        match value {
+            PartitionDataType::TimeMicrosecond => Self::TimeMicrosecond,
+            PartitionDataType::Int64 => Self::Int64,
+        }
+    }
+}
+
+impl From<PartitionDataTypeDto> for PartitionDataType {
+    fn from(value: PartitionDataTypeDto) -> Self {
+        match value {
+            PartitionDataTypeDto::TimeMicrosecond => Self::TimeMicrosecond,
+            PartitionDataTypeDto::Int64 => Self::Int64,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+struct StreamFieldDto {
+    src_column: String,
+    dst_column: Option<String>,
+    transform: PartitionTransformDto,
+    result_type: StreamDataTypeDto,
+}
+
+impl From<&StreamField> for StreamFieldDto {
+    fn from(field: &StreamField) -> Self {
+        Self {
+            src_column: field.src_column.val(),
+            dst_column: field.dst_column.as_ref().map(DbObjectIdentifier::val),
+            transform: PartitionTransformDto::from(field.transform),
+            result_type: StreamDataTypeDto::from(field.result_type.clone()),
+        }
+    }
+}
+
+impl TryFrom<StreamFieldDto> for StreamField {
+    type Error = anyhow::Error;
+
+    fn try_from(value: StreamFieldDto) -> Result<Self, Self::Error> {
+        Ok(StreamField::new(
+            to_db_object_identifier(value.src_column)?,
+            value.dst_column.map(to_db_object_identifier).transpose()?,
+            value.transform.into(),
+            value.result_type.into(),
+        )?)
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum StreamDataTypeDto {
+    Int64,
+}
+
+impl From<StreamDataTypeDto> for StreamDataType {
+    fn from(value: StreamDataTypeDto) -> Self {
+        match value {
+            StreamDataTypeDto::Int64 => Self::Int64,
+        }
+    }
+}
+
+impl From<StreamDataType> for StreamDataTypeDto {
+    fn from(value: StreamDataType) -> Self {
+        match value {
+            StreamDataType::Int64 => Self::Int64,
         }
     }
 }

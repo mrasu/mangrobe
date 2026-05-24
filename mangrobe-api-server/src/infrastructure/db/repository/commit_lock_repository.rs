@@ -39,7 +39,7 @@ impl CommitLockRepository {
 
     fn to_lock_id(&self, stream: &UserTablStream) -> i64 {
         let mut hasher = self.hash_builder.build_hasher();
-        hasher.write_i64(stream.stream_id.val());
+        hasher.write_i64(stream.stream.val());
         hasher.write_i64(stream.user_table_id.val());
 
         i64::from_ne_bytes(hasher.finish().to_ne_bytes())

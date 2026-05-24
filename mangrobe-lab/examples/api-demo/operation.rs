@@ -1,8 +1,7 @@
-use datafusion::datasource::listing::PartitionedFile;
 use mangrobe_lab::proto::{
     AcquireFileLockEntry, AcquireFileLockFileInfoEntry, AddFileEntry, AddFileInfoEntry,
-    ChangeFileDeleteEntry, ChangeFileEntry, ColumnStatisticsEntry, CompactFileDstEntry,
-    CompactFileEntry, CompactFileInfoEntry, CompactFileSrcEntry,
+    ChangeFileDeleteEntry, ChangeFileEntry, CompactFileDstEntry,
+    CompactFileEntry, CompactFileInfoEntry, CompactFileSrcEntry, PartitionValue, partition_value,
 };
 use mangrobe_lab::{ApiClient, Stream};
 use prost_types::Timestamp;
@@ -18,7 +17,7 @@ pub async fn print_current_files(
     stream: &Stream,
 ) -> Result<(), anyhow::Error> {
     let current_state = api_client
-        .fetch_current_state(stream.table_identifier.clone(), stream.stream_id)
+        .fetch_current_state(stream.table_identifier.clone(), stream.stream)
         .await?;
 
     let mut files = current_state
@@ -66,9 +65,8 @@ pub async fn add_files(
     files: Vec<&str>,
 ) -> Result<(), anyhow::Error> {
     let file_add_entries = vec![AddFileEntry {
-        partition_time: Some(Timestamp {
-            seconds: 0,
-            nanos: 0,
+        partition: Some(PartitionValue {
+            value: Some(partition_value::Value::Time(DEFAULT_PARTITION_TIME)),
         }),
         file_info_entries: files
             .iter()
@@ -83,7 +81,7 @@ pub async fn add_files(
     let response = api_client
         .add_files(
             stream.table_identifier.clone(),
-            stream.stream_id,
+            stream.stream,
             file_add_entries,
         )
         .await?;
@@ -105,7 +103,9 @@ pub async fn compact_files(
     dst_file: &str,
 ) -> Result<(), anyhow::Error> {
     let compact_file_entries = vec![CompactFileEntry {
-        partition_time: Some(DEFAULT_PARTITION_TIME),
+        partition: Some(PartitionValue {
+            value: Some(partition_value::Value::Time(DEFAULT_PARTITION_TIME)),
+        }),
         file_info_entries: vec![CompactFileInfoEntry {
             src_entries: src_files
                 .iter()
@@ -126,7 +126,7 @@ pub async fn compact_files(
         .compact_files(
             lock_key,
             stream.table_identifier.clone(),
-            stream.stream_id,
+            stream.stream,
             compact_file_entries,
         )
         .await?;
@@ -148,7 +148,9 @@ pub async fn change_files(
     delete_files: Vec<&str>,
 ) -> Result<(), anyhow::Error> {
     let change_file_entries = vec![ChangeFileEntry {
-        partition_time: Some(DEFAULT_PARTITION_TIME),
+        partition: Some(PartitionValue {
+            value: Some(partition_value::Value::Time(DEFAULT_PARTITION_TIME)),
+        }),
         delete_entries: delete_files
             .iter()
             .map(|f| ChangeFileDeleteEntry {
@@ -160,7 +162,7 @@ pub async fn change_files(
         .change_files(
             lock_key,
             stream.table_identifier.clone(),
-            stream.stream_id,
+            stream.stream,
             change_file_entries,
         )
         .await?;
@@ -182,7 +184,9 @@ pub async fn lock(
     let lock_key = Uuid::now_v7();
 
     let acquire_file_lock_entries = vec![AcquireFileLockEntry {
-        partition_time: Some(DEFAULT_PARTITION_TIME),
+        partition: Some(PartitionValue {
+            value: Some(partition_value::Value::Time(DEFAULT_PARTITION_TIME)),
+        }),
         acquire_file_info_entries: target_files
             .iter()
             .map(|file| AcquireFileLockFileInfoEntry {
@@ -194,7 +198,7 @@ pub async fn lock(
         .acquire_lock(
             lock_key,
             stream.table_identifier.clone(),
-            stream.stream_id,
+            stream.stream,
             acquire_file_lock_entries,
         )
         .await?;

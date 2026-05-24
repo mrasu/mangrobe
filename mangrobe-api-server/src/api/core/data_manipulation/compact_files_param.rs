@@ -1,6 +1,6 @@
 use crate::api::core::util::error::ParameterError;
 use crate::api::core::util::param::file_lock_key::to_file_lock_key;
-use crate::api::core::util::param::partition_time::to_partition_time;
+use crate::api::core::util::param::partition::to_unvalidated_partition;
 use crate::api::core::util::param::table_identifier::to_table_identifier;
 use crate::api::core::util::param_util::required;
 use crate::api::grpc::proto::CompactFilesRequest;
@@ -24,7 +24,7 @@ pub(crate) fn build_compact_files_param(
 
     let mut entries = vec![];
     for entry in req.compact_file_entries.iter() {
-        let partition_time = to_partition_time(entry.partition_time)?;
+        let partition = to_unvalidated_partition(entry.partition.as_ref())?;
 
         let mut file_info_entries = vec![];
         for info_entry in entry.file_info_entries.iter() {
@@ -67,7 +67,7 @@ pub(crate) fn build_compact_files_param(
             ))
         }
         entries.push(ChangeRequestRawCompactFilesEntry::new(
-            partition_time,
+            partition,
             file_info_entries,
         ))
     }
@@ -75,7 +75,7 @@ pub(crate) fn build_compact_files_param(
     let param = CompactFilesParam {
         file_lock_key,
         table_identifier,
-        stream_id: req.stream_id.into(),
+        stream: req.stream.into(),
         entries,
     };
     Ok(param)

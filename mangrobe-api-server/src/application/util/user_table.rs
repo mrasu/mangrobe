@@ -1,5 +1,6 @@
 use crate::domain::model::table_identifier::TableIdentifier;
 use crate::domain::model::user_table_id::UserTableId;
+use crate::domain::model::user_table_info::UserTableInfo;
 use crate::domain::service::user_table_service::UserTableService;
 use crate::util::error::UserError;
 
@@ -18,4 +19,23 @@ pub async fn find_table_id(
     };
 
     Ok(table_id)
+}
+
+pub async fn find_table_info(
+    user_table_service: &UserTableService,
+    identifier: &TableIdentifier,
+) -> Result<UserTableInfo, anyhow::Error> {
+    let table = user_table_service
+        .find_info_by_identifier(identifier)
+        .await?;
+
+    let Some(table) = table else {
+        return Err(UserError::InvalidParameterMessage(format!(
+            "table '{}' not found",
+            identifier.full_name()
+        ))
+        .into());
+    };
+
+    Ok(table)
 }

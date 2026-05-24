@@ -3,7 +3,7 @@ use crate::domain::model::commit::Commit;
 use crate::domain::model::commit_id::CommitId;
 use crate::domain::model::committed_change_request::CommittedChangeRequest;
 use crate::domain::model::stream::Stream;
-use crate::domain::model::stream_id::StreamId;
+use crate::domain::model::stream_info::StreamInfo;
 use crate::domain::model::user_table_id::UserTableId;
 use crate::domain::model::user_table_stream::UserTablStream;
 use crate::infrastructure::db::entity::commits::{Column, Entity};
@@ -35,7 +35,7 @@ impl CommitRepository {
     {
         let commit = Entity::find()
             .filter(Column::UserTableId.eq(stream.user_table_id.val()))
-            .filter(Column::StreamId.eq(stream.stream_id.val()))
+            .filter(Column::Stream.eq(stream.stream.val()))
             .order_by_desc(Column::Id)
             .one(conn)
             .await?;
@@ -90,7 +90,7 @@ impl CommitRepository {
             .inner_join(ChangeRequests)
             .select_also(ChangeRequests)
             .filter(Column::UserTableId.eq(stream.user_table_id.val()))
-            .filter(Column::StreamId.eq(stream.stream_id.val()))
+            .filter(Column::Stream.eq(stream.stream.val()))
             .filter(Column::Id.gt(commit_id.val()))
             .order_by_asc(Column::Id)
             .limit(limit)
@@ -118,22 +118,22 @@ impl CommitRepository {
         &self,
         conn: &C,
         table_id: &UserTableId,
-        stream_id: &Option<StreamId>,
+        stream: &Option<Stream>,
         limit: u64,
-    ) -> Result<Vec<Stream>, anyhow::Error> {
+    ) -> Result<Vec<StreamInfo>, anyhow::Error> {
         let mut query = Commits::find()
             .select_only()
-            .column(Column::StreamId)
+            .column(Column::Stream)
             .column_as(Expr::col(Column::Id).max(), "last_commit_id")
             .filter(Column::UserTableId.eq(table_id.val()))
-            .group_by(Column::StreamId);
+            .group_by(Column::Stream);
 
-        if let Some(stream_id) = stream_id {
-            query = query.filter(Column::StreamId.gt(stream_id.val()));
+        if let Some(stream) = stream {
+            query = query.filter(Column::Stream.gt(stream.val()));
         }
 
         let rows: Vec<(i64, i64)> = query
-            .order_by_asc(Column::StreamId)
+            .order_by_asc(Column::Stream)
             .limit(limit)
             .into_tuple::<(i64, i64)>()
             .all(conn)
@@ -141,8 +141,8 @@ impl CommitRepository {
 
         let streams = rows
             .iter()
-            .map(|(stream_id, last_commit_id)| Stream {
-                id: stream_id.into(),
+            .map(|(stream, last_commit_id)| StreamInfo {
+                id: stream.into(),
                 last_commit_id: last_commit_id.into(),
             })
             .collect();

@@ -20,13 +20,13 @@ pub(crate) fn parse_list_streams_param(
     });
     let page = build_page(&pagination, DEFAULT_PAGE_SIZE)?;
 
-    let stream_id_after = match page.token {
+    let stream_after = match page.token {
         Some(token) => {
             let token = ListStreamPageToken::parse(token).ok_or(invalid_page_token())?;
             if token.table_identifier != table_identifier {
                 return Err(invalid_page_token());
             }
-            Some(token.stream_id)
+            Some(token.stream)
         }
         None => None,
     };
@@ -34,7 +34,7 @@ pub(crate) fn parse_list_streams_param(
     Ok((
         ListStreamsParam {
             table_identifier,
-            stream_id_after,
+            stream_after,
         },
         page.size,
     ))

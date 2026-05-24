@@ -1,6 +1,6 @@
 use crate::api::core::util::error::ParameterError;
 use crate::api::core::util::param::idempotency_key::to_idempotency_key;
-use crate::api::core::util::param::partition_time::to_partition_time;
+use crate::api::core::util::param::partition::to_unvalidated_partition;
 use crate::api::core::util::param::table_identifier::to_table_identifier;
 use crate::api::core::util::param_util::required;
 use crate::api::grpc::proto::AddFilesRequest;
@@ -20,9 +20,9 @@ pub(crate) fn build_add_files_param(
 
     let mut entries = vec![];
     for entry in req.add_file_entries.iter() {
-        let partition_time = to_partition_time(entry.partition_time)?;
+        let partition_value = to_unvalidated_partition(entry.partition.as_ref())?;
         entries.push(ChangeRequestRawAddFileEntry::new(
-            partition_time,
+            partition_value,
             entry
                 .file_info_entries
                 .iter()
@@ -58,7 +58,7 @@ pub(crate) fn build_add_files_param(
     let param = AddFilesParam {
         idempotency_key,
         table_identifier,
-        stream_id: req.stream_id.into(),
+        stream: req.stream.into(),
         entries,
     };
     Ok(param)
