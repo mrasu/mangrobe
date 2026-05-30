@@ -13,9 +13,9 @@ pub(crate) struct DataDefinitionService {
 }
 
 impl DataDefinitionService {
-    pub fn new(db: &DatabaseConnection) -> Self {
+    pub fn new(db: DatabaseConnection) -> Self {
         Self {
-            core_service: CoreDataDefinitionService::new(db.clone()),
+            core_service: CoreDataDefinitionService::new(db),
         }
     }
 }

@@ -12,9 +12,9 @@ pub(crate) struct LockControlService {
 }
 
 impl LockControlService {
-    pub fn new(db: &DatabaseConnection) -> Self {
+    pub fn new(db: DatabaseConnection) -> Self {
         Self {
-            core_service: CoreLockControlService::new(db.clone()),
+            core_service: CoreLockControlService::new(db),
         }
     }
 }

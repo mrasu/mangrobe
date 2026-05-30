@@ -14,9 +14,9 @@ pub(crate) struct DataManipulationService {
 }
 
 impl DataManipulationService {
-    pub fn new(db: &DatabaseConnection) -> Self {
+    pub fn new(db: DatabaseConnection) -> Self {
         Self {
-            core_service: CoreDataManipulationService::new(db.clone()),
+            core_service: CoreDataManipulationService::new(db),
         }
     }
 }

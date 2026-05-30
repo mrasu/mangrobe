@@ -1,7 +1,7 @@
 use mangrobe_lab::proto::{
     AcquireFileLockEntry, AcquireFileLockFileInfoEntry, AddFileEntry, AddFileInfoEntry,
-    ChangeFileDeleteEntry, ChangeFileEntry, CompactFileDstEntry,
-    CompactFileEntry, CompactFileInfoEntry, CompactFileSrcEntry, PartitionValue, partition_value,
+    ChangeFileDeleteEntry, ChangeFileEntry, CompactFileDstEntry, CompactFileEntry,
+    CompactFileInfoEntry, CompactFileSrcEntry, PartitionValue, partition_value,
 };
 use mangrobe_lab::{ApiClient, Stream};
 use prost_types::Timestamp;

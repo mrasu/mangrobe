@@ -11,9 +11,9 @@ pub(crate) struct InformationSchemaService {
 }
 
 impl InformationSchemaService {
-    pub fn new(db: &DatabaseConnection) -> Self {
+    pub fn new(db: DatabaseConnection) -> Self {
         Self {
-            core_service: CoreInformationSchemaService::new(db.clone()),
+            core_service: CoreInformationSchemaService::new(db),
         }
     }
 }
